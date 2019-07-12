@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -10,11 +11,14 @@ namespace FinishLineApi.Models
     {
         private readonly ILogger<FinishLineDBContext> _logger;
 
-        public FinishLineDBContext(DbContextOptions<FinishLineDBContext> options, ILogger<FinishLineDBContext> logger)
+        public FinishLineDBContext(DbContextOptions<FinishLineDBContext> options, ILogger<FinishLineDBContext> logger, IHostingEnvironment env)
             : base(options)
         {
-            // This actually creates and initializes the database.
-            Database.EnsureCreated();
+            if (env.IsDevelopment())
+            {
+                // This actually creates and initializes the database.
+                Database.EnsureCreated();
+            }
 
             _logger = logger;
         }

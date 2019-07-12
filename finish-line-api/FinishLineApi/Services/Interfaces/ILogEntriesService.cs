@@ -2,10 +2,12 @@
 using System;
 using System.Collections.Generic;
 
-namespace FinishLineApi.Services.Interfaces
+namespace FinishLineApi.Services
 {
     public interface ILogEntriesService
     {
-        IEnumerable<LogEntryDto> ReadAll(DateTime? date);
+        IEnumerable<LogEntryDto> ReadAllItems(DateTime? date);
+        LogEntryDto ReadItem(int id);
+        LogEntryDto CreateItem(LogEntryDto newLogEntry);
     }
 }
