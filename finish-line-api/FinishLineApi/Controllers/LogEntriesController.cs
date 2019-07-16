@@ -21,13 +21,11 @@ namespace FinishLineApi.Controllers
     {
         ILogEntriesService _logEntriesService;
         ILogger<LogEntriesController> _logger;
-        IMapper _mapper;
-
-        public LogEntriesController(ILogEntriesService logEntriesService, ILogger<LogEntriesController> logger, IMapper mapper)
+        
+        public LogEntriesController(ILogEntriesService logEntriesService, ILogger<LogEntriesController> logger)
         {
             _logEntriesService = logEntriesService;
             _logger = logger;
-            _mapper = mapper;
         }
 
         // GET api/v1/log-entries?date=2019-04-23
