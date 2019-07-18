@@ -9,5 +9,7 @@ namespace FinishLineApi.Services
         IEnumerable<LogEntryDto> ReadAllItems(DateTime? date);
         LogEntryDto ReadItem(int id);
         LogEntryDto CreateItem(LogEntryDto newLogEntry);
+        LogEntryDto UpdateItem(LogEntryDto newLogEntry);
+        void DeleteItem(int id);
     }
 }

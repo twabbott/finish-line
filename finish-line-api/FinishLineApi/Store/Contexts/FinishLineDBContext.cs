@@ -30,9 +30,20 @@ namespace FinishLineApi.Models
         public DbSet<ProjectList> ProjectLists { get; set; }
         public DbSet<ProjectInProjectList> ProjectsInProjectList { get; set; }
 
-        public bool CommitChanges()
+        public int CommitChanges()
         {
-            return SaveChanges() >= 0;
+            int count = 0;
+            try
+            {
+                count = SaveChanges();
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+            {
+                if (string.IsNullOrEmpty(ex.Message) || !ex.Message.StartsWith("Database operation expected to affect 1 row(s)"))
+                    throw;
+            }
+
+            return count;
         }
     }
 }

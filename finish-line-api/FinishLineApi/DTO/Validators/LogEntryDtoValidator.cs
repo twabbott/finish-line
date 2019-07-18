@@ -1,5 +1,8 @@
-﻿using FinishLineApi.Dto;
+﻿using System;
+using FinishLineApi.Dto;
 using FluentValidation;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace FinishLineApi.DTO.Validators
 {
@@ -29,6 +32,16 @@ namespace FinishLineApi.DTO.Validators
                 RuleFor(x => x.CreatedDate)
                     .NotNull();
             });
+        }
+
+        public static void ValidateForCreate(LogEntryDto item)
+        {
+            Validation<LogEntryDtoValidator, LogEntryDto>.ValidateObject(item, "Create");
+        }
+
+        public static void ValidateForUpdate(LogEntryDto item)
+        {
+            Validation<LogEntryDtoValidator, LogEntryDto>.ValidateObject(item, "Update");
         }
     }
 }

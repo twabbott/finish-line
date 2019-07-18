@@ -14,6 +14,6 @@ namespace FinishLineApi.Models
         DbSet<LogEntry> LogEntries { get; set; }
         DbSet<ProjectList> ProjectLists { get; set; }
         DbSet<ProjectInProjectList> ProjectsInProjectList { get; set; }
-        bool CommitChanges();
+        int CommitChanges();
     }
 }

@@ -3,6 +3,7 @@ using FinishLineApi.Dto;
 using FinishLineApi.DTO.Validators;
 using FinishLineApi.Models;
 using FinishLineApi.Services;
+using FluentValidation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -41,14 +42,40 @@ namespace FinishLineApi.Services
             return _mapper.Map<LogEntryDto>(result);
         }
 
-        public LogEntryDto CreateItem(LogEntryDto newLogEntry)
+        public LogEntryDto CreateItem(LogEntryDto entry)
         {
-            var entity = _mapper.Map<LogEntry>(newLogEntry);
+            LogEntryDtoValidator.ValidateForCreate(entry);
+
+            var entity = _mapper.Map<LogEntry>(entry);
             entity.CreatedDate = DateTime.Now;
             _dbContext.LogEntries.Add(entity);
             _dbContext.CommitChanges();
 
             return _mapper.Map<LogEntryDto>(entity);
+        }
+
+        public LogEntryDto UpdateItem(LogEntryDto entry)
+        {
+            LogEntryDtoValidator.ValidateForUpdate(entry);
+
+            var entity = _mapper.Map<LogEntry>(entry);
+            _dbContext.LogEntries.Update(entity);
+            if (_dbContext.CommitChanges() < 1)
+            {
+                throw new NotFoundException($"Item not found.");
+            }
+
+            return _mapper.Map<LogEntryDto>(entity);
+        }
+
+        public void DeleteItem(int id)
+        {
+            LogEntry entity = new LogEntry { Id = id };
+            _dbContext.LogEntries.Remove(entity);
+            if (_dbContext.CommitChanges() < 1)
+            {
+                throw new NotFoundException($"Item not found.");
+            }
         }
     }
 }
