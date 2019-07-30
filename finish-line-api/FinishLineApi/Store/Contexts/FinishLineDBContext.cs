@@ -1,12 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace FinishLineApi.Models
+using FinishLineApi.Store.Entities;
+
+namespace FinishLineApi.Store.Contexts
 {
+    public interface IFinishLineDBContext
+    {
+        DbSet<Project> Projects { get; set; }
+        DbSet<WorkItem> WorkItems { get; set; }
+        DbSet<Resource> ReferenceItems { get; set; }
+        DbSet<LogEntry> LogEntries { get; set; }
+        DbSet<ProjectList> ProjectLists { get; set; }
+        DbSet<ProjectInProjectList> ProjectsInProjectList { get; set; }
+        int CommitChanges();
+    }
+
     public class FinishLineDBContext: DbContext, IFinishLineDBContext
     {
         private readonly ILogger<FinishLineDBContext> _logger;

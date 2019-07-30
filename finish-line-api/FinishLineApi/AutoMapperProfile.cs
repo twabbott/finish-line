@@ -1,11 +1,7 @@
 ﻿using AutoMapper;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 using FinishLineApi.Dto;
-using FinishLineApi.Models;
+using FinishLineApi.Store.Entities;
 
 namespace FinishLineApi
 {

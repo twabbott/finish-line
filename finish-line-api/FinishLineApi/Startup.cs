@@ -1,21 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using FinishLineApi.Models;
+﻿using AutoMapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Microsoft.EntityFrameworkCore;
-using AutoMapper;
+using System;
+
+using FinishLineApi.Models;
 using FinishLineApi.Services;
-using FluentValidation.AspNetCore;
-using FinishLineApi.Dto;
-using FluentValidation;
+using FinishLineApi.Store.Contexts;
 
 namespace FinishLineApi
 {

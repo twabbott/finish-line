@@ -1,4 +1,4 @@
-﻿namespace FinishLineApi.Models
+﻿namespace FinishLineApi.Store.Entities
 {
     /// <summary>
     ///     A project encapsulates a manageable amount of work with a clear goal

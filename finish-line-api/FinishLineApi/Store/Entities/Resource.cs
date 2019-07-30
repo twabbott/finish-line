@@ -1,4 +1,4 @@
-﻿namespace FinishLineApi.Models
+﻿namespace FinishLineApi.Store.Entities
 {
     /// <summary>
     ///     A Resource is a link (URL/bookmark) or some other piece of info related to a project.

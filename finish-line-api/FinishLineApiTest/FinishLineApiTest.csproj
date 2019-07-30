@@ -23,4 +23,8 @@
     <ProjectReference Include="..\FinishLineApi\FinishLineApi.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="ServiceTests\" />
+  </ItemGroup>
+
 </Project>

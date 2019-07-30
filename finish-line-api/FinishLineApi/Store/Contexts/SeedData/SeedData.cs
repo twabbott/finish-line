@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
+
+using FinishLineApi.Store.Contexts;
+using FinishLineApi.Store.Entities;
 
 namespace FinishLineApi.Models
 {

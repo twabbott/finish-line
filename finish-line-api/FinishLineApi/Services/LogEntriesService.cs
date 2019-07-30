@@ -1,16 +1,24 @@
 ﻿using AutoMapper;
 using FinishLineApi.Dto;
 using FinishLineApi.DTO.Validators;
-using FinishLineApi.Models;
-using FinishLineApi.Services;
+using FinishLineApi.Store.Contexts;
+using FinishLineApi.Store.Entities;
 using FluentValidation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace FinishLineApi.Services
 {
+    public interface ILogEntriesService
+    {
+        IEnumerable<LogEntryDto> ReadAllItems(DateTime? date);
+        LogEntryDto ReadItem(int id);
+        LogEntryDto CreateItem(LogEntryDto newLogEntry);
+        LogEntryDto UpdateItem(LogEntryDto newLogEntry);
+        void DeleteItem(int id);
+    }
+
     public class LogEntriesService: ILogEntriesService
     {
         private IFinishLineDBContext _dbContext;

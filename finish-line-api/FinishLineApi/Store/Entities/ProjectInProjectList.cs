@@ -1,4 +1,4 @@
-﻿namespace FinishLineApi.Models
+﻿namespace FinishLineApi.Store.Entities
 {
     public class ProjectInProjectList
     {
