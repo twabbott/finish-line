@@ -52,7 +52,7 @@ namespace FinishLineApi.Services
 
         public LogEntryDto CreateItem(LogEntryDto entry)
         {
-            LogEntryDtoValidator.ValidateForCreate(entry);
+            Validation<LogEntryDtoValidator, LogEntryDto>.ValidateObject(entry);
 
             var entity = _mapper.Map<LogEntry>(entry);
             entity.CreatedDate = DateTime.Now;
@@ -64,7 +64,7 @@ namespace FinishLineApi.Services
 
         public LogEntryDto UpdateItem(LogEntryDto entry)
         {
-            LogEntryDtoValidator.ValidateForUpdate(entry);
+            Validation<LogEntryDtoValidator, LogEntryDto>.ValidateObject(entry, "default,Update");
 
             var entity = _mapper.Map<LogEntry>(entry);
             _dbContext.LogEntries.Update(entity);

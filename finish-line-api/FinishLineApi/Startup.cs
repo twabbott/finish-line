@@ -37,13 +37,7 @@ namespace FinishLineApi
             });
 
             // Auto Mapper Configurations
-            var mappingConfig = new MapperConfiguration(mc =>
-            {
-                mc.AddProfile(new AutoMapperProfile());
-            });
-
-            IMapper mapper = mappingConfig.CreateMapper();
-            services.AddSingleton(mapper);
+            services.AddSingleton(AutoMapperProfile.MapperFactory());
 
             // SQL Server configuration.  We're using SQL Server localdb
             var connection = @"Server=(localdb)\mssqllocaldb;Database=FinishLine;Trusted_Connection=True;ConnectRetryCount=0";

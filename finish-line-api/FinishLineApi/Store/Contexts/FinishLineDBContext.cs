@@ -3,10 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 using FinishLineApi.Store.Entities;
+using System;
 
 namespace FinishLineApi.Store.Contexts
 {
-    public interface IFinishLineDBContext
+    public interface IFinishLineDBContext: IDisposable
     {
         DbSet<Project> Projects { get; set; }
         DbSet<WorkItem> WorkItems { get; set; }
