@@ -15,70 +15,70 @@ namespace FinishLineApi.Controllers
 {
     [Route("api/v1")]
     [ApiController]
-    public class LogEntriesController: ControllerBase
+    public class WorkNotesController: ControllerBase
     {
-        ILogEntriesService _logEntriesService;
-        ILogger<LogEntriesController> _logger;
+        IWorkNoteService _workNoteService;
+        ILogger<WorkNotesController> _logger;
         
-        public LogEntriesController(ILogEntriesService logEntriesService, ILogger<LogEntriesController> logger)
+        public WorkNotesController(IWorkNoteService workNoteService, ILogger<WorkNotesController> logger)
         {
-            _logEntriesService = logEntriesService;
+            _workNoteService = workNoteService;
             _logger = logger;
         }
 
-        // GET api/v1/log-entries?date=2019-04-23
+        // GET api/v1/work-notes?date=2019-04-23
         [HttpGet]
-        [Route("log-entries")]
-        public ActionResult<List<LogEntryDto>> GetAll(DateTime? date)
+        [Route("work-notes")]
+        public ActionResult<List<WorkNoteDto>> GetAll(DateTime? date)
         {
-            IEnumerable<LogEntryDto> list;
+            IEnumerable<WorkNoteDto> list;
             try
             {
 
-                list = _logEntriesService.ReadAllItems(date);
+                list = _workNoteService.ReadAllItems(date);
             }
             catch (Exception ex)
             {
-                _logger.LogCritical(ex, "Error getting all LogEntry items");
+                _logger.LogCritical(ex, "Error getting all WorkNote items");
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
 
             return Ok(list);
         }
 
-        // GET api/v1/log-entries/{id}
+        // GET api/v1/work-notes/{id}
         [HttpGet]
-        [Route("log-entries/{id}")]
-        public ActionResult<List<LogEntryDto>> Get(int id)
+        [Route("work-notes/{id}")]
+        public ActionResult<List<WorkNoteDto>> Get(int id)
         {
-            LogEntryDto logEntry;
+            WorkNoteDto workNote;
             try
             {
-                logEntry = _logEntriesService.ReadItem(id);
+                workNote = _workNoteService.ReadItem(id);
             }
             catch (Exception ex)
             {
-                _logger.LogCritical(ex, $"Error getting LogEntry id={id}");
+                _logger.LogCritical(ex, $"Error getting WorkNote id={id}");
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
 
-            if (logEntry == null)
+            if (workNote == null)
             {
                 return NotFound();
             }
 
-            return Ok(logEntry);
+            return Ok(workNote);
         }
 
-        // POST api/v1/log-entries/
+        // POST api/v1/work-notes/
         [HttpPost]
-        [Route("log-entries")]
-        public ActionResult<List<LogEntryDto>> Create([FromBody] LogEntryDto newItem)
+        [Route("work-notes")]
+        public ActionResult<List<WorkNoteDto>> Create([FromBody] WorkNoteDto newItem)
         {
-            LogEntryDto logEntry;
+            WorkNoteDto workNote;
             try
             {
-                logEntry = _logEntriesService.CreateItem(newItem);
+                workNote = _workNoteService.CreateItem(newItem);
             }
             catch (ContentValidationException ex)
             {
@@ -86,21 +86,21 @@ namespace FinishLineApi.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogCritical(ex, $"Error creating LogEntry Title=\"{newItem.Title}\"");
+                _logger.LogCritical(ex, $"Error creating WorkNote Title=\"{newItem.Title}\"");
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
 
             return CreatedAtAction(
                 "Get",  // Tell WebAPI to use the route-info for our Get() method when creating the location header
-                new { id = logEntry.Id }, // Parameters that the Get() method needs
-                logEntry); // The new thing that was created.
+                new { id = workNote.Id }, // Parameters that the Get() method needs
+                workNote); // The new thing that was created.
         }
 
         [HttpPut]
-        [Route("log-entries/{id}")]
-        public ActionResult<LogEntryDto> Update(int id, [FromBody] LogEntryDto item)
+        [Route("work-notes/{id}")]
+        public ActionResult<WorkNoteDto> Update(int id, [FromBody] WorkNoteDto item)
         {
-            LogEntryDto logEntry;
+            WorkNoteDto workNote;
             try
             {
                 if (item.Id > 0 && item.Id != id)
@@ -108,7 +108,7 @@ namespace FinishLineApi.Controllers
                     throw new ContentValidationException("'id' property must match URL");
                 }
 
-                logEntry = _logEntriesService.UpdateItem(item);
+                workNote = _workNoteService.UpdateItem(item);
             }
             catch (NotFoundException ex)
             {
@@ -120,20 +120,20 @@ namespace FinishLineApi.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogCritical(ex, $"Error updating LogEntry Id={id} Title=\"{item.Title}\"");
+                _logger.LogCritical(ex, $"Error updating WorkNote Id={id} Title=\"{item.Title}\"");
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
 
-            return Ok(logEntry);
+            return Ok(workNote);
         }
 
         [HttpDelete]
-        [Route("log-entries/{id}")]
+        [Route("work-notes/{id}")]
         public ActionResult Delete(int id)
         {
             try
             {
-                _logEntriesService.DeleteItem(id);
+                _workNoteService.DeleteItem(id);
             }
             catch (NotFoundException ex)
             {
@@ -141,7 +141,7 @@ namespace FinishLineApi.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogCritical(ex, $"Error deleting LogEntry Id={id}");
+                _logger.LogCritical(ex, $"Error deleting WorkNote Id={id}");
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
 

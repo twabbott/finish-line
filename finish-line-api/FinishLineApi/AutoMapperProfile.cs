@@ -13,11 +13,11 @@ namespace FinishLineApi
         {
             // All mappings are uni-directional, so if you need to map both ways
             // then you need to specify both mappings.
-            CreateMap<LogEntry, LogEntryDto>()
+            CreateMap<WorkNote, WorkNoteDto>()
                 .ForMember(
                     dest => dest.Id,
                     opt => opt.MapFrom(src => src.Id));
-            CreateMap<LogEntryDto, LogEntry>();
+            CreateMap<WorkNoteDto, WorkNote>();
         }
 
         /// <summary>

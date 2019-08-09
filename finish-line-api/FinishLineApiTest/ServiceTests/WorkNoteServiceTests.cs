@@ -17,12 +17,12 @@ using FinishLineApi.DTO.Validators;
 
 namespace ServiceTests
 {
-    public class LogEntriesServiceTests
+    public class WorkNoteServiceTests
     {
         Mock<ILogger<FinishLineDBContext>> _mockLogger = new Mock<ILogger<FinishLineDBContext>>();
         Mock<IHostingEnvironment> _mockHostingEnvironment = new Mock<IHostingEnvironment>();
 
-        List<LogEntry> _testData = new List<LogEntry>
+        List<WorkNote> _testData = new List<WorkNote>
         {
         };
 
@@ -36,14 +36,14 @@ namespace ServiceTests
                 options,
                 _mockLogger.Object,
                 _mockHostingEnvironment.Object);
-            context.LogEntries.Add(new LogEntry()
+            context.WorkNotes.Add(new WorkNote()
             {
                 Id = 1000,
                 Title = "I did this",
                 Content = "No issues found",
                 CreatedDate = new DateTime(2019, 07, 15, 12, 30, 0)
             });
-            context.LogEntries.Add(new LogEntry()
+            context.WorkNotes.Add(new WorkNote()
             {
                 Id = 1001,
                 Title = "I did another thing",
@@ -55,9 +55,9 @@ namespace ServiceTests
             return context;
         }
 
-        public LogEntriesService BuildService(IFinishLineDBContext context)
+        public WorkNoteService BuildService(IFinishLineDBContext context)
         {
-            LogEntriesService service = new LogEntriesService(context, AutoMapperProfile.MapperFactory());
+            WorkNoteService service = new WorkNoteService(context, AutoMapperProfile.MapperFactory());
 
             return service;
         }
@@ -71,7 +71,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                IEnumerable<LogEntryDto> result = service.ReadAllItems(null);
+                IEnumerable<WorkNoteDto> result = service.ReadAllItems(null);
 
                 result.Should()
                     .NotBeNull()
@@ -87,7 +87,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                IEnumerable<LogEntryDto> result = service.ReadAllItems(new DateTime(2019, 07, 15, 12, 30, 0));
+                IEnumerable<WorkNoteDto> result = service.ReadAllItems(new DateTime(2019, 07, 15, 12, 30, 0));
 
                 result.Should()
                     .NotBeNull()
@@ -103,7 +103,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                IEnumerable<LogEntryDto> result = service.ReadAllItems(new DateTime(2000, 01, 01, 12, 00, 00));
+                IEnumerable<WorkNoteDto> result = service.ReadAllItems(new DateTime(2000, 01, 01, 12, 00, 00));
 
                 result.Should()
                     .NotBeNull()
@@ -123,7 +123,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto result = service.ReadItem(1001);
+                WorkNoteDto result = service.ReadItem(1001);
 
                 result.Should().NotBeNull("Result should not be null");
                 result.Title.Should().Be("I did another thing");
@@ -139,7 +139,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto result = service.ReadItem(1234);
+                WorkNoteDto result = service.ReadItem(1234);
 
                 result.Should().BeNull();
             }
@@ -156,7 +156,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto result = service.CreateItem(new LogEntryDto
+                WorkNoteDto result = service.CreateItem(new WorkNoteDto
                 {
                     Title = "I did this",
                     Content = "No issues found",
@@ -177,7 +177,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto result = service.CreateItem(new LogEntryDto
+                WorkNoteDto result = service.CreateItem(new WorkNoteDto
                 {
                     Title = @" 
  I did this   ",
@@ -200,7 +200,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto result = service.CreateItem(new LogEntryDto
+                WorkNoteDto result = service.CreateItem(new WorkNoteDto
                 {
                     Title = "I did this",
                     Content = null,
@@ -221,7 +221,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                var badItem = new LogEntryDto
+                var badItem = new WorkNoteDto
                 {
                     Title = null,
                     Content = "No issues found",
@@ -240,7 +240,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                var badItem = new LogEntryDto
+                var badItem = new WorkNoteDto
                 {
                     Title = "",
                     Content = "No issues found",
@@ -259,7 +259,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                var badItem = new LogEntryDto
+                var badItem = new WorkNoteDto
                 {
                     Title = " ",
                     Content = "No issues found",
@@ -282,7 +282,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto result = service.UpdateItem(new LogEntryDto
+                WorkNoteDto result = service.UpdateItem(new WorkNoteDto
                 {
                     Id = 1001,
                     Title = "Changed",
@@ -304,7 +304,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto result = service.UpdateItem(new LogEntryDto
+                WorkNoteDto result = service.UpdateItem(new WorkNoteDto
                 {
                     Id = 1001,
                     Title = @" 
@@ -328,7 +328,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto result = service.UpdateItem(new LogEntryDto
+                WorkNoteDto result = service.UpdateItem(new WorkNoteDto
                 {
                     Id = 1001,
                     Title = "Changed",
@@ -350,7 +350,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto badItem = new LogEntryDto
+                WorkNoteDto badItem = new WorkNoteDto
                 {
                     Id = 999999,
                     Title = "Changed",
@@ -371,7 +371,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto badItem = new LogEntryDto
+                WorkNoteDto badItem = new WorkNoteDto
                 {
                     Id = 1001,
                     Title = null,
@@ -392,7 +392,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto badItem = new LogEntryDto
+                WorkNoteDto badItem = new WorkNoteDto
                 {
                     Id = 1001,
                     Title = "",
@@ -413,7 +413,7 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto badItem = new LogEntryDto
+                WorkNoteDto badItem = new WorkNoteDto
                 {
                     Id = 1001,
                     Title = "   ",

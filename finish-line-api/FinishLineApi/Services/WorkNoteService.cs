@@ -10,29 +10,29 @@ using System.Linq;
 
 namespace FinishLineApi.Services
 {
-    public interface ILogEntriesService
+    public interface IWorkNoteService
     {
-        IEnumerable<LogEntryDto> ReadAllItems(DateTime? date = null);
-        LogEntryDto ReadItem(int id);
-        LogEntryDto CreateItem(LogEntryDto newLogEntry);
-        LogEntryDto UpdateItem(LogEntryDto newLogEntry);
+        IEnumerable<WorkNoteDto> ReadAllItems(DateTime? date = null);
+        WorkNoteDto ReadItem(int id);
+        WorkNoteDto CreateItem(WorkNoteDto newWorkNote);
+        WorkNoteDto UpdateItem(WorkNoteDto newWorkNote);
         void DeleteItem(int id);
     }
 
-    public class LogEntriesService: ILogEntriesService
+    public class WorkNoteService: IWorkNoteService
     {
         private IFinishLineDBContext _dbContext;
         private IMapper _mapper;
 
-        public LogEntriesService(IFinishLineDBContext dbContext, IMapper mapper)
+        public WorkNoteService(IFinishLineDBContext dbContext, IMapper mapper)
         {
             _dbContext = dbContext;
             _mapper = mapper;
         }
 
-        public IEnumerable<LogEntryDto> ReadAllItems(DateTime? date = null)
+        public IEnumerable<WorkNoteDto> ReadAllItems(DateTime? date = null)
         {
-            var query = _dbContext.LogEntries as IQueryable<LogEntry>;
+            var query = _dbContext.WorkNotes as IQueryable<WorkNote>;
             if (date.HasValue)
             {
                 query = query.Where(item => item.CreatedDate.Date == date.Value.Date);
@@ -40,17 +40,17 @@ namespace FinishLineApi.Services
 
             var results = query.ToList();
 
-            return _mapper.Map<IEnumerable<LogEntryDto>>(results);
+            return _mapper.Map<IEnumerable<WorkNoteDto>>(results);
         }
 
-        public LogEntryDto ReadItem(int id)
+        public WorkNoteDto ReadItem(int id)
         {
-            var query = _dbContext.LogEntries.Where(item => item.Id == id);
+            var query = _dbContext.WorkNotes.Where(item => item.Id == id);
             var result = query.ToList().SingleOrDefault();
-            return _mapper.Map<LogEntryDto>(result);
+            return _mapper.Map<WorkNoteDto>(result);
         }
 
-        public LogEntryDto CreateItem(LogEntryDto entry)
+        public WorkNoteDto CreateItem(WorkNoteDto entry)
         {
             entry.Id = 0;
             if (entry.Content == null)
@@ -58,24 +58,24 @@ namespace FinishLineApi.Services
                 entry.Content = "";
             }
 
-            Validation<LogEntryDtoValidator, LogEntryDto>.ValidateObject(entry);
+            Validation<WorkNoteDtoValidator, WorkNoteDto>.ValidateObject(entry);
 
             entry.Title = entry.Title.Trim();
             entry.Content = entry.Content.Trim();
 
-            var entity = _mapper.Map<LogEntry>(entry);
+            var entity = _mapper.Map<WorkNote>(entry);
             entity.CreatedDate = DateTime.Now;
-            _dbContext.LogEntries.Add(entity);
+            _dbContext.WorkNotes.Add(entity);
             _dbContext.CommitChanges();
 
-            return _mapper.Map<LogEntryDto>(entity);
+            return _mapper.Map<WorkNoteDto>(entity);
         }
 
-        public LogEntryDto UpdateItem(LogEntryDto newEntry)
+        public WorkNoteDto UpdateItem(WorkNoteDto newEntry)
         {
-            Validation<LogEntryDtoValidator, LogEntryDto>.ValidateObject(newEntry, "default,Update");
+            Validation<WorkNoteDtoValidator, WorkNoteDto>.ValidateObject(newEntry, "default,Update");
 
-            LogEntry entry = _dbContext.LogEntries.FirstOrDefault(item => item.Id == newEntry.Id);
+            WorkNote entry = _dbContext.WorkNotes.FirstOrDefault(item => item.Id == newEntry.Id);
             if (entry == null)
             {
                 throw new NotFoundException($"Item with id={newEntry.Id} not found.");
@@ -91,12 +91,12 @@ namespace FinishLineApi.Services
                 throw new NotFoundException($"Item with id={newEntry.Id} not updated.");
             }
 
-            return _mapper.Map<LogEntryDto>(entry);
+            return _mapper.Map<WorkNoteDto>(entry);
         }
 
         public void DeleteItem(int id)
         {
-            LogEntry entry = _dbContext.LogEntries.FirstOrDefault(item => item.Id == id);
+            WorkNote entry = _dbContext.WorkNotes.FirstOrDefault(item => item.Id == id);
             if (entry == null)
             {
                 throw new NotFoundException($"Item with id={id} not found.");

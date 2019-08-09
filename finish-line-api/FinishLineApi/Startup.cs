@@ -46,7 +46,7 @@ namespace FinishLineApi
             // Add all custom DI mappings for your services/etc. here.  For more info
             // on lifetime, see this article: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-2.1#service-lifetimes
             services
-                .AddScoped<ILogEntriesService, LogEntriesService>(); // Data services should have a scoped lifetime, not transient.
+                .AddScoped<IWorkNoteService, WorkNoteService>(); // Data services should have a scoped lifetime, not transient.
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

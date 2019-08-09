@@ -13,22 +13,22 @@ using FinishLineApi.DTO.Validators;
 
 namespace ControllerTests
 {
-    public class LogEntriesControllerTests
+    public class WorkNoteControllerTests
     {
         int _nextId = 1000;
-        Mock<ILogEntriesService> _mockLogEntriesService = new Mock<ILogEntriesService>();
-        Mock<ILogger<LogEntriesController>> _mockLogger = new Mock<ILogger<LogEntriesController>>();
+        Mock<IWorkNoteService> _mockWorkNotesService = new Mock<IWorkNoteService>();
+        Mock<ILogger<WorkNotesController>> _mockLogger = new Mock<ILogger<WorkNotesController>>();
 
-        List<LogEntryDto> _testData = new List<LogEntryDto>
+        List<WorkNoteDto> _testData = new List<WorkNoteDto>
         {
-            new LogEntryDto()
+            new WorkNoteDto()
             {
                 Id = 1000,
                 Title = "I did this",
                 Content = "No issues found",
                 CreatedDate = new DateTime(2019, 07, 15, 12, 30, 0)
             },
-            new LogEntryDto()
+            new WorkNoteDto()
             {
                 Id = 1001,
                 Title = "I did another thing",
@@ -37,25 +37,25 @@ namespace ControllerTests
             }
         };
 
-        public LogEntriesController BuildController()
+        public WorkNotesController BuildController()
         {
-            _mockLogEntriesService
+            _mockWorkNotesService
                 .Setup(inst => inst.ReadAllItems(It.IsAny<DateTime?>()))
                 .Returns((DateTime? date) => date == null ? _testData.ToArray() : _testData.Where(item => item.CreatedDate == date).ToArray());
-            _mockLogEntriesService
+            _mockWorkNotesService
                 .Setup(inst => inst.ReadItem(It.IsAny<int>()))
                 .Returns((int id) => _testData.Where(item => item.Id == id).SingleOrDefault());
-            _mockLogEntriesService
-                .Setup(inst => inst.CreateItem(It.IsAny<LogEntryDto>()))
-                .Returns((LogEntryDto newLogEntry) =>
+            _mockWorkNotesService
+                .Setup(inst => inst.CreateItem(It.IsAny<WorkNoteDto>()))
+                .Returns((WorkNoteDto newWorkNote) =>
                 {
-                    newLogEntry.Id = _nextId++;
-                    newLogEntry.CreatedDate = DateTime.Now;
-                    return newLogEntry;
+                    newWorkNote.Id = _nextId++;
+                    newWorkNote.CreatedDate = DateTime.Now;
+                    return newWorkNote;
                 });
-            _mockLogEntriesService
-                .Setup(inst => inst.UpdateItem(It.IsAny<LogEntryDto>()))
-                .Returns((LogEntryDto entry) =>
+            _mockWorkNotesService
+                .Setup(inst => inst.UpdateItem(It.IsAny<WorkNoteDto>()))
+                .Returns((WorkNoteDto entry) =>
                 {
                     var match = _testData.FirstOrDefault(item => item.Id == entry.Id);
                     if (match == null)
@@ -68,7 +68,7 @@ namespace ControllerTests
 
                     return entry;
                 });
-            _mockLogEntriesService
+            _mockWorkNotesService
                 .Setup(inst => inst.DeleteItem(It.IsAny<int>()))
                 .Callback((int id) =>
                 {
@@ -81,7 +81,7 @@ namespace ControllerTests
                     _testData = _testData.Where(item => item.Id != id).ToList();
                 });
 
-            return new LogEntriesController(_mockLogEntriesService.Object, _mockLogger.Object);
+            return new WorkNotesController(_mockWorkNotesService.Object, _mockLogger.Object);
         }
 
         [Fact]
@@ -97,9 +97,9 @@ namespace ControllerTests
             response.Result.Should().BeOfType<OkObjectResult>("Return a 200 OK response object, with content");
 
             var result = response.Result as OkObjectResult;
-            result.Value.Should().BeOfType<LogEntryDto[]>("Content should be of type LogEntryDto[]");
+            result.Value.Should().BeOfType<WorkNoteDto[]>("Content should be of type WorkNoteDto[]");
 
-            var items = result.Value as LogEntryDto[];
+            var items = result.Value as WorkNoteDto[];
             items.Should().HaveCount(2, "Should have returned two items.");
         }
 
@@ -116,9 +116,9 @@ namespace ControllerTests
             response.Result.Should().BeOfType<OkObjectResult>("Return a 200 OK response object, with content");
 
             var result = response.Result as OkObjectResult;
-            result.Value.Should().BeOfType<LogEntryDto[]>("Content should be of type LogEntryDto[]");
+            result.Value.Should().BeOfType<WorkNoteDto[]>("Content should be of type WorkNoteDto[]");
 
-            var items = result.Value as LogEntryDto[];
+            var items = result.Value as WorkNoteDto[];
             items.Should().HaveCount(1, "Should have  returned one item.");
         }
 
@@ -126,8 +126,8 @@ namespace ControllerTests
         public void GetAll_Handles500()
         {
             // Arrange
-            LogEntriesController controller = BuildController();
-            _mockLogEntriesService
+            WorkNotesController controller = BuildController();
+            _mockWorkNotesService
                 .Setup(inst => inst.ReadAllItems(It.IsAny<DateTime?>()))
                 .Throws(new Exception("Yeeeet!"));
 
@@ -154,9 +154,9 @@ namespace ControllerTests
             response.Result.Should().BeOfType<OkObjectResult>("Return a 200 OK response object, with content");
 
             var result = response.Result as OkObjectResult;
-            result.Value.Should().BeOfType<LogEntryDto>("Content should be of type LogEntryDto");
+            result.Value.Should().BeOfType<WorkNoteDto>("Content should be of type WorkNoteDto");
 
-            var item = result.Value as LogEntryDto;
+            var item = result.Value as WorkNoteDto;
             item.Id.Should().Be(1000);
         }
 
@@ -181,7 +181,7 @@ namespace ControllerTests
         {
             // Arrange
             var controller = BuildController();
-            _mockLogEntriesService
+            _mockWorkNotesService
                 .Setup(inst => inst.ReadItem(It.IsAny<int>()))
                 .Throws(new Exception("Yeeeet!"));
 
@@ -203,7 +203,7 @@ namespace ControllerTests
             var controller = BuildController();
 
             // Act
-            LogEntryDto entry = new LogEntryDto
+            WorkNoteDto entry = new WorkNoteDto
             {
                 Title = testTitle,
                 Content = "Because it was hard"
@@ -214,9 +214,9 @@ namespace ControllerTests
             response.Result.Should().BeOfType<CreatedAtActionResult>("Return a 200 OK response object, with content");
 
             var result = response.Result as CreatedAtActionResult;
-            result.Value.Should().BeOfType<LogEntryDto>("Content should be of type LogEntryDto");
+            result.Value.Should().BeOfType<WorkNoteDto>("Content should be of type WorkNoteDto");
 
-            var item = result.Value as LogEntryDto;
+            var item = result.Value as WorkNoteDto;
             item.Id.Should().Be(1000);
             item.CreatedDate.Should().BeSameDateAs(DateTime.Today);
             item.Title.Should().Be(testTitle);
@@ -227,12 +227,12 @@ namespace ControllerTests
         {
             // Arrange
             var controller = BuildController();
-            _mockLogEntriesService
-                .Setup(inst => inst.CreateItem(It.IsAny<LogEntryDto>()))
+            _mockWorkNotesService
+                .Setup(inst => inst.CreateItem(It.IsAny<WorkNoteDto>()))
                 .Throws(new ContentValidationException("Yeeeet!"));
 
             // Act
-            LogEntryDto entry = new LogEntryDto
+            WorkNoteDto entry = new WorkNoteDto
             {
                 Title = "I did this",
                 Content = null
@@ -248,12 +248,12 @@ namespace ControllerTests
         {
             // Arrange
             var controller = BuildController();
-            _mockLogEntriesService
-                .Setup(inst => inst.CreateItem(It.IsAny<LogEntryDto>()))
+            _mockWorkNotesService
+                .Setup(inst => inst.CreateItem(It.IsAny<WorkNoteDto>()))
                 .Throws(new Exception("Yeeeet!"));
 
             // Act
-            LogEntryDto entry = new LogEntryDto
+            WorkNoteDto entry = new WorkNoteDto
             {
                 Title = "I did this",
                 Content = "Because it was hard"
@@ -277,7 +277,7 @@ namespace ControllerTests
             var controller = BuildController();
 
             // Act
-            LogEntryDto entry = new LogEntryDto
+            WorkNoteDto entry = new WorkNoteDto
             {
                 Id = testId,
                 Title = testTitle,
@@ -289,9 +289,9 @@ namespace ControllerTests
             response.Result.Should().BeOfType<OkObjectResult>("Return a 200 OK response object, with content");
 
             var result = response.Result as OkObjectResult;
-            result.Value.Should().BeOfType<LogEntryDto>("Content should be of type LogEntryDto");
+            result.Value.Should().BeOfType<WorkNoteDto>("Content should be of type WorkNoteDto");
 
-            var item = result.Value as LogEntryDto;
+            var item = result.Value as WorkNoteDto;
             item.Id.Should().Be(testId);
             item.Title.Should().Be(testTitle);
             item.Content.Should().Be(testContent);
@@ -307,7 +307,7 @@ namespace ControllerTests
             var controller = BuildController();
 
             // Act
-            LogEntryDto entry = new LogEntryDto
+            WorkNoteDto entry = new WorkNoteDto
             {
                 Id = testId,
                 Title = testTitle,
@@ -332,7 +332,7 @@ namespace ControllerTests
             var controller = BuildController();
 
             // Act
-            LogEntryDto entry = new LogEntryDto
+            WorkNoteDto entry = new WorkNoteDto
             {
                 Id = testId,
                 Title = testTitle,
@@ -350,12 +350,12 @@ namespace ControllerTests
             // Arrange
             int testId = 1000;
             var controller = BuildController();
-            _mockLogEntriesService
-                .Setup(inst => inst.UpdateItem(It.IsAny<LogEntryDto>()))
+            _mockWorkNotesService
+                .Setup(inst => inst.UpdateItem(It.IsAny<WorkNoteDto>()))
                 .Throws(new ContentValidationException("Yeeeet!"));
 
             // Act
-            LogEntryDto entry = new LogEntryDto
+            WorkNoteDto entry = new WorkNoteDto
             {
                 Id = testId,
                 Title = "I did this",
@@ -372,12 +372,12 @@ namespace ControllerTests
         {
             // Arrange
             var controller = BuildController();
-            _mockLogEntriesService
-                .Setup(inst => inst.UpdateItem(It.IsAny<LogEntryDto>()))
+            _mockWorkNotesService
+                .Setup(inst => inst.UpdateItem(It.IsAny<WorkNoteDto>()))
                 .Throws(new Exception("Yeeeet!"));
 
             // Act
-            LogEntryDto entry = new LogEntryDto
+            WorkNoteDto entry = new WorkNoteDto
             {
                 Id = 1000,
                 Title = "I did this",
@@ -428,7 +428,7 @@ namespace ControllerTests
             // Arrange
             var testId = 999;
             var controller = BuildController();
-            _mockLogEntriesService
+            _mockWorkNotesService
                 .Setup(inst => inst.DeleteItem(It.IsAny<int>()))
                 .Throws(new Exception("Yeeeet!"));
 

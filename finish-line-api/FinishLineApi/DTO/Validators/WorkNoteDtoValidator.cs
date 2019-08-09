@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace FinishLineApi.DTO.Validators
 {
-    public class LogEntryDtoValidator : AbstractValidator<LogEntryDto>
+    public class WorkNoteDtoValidator : AbstractValidator<WorkNoteDto>
     {
-        public LogEntryDtoValidator()
+        public WorkNoteDtoValidator()
         {
             RuleSet("Update", () =>
             {
