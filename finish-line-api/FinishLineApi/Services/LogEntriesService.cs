@@ -12,7 +12,7 @@ namespace FinishLineApi.Services
 {
     public interface ILogEntriesService
     {
-        IEnumerable<LogEntryDto> ReadAllItems(DateTime? date);
+        IEnumerable<LogEntryDto> ReadAllItems(DateTime? date = null);
         LogEntryDto ReadItem(int id);
         LogEntryDto CreateItem(LogEntryDto newLogEntry);
         LogEntryDto UpdateItem(LogEntryDto newLogEntry);
@@ -30,7 +30,7 @@ namespace FinishLineApi.Services
             _mapper = mapper;
         }
 
-        public IEnumerable<LogEntryDto> ReadAllItems(DateTime? date)
+        public IEnumerable<LogEntryDto> ReadAllItems(DateTime? date = null)
         {
             var query = _dbContext.LogEntries as IQueryable<LogEntry>;
             if (date.HasValue)
@@ -52,7 +52,16 @@ namespace FinishLineApi.Services
 
         public LogEntryDto CreateItem(LogEntryDto entry)
         {
+            entry.Id = 0;
+            if (entry.Content == null)
+            {
+                entry.Content = "";
+            }
+
             Validation<LogEntryDtoValidator, LogEntryDto>.ValidateObject(entry);
+
+            entry.Title = entry.Title.Trim();
+            entry.Content = entry.Content.Trim();
 
             var entity = _mapper.Map<LogEntry>(entry);
             entity.CreatedDate = DateTime.Now;
@@ -62,27 +71,42 @@ namespace FinishLineApi.Services
             return _mapper.Map<LogEntryDto>(entity);
         }
 
-        public LogEntryDto UpdateItem(LogEntryDto entry)
+        public LogEntryDto UpdateItem(LogEntryDto newEntry)
         {
-            Validation<LogEntryDtoValidator, LogEntryDto>.ValidateObject(entry, "default,Update");
+            Validation<LogEntryDtoValidator, LogEntryDto>.ValidateObject(newEntry, "default,Update");
 
-            var entity = _mapper.Map<LogEntry>(entry);
-            _dbContext.LogEntries.Update(entity);
-            if (_dbContext.CommitChanges() < 1)
+            LogEntry entry = _dbContext.LogEntries.FirstOrDefault(item => item.Id == newEntry.Id);
+            if (entry == null)
             {
-                throw new NotFoundException($"Item not found.");
+                throw new NotFoundException($"Item with id={newEntry.Id} not found.");
             }
 
-            return _mapper.Map<LogEntryDto>(entity);
+            entry.ProjectId = newEntry.ProjectId;
+            entry.WorkItemId = newEntry.WorkItemId;
+            entry.Title = newEntry.Title.Trim();
+            entry.Content = (newEntry.Content ?? "").Trim();
+
+            if (!_dbContext.CommitChanges())
+            {
+                throw new NotFoundException($"Item with id={newEntry.Id} not updated.");
+            }
+
+            return _mapper.Map<LogEntryDto>(entry);
         }
 
         public void DeleteItem(int id)
         {
-            LogEntry entity = new LogEntry { Id = id };
-            _dbContext.LogEntries.Remove(entity);
-            if (_dbContext.CommitChanges() < 1)
+            LogEntry entry = _dbContext.LogEntries.FirstOrDefault(item => item.Id == id);
+            if (entry == null)
             {
-                throw new NotFoundException($"Item not found.");
+                throw new NotFoundException($"Item with id={id} not found.");
+            }
+
+            _dbContext.Remove(entry);
+
+            if (!_dbContext.CommitChanges())
+            {
+                throw new NotFoundException($"Item with id={id} not found.");
             }
         }
     }

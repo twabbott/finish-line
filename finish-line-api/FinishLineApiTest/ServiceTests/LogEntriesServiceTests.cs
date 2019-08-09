@@ -19,7 +19,6 @@ namespace ServiceTests
 {
     public class LogEntriesServiceTests
     {
-        int _nextId = 1000;
         Mock<ILogger<FinishLineDBContext>> _mockLogger = new Mock<ILogger<FinishLineDBContext>>();
         Mock<IHostingEnvironment> _mockHostingEnvironment = new Mock<IHostingEnvironment>();
 
@@ -63,6 +62,8 @@ namespace ServiceTests
             return service;
         }
 
+        #region ### ReadAll ####################################################
+
         [Fact]
         public void ReadAll_HappyPath()
         {
@@ -72,11 +73,10 @@ namespace ServiceTests
 
                 IEnumerable<LogEntryDto> result = service.ReadAllItems(null);
 
-                result
-                    .Should()
-                        .NotBeNull()
+                result.Should()
+                    .NotBeNull()
                     .And
-                        .HaveCount(2);
+                    .HaveCount(2);
             }
         }
 
@@ -89,11 +89,10 @@ namespace ServiceTests
 
                 IEnumerable<LogEntryDto> result = service.ReadAllItems(new DateTime(2019, 07, 15, 12, 30, 0));
 
-                result
-                    .Should()
-                        .NotBeNull()
+                result.Should()
+                    .NotBeNull()
                     .And
-                        .HaveCount(1);
+                    .HaveCount(1);
             }
         }
 
@@ -106,13 +105,16 @@ namespace ServiceTests
 
                 IEnumerable<LogEntryDto> result = service.ReadAllItems(new DateTime(2000, 01, 01, 12, 00, 00));
 
-                result
-                    .Should()
-                        .NotBeNull()
+                result.Should()
+                    .NotBeNull()
                     .And
-                        .HaveCount(0);
+                    .HaveCount(0);
             }
         }
+
+        #endregion
+
+        #region ### ReadItem ###################################################
 
         [Fact]
         public void ReadItem_HappyPath()
@@ -123,9 +125,10 @@ namespace ServiceTests
 
                 LogEntryDto result = service.ReadItem(1001);
 
-                result
-                    .Should()
-                    .NotBeNull();
+                result.Should().NotBeNull("Result should not be null");
+                result.Title.Should().Be("I did another thing");
+                result.Content.Should().Be("Went all right, mostly.  I guess.");
+                result.CreatedDate.Year.Should().Be(2019);
             }
         }
 
@@ -138,11 +141,13 @@ namespace ServiceTests
 
                 LogEntryDto result = service.ReadItem(1234);
 
-                result
-                    .Should()
-                    .BeNull();
+                result.Should().BeNull();
             }
         }
+
+        #endregion
+
+        #region ### CreateItem #################################################
 
         [Fact]
         public void CreateItem_HappyPath()
@@ -151,25 +156,61 @@ namespace ServiceTests
             {
                 var service = BuildService(context);
 
-                LogEntryDto result = null;
-                try
+                LogEntryDto result = service.CreateItem(new LogEntryDto
                 {
-                    result = service.CreateItem(new LogEntryDto
-                    {
-                        Title = "I did this",
-                        Content = "No issues found",
-                    });
-                }
-                catch (Exception ex)
-                {
-                    throw;
-                }
+                    Title = "I did this",
+                    Content = "No issues found",
+                });
 
-                result
-                    .Should()
-                    .NotBeNull();
-                result.Id.Should().Equals(1002);
-                result.CreatedDate.Day.Should().Equals(DateTime.Today.Day);
+                result.Should().NotBeNull();
+                result.Id.Should().BeGreaterThan(0);
+                result.Title.Should().Be("I did this");
+                result.Content.Should().Be("No issues found");
+                result.CreatedDate.Day.Should().Be(DateTime.Today.Day);
+            }
+        }
+
+        [Fact]
+        public void CreateItem_TrimWhitespace()
+        {
+            using (var context = BuildDbContext())
+            {
+                var service = BuildService(context);
+
+                LogEntryDto result = service.CreateItem(new LogEntryDto
+                {
+                    Title = @" 
+ I did this   ",
+                    Content = @" No issues found   
+",
+                });
+
+                result.Should().NotBeNull();
+                result.Id.Should().BeGreaterThan(0);
+                result.Title.Should().Be("I did this");
+                result.Content.Should().Be("No issues found");
+                result.CreatedDate.Day.Should().Be(DateTime.Today.Day);
+            }
+        }
+
+        [Fact]
+        public void CreateItem_NullContent()
+        {
+            using (var context = BuildDbContext())
+            {
+                var service = BuildService(context);
+
+                LogEntryDto result = service.CreateItem(new LogEntryDto
+                {
+                    Title = "I did this",
+                    Content = null,
+                });
+
+                result.Should().NotBeNull();
+                result.Id.Should().BeGreaterThan(0);
+                result.Title.Should().Be("I did this");
+                result.Content.Should().Be("");
+                result.CreatedDate.Day.Should().Be(DateTime.Today.Day);
             }
         }
 
@@ -186,8 +227,9 @@ namespace ServiceTests
                     Content = "No issues found",
                 };
 
-                Exception ex = Assert.Throws<ContentValidationException>(() => service.CreateItem(badItem));
-                ex.Message.Should().Equals("");
+                Action act = () => service.CreateItem(badItem);
+                act.Should()
+                    .Throw<ContentValidationException>();
             }
         }
 
@@ -204,8 +246,9 @@ namespace ServiceTests
                     Content = "No issues found",
                 };
 
-                Exception ex = Assert.Throws<ContentValidationException>(() => service.CreateItem(badItem));
-                ex.Message.Should().Equals("");
+                Action act = () => service.CreateItem(badItem);
+                act.Should()
+                    .Throw<ContentValidationException>();
             }
         }
 
@@ -222,9 +265,201 @@ namespace ServiceTests
                     Content = "No issues found",
                 };
 
-                Exception ex = Assert.Throws<ContentValidationException>(() => service.CreateItem(badItem));
-                ex.Message.Should().Equals("");
+                Action act = () => service.CreateItem(badItem);
+                act.Should()
+                    .Throw<ContentValidationException>();
             }
         }
+
+        #endregion
+
+        #region ### UpdateItem #################################################
+        
+        [Fact]
+        public void UpdateItem_HappyPath()
+        {
+            using (var context = BuildDbContext())
+            {
+                var service = BuildService(context);
+
+                LogEntryDto result = service.UpdateItem(new LogEntryDto
+                {
+                    Id = 1001,
+                    Title = "Changed",
+                    Content = "Changed"
+                });
+
+                result.Should().NotBeNull();
+                result.Id.Should().Be(1001);
+                result.Title.Should().Be("Changed");
+                result.Content.Should().Be("Changed");
+                result.CreatedDate.Year.Should().Be(2019);
+            }
+        }
+
+        [Fact]
+        public void UpdateItem_TrimWhitespace()
+        {
+            using (var context = BuildDbContext())
+            {
+                var service = BuildService(context);
+
+                LogEntryDto result = service.UpdateItem(new LogEntryDto
+                {
+                    Id = 1001,
+                    Title = @" 
+ Changed   ",
+                    Content = @" Changed   
+",
+                });
+
+                result.Should().NotBeNull();
+                result.Id.Should().Be(1001);
+                result.Title.Should().Be("Changed");
+                result.Content.Should().Be("Changed");
+                result.CreatedDate.Year.Should().Be(2019);
+            }
+        }
+
+        [Fact]
+        public void UpdateItem_Error_ContentNull()
+        {
+            using (var context = BuildDbContext())
+            {
+                var service = BuildService(context);
+
+                LogEntryDto result = service.UpdateItem(new LogEntryDto
+                {
+                    Id = 1001,
+                    Title = "Changed",
+                    Content = null
+                });
+
+                result.Should().NotBeNull();
+                result.Id.Should().Be(1001);
+                result.Title.Should().Be("Changed");
+                result.Content.Should().Be("");
+                result.CreatedDate.Year.Should().Be(2019);
+            }
+        }
+
+        [Fact]
+        public void UpdateItem_Error_NotFound()
+        {
+            using (var context = BuildDbContext())
+            {
+                var service = BuildService(context);
+
+                LogEntryDto badItem = new LogEntryDto
+                {
+                    Id = 999999,
+                    Title = "Changed",
+                    Content = "Changed"
+                };
+
+                Action act = () => service.UpdateItem(badItem);
+                act.Should()
+                    .Throw<NotFoundException>()
+                    .WithMessage("Item with id=999999 not found.");
+            }
+        }
+
+        [Fact]
+        public void UpdateItem_Error_TitleNull()
+        {
+            using (var context = BuildDbContext())
+            {
+                var service = BuildService(context);
+
+                LogEntryDto badItem = new LogEntryDto
+                {
+                    Id = 1001,
+                    Title = null,
+                    Content = "Changed"
+                };
+
+                Action act = () => service.UpdateItem(badItem);
+                act.Should()
+                    .Throw<ContentValidationException>()
+                    .WithMessage("'Title' must not be empty.");
+            }
+        }
+
+        [Fact]
+        public void UpdateItem_Error_TitleEmpty()
+        {
+            using (var context = BuildDbContext())
+            {
+                var service = BuildService(context);
+
+                LogEntryDto badItem = new LogEntryDto
+                {
+                    Id = 1001,
+                    Title = "",
+                    Content = "Changed"
+                };
+
+                Action act = () => service.UpdateItem(badItem);
+                act.Should()
+                    .Throw<ContentValidationException>()
+                    .WithMessage("'Title' must not be empty.");
+            }
+        }
+
+        [Fact]
+        public void UpdateItem_Error_TitleBlank()
+        {
+            using (var context = BuildDbContext())
+            {
+                var service = BuildService(context);
+
+                LogEntryDto badItem = new LogEntryDto
+                {
+                    Id = 1001,
+                    Title = "   ",
+                    Content = "Changed"
+                };
+
+                Action act = () => service.UpdateItem(badItem);
+                act.Should()
+                    .Throw<ContentValidationException>()
+                    .WithMessage("'Title' must not be empty.");
+            }
+        }
+
+        #endregion
+
+        #region ### DeleteItem #################################################
+
+        [Fact]
+        public void DeleteItem_HappyPath()
+        {
+            using (var context = BuildDbContext())
+            {
+                var service = BuildService(context);
+
+                int count1 = service.ReadAllItems().Count();
+                service.DeleteItem(1001);
+                int count2 = service.ReadAllItems().Count();
+
+                count2.Should().Be(count1 - 1);
+            }
+        }
+
+        [Fact]
+        public void DeleteItem_Error_NotFound()
+        {
+            using (var context = BuildDbContext())
+            {
+                var service = BuildService(context);
+
+                Action act = () => service.DeleteItem(999999);
+                act.Should()
+                    .Throw<NotFoundException>()
+                    .WithMessage("Item with id=999999 not found.");
+            }
+        }
+
+        #endregion
     }
 }

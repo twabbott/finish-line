@@ -138,7 +138,7 @@ namespace ControllerTests
             response.Result.Should().BeOfType<StatusCodeResult>("Return a 500 response object");
 
             var result = response.Result as StatusCodeResult;
-            result.StatusCode.Should().Equals(500);
+            result.StatusCode.Should().Be(500);
         }
 
         [Fact]
@@ -157,7 +157,7 @@ namespace ControllerTests
             result.Value.Should().BeOfType<LogEntryDto>("Content should be of type LogEntryDto");
 
             var item = result.Value as LogEntryDto;
-            item.Id.Should().Equals(1000);
+            item.Id.Should().Be(1000);
         }
 
         [Fact]
@@ -173,7 +173,7 @@ namespace ControllerTests
             response.Result.Should().BeOfType<NotFoundResult>("Return a 404 response object");
 
             var result = response.Result as NotFoundResult;
-            result.StatusCode.Should().Equals(404);
+            result.StatusCode.Should().Be(404);
         }
 
         [Fact]
@@ -192,7 +192,7 @@ namespace ControllerTests
             response.Result.Should().BeOfType<StatusCodeResult>("Return a 500 response object");
 
             var result = response.Result as StatusCodeResult;
-            result.StatusCode.Should().Equals(500);
+            result.StatusCode.Should().Be(500);
         }
 
         [Fact]
@@ -217,9 +217,9 @@ namespace ControllerTests
             result.Value.Should().BeOfType<LogEntryDto>("Content should be of type LogEntryDto");
 
             var item = result.Value as LogEntryDto;
-            item.Id.Should().Equals(1000);
+            item.Id.Should().Be(1000);
             item.CreatedDate.Should().BeSameDateAs(DateTime.Today);
-            item.Title.Should().Equals(testTitle);
+            item.Title.Should().Be(testTitle);
         }
 
         [Fact]
@@ -264,7 +264,7 @@ namespace ControllerTests
             response.Result.Should().BeOfType<StatusCodeResult>("Return a 500 response object");
 
             var result = response.Result as StatusCodeResult;
-            result.StatusCode.Should().Equals(500);
+            result.StatusCode.Should().Be(500);
         }
 
         [Fact]
@@ -292,9 +292,9 @@ namespace ControllerTests
             result.Value.Should().BeOfType<LogEntryDto>("Content should be of type LogEntryDto");
 
             var item = result.Value as LogEntryDto;
-            item.Id.Should().Equals(testId);
-            item.Title.Should().Equals(testTitle);
-            item.Content.Should().Equals(testContent);
+            item.Id.Should().Be(testId);
+            item.Title.Should().Be(testTitle);
+            item.Content.Should().Be(testContent);
         }
 
         [Fact]
@@ -319,7 +319,7 @@ namespace ControllerTests
             response.Result.Should().BeOfType<NotFoundObjectResult>("Return a 404 result");
 
             var result = response.Result as NotFoundObjectResult;
-            result.StatusCode.Should().Equals(404);
+            result.StatusCode.Should().Be(404);
         }
 
         [Fact]
@@ -389,7 +389,7 @@ namespace ControllerTests
             response.Result.Should().BeOfType<StatusCodeResult>("Return a 500 response object");
 
             var result = response.Result as StatusCodeResult;
-            result.StatusCode.Should().Equals(500);
+            result.StatusCode.Should().Be(500);
         }
 
         [Fact]
@@ -419,7 +419,7 @@ namespace ControllerTests
             response.Should().BeOfType<NotFoundObjectResult>("Return a 404 result");
 
             var result = response as NotFoundObjectResult;
-            result.StatusCode.Should().Equals(404);
+            result.StatusCode.Should().Be(404);
         }
 
         [Fact]
@@ -439,7 +439,7 @@ namespace ControllerTests
             response.Should().BeOfType<StatusCodeResult>("Return a 500 response object");
 
             var result = response as StatusCodeResult;
-            result.StatusCode.Should().Equals(500);
+            result.StatusCode.Should().Be(500);
         }
     }
 }

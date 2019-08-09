@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 
 using FinishLineApi.Store.Entities;
 using System;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace FinishLineApi.Store.Contexts
 {
@@ -15,7 +16,12 @@ namespace FinishLineApi.Store.Contexts
         DbSet<LogEntry> LogEntries { get; set; }
         DbSet<ProjectList> ProjectLists { get; set; }
         DbSet<ProjectInProjectList> ProjectsInProjectList { get; set; }
-        int CommitChanges();
+
+        EntityEntry<TEntity> Attach<TEntity>(TEntity entity) where TEntity : class;
+        EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
+        EntityEntry<TEntity> Update<TEntity>(TEntity entity) where TEntity : class;
+        EntityEntry<TEntity> Remove<TEntity>(TEntity entity) where TEntity : class;
+        bool CommitChanges();
     }
 
     public class FinishLineDBContext: DbContext, IFinishLineDBContext
@@ -30,7 +36,7 @@ namespace FinishLineApi.Store.Contexts
                 // This actually creates and initializes the database.
                 Database.EnsureCreated();
             }
-
+            this.
             _logger = logger;
         }
 
@@ -41,8 +47,13 @@ namespace FinishLineApi.Store.Contexts
         public DbSet<ProjectList> ProjectLists { get; set; }
         public DbSet<ProjectInProjectList> ProjectsInProjectList { get; set; }
 
-        public int CommitChanges()
+        public bool CommitChanges()
         {
+            if (!ChangeTracker.HasChanges())
+            {
+                return true;
+            }
+
             int count = 0;
             try
             {
@@ -50,11 +61,13 @@ namespace FinishLineApi.Store.Contexts
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
             {
-                if (string.IsNullOrEmpty(ex.Message) || !ex.Message.StartsWith("Database operation expected to affect 1 row(s)"))
+                if (string.IsNullOrEmpty(ex.Message) || 
+                    (!ex.Message.StartsWith("Database operation expected to affect 1 row(s)") && // This one comes from SQL server
+                    ex.Message != "Attempted to update or delete an entity that does not exist in the store.")) // This one comes from EF in-memory db
                     throw;
             }
 
-            return count;
+            return count > 0;
         }
     }
 }
