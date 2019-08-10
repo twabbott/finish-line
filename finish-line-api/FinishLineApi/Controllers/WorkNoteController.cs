@@ -7,6 +7,7 @@ using FinishLineApi.Dto;
 using FinishLineApi.DTO.Validators;
 using FinishLineApi.Models;
 using FinishLineApi.Services;
+using FinishLineApi.Store.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -49,12 +50,12 @@ namespace FinishLineApi.Controllers
         // GET api/v1/work-notes/{id}
         [HttpGet]
         [Route("work-notes/{id}")]
-        public ActionResult<List<WorkNoteDto>> Get(int id)
+        public async Task<ActionResult<List<WorkNoteDto>>> GetAsync(int id)
         {
             WorkNoteDto workNote;
             try
             {
-                workNote = _workNoteService.ReadItem(id);
+                workNote = await _workNoteService.ReadItemAsync(id);
             }
             catch (Exception ex)
             {
@@ -73,12 +74,12 @@ namespace FinishLineApi.Controllers
         // POST api/v1/work-notes/
         [HttpPost]
         [Route("work-notes")]
-        public ActionResult<List<WorkNoteDto>> Create([FromBody] WorkNoteDto newItem)
+        public async Task<ActionResult<List<WorkNoteDto>>> CreateAsync([FromBody] WorkNoteDto newItem)
         {
             WorkNoteDto workNote;
             try
             {
-                workNote = _workNoteService.CreateItem(newItem);
+                workNote = await _workNoteService.CreateItemAsync(newItem);
             }
             catch (ContentValidationException ex)
             {
@@ -98,7 +99,7 @@ namespace FinishLineApi.Controllers
 
         [HttpPut]
         [Route("work-notes/{id}")]
-        public ActionResult<WorkNoteDto> Update(int id, [FromBody] WorkNoteDto item)
+        public async Task<ActionResult<WorkNoteDto>> UpdateAsync(int id, [FromBody] WorkNoteDto item)
         {
             WorkNoteDto workNote;
             try
@@ -108,11 +109,11 @@ namespace FinishLineApi.Controllers
                     throw new ContentValidationException("'id' property must match URL");
                 }
 
-                workNote = _workNoteService.UpdateItem(item);
+                workNote = await _workNoteService.UpdateItemAsync(item);
             }
             catch (NotFoundException ex)
             {
-                return NotFound(ex.Errors);
+                return NotFound(ex.Message);
             }
             catch (ContentValidationException ex)
             {
@@ -129,15 +130,15 @@ namespace FinishLineApi.Controllers
 
         [HttpDelete]
         [Route("work-notes/{id}")]
-        public ActionResult Delete(int id)
+        public async Task<ActionResult> DeleteAsync(int id)
         {
             try
             {
-                _workNoteService.DeleteItem(id);
+                await _workNoteService.DeleteItemAsync(id);
             }
             catch (NotFoundException ex)
             {
-                return NotFound(ex.Errors);
+                return NotFound(ex.Message);
             }
             catch (Exception ex)
             {

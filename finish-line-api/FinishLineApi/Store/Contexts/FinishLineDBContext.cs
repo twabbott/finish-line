@@ -5,10 +5,11 @@ using Microsoft.Extensions.Logging;
 using FinishLineApi.Store.Entities;
 using System;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using FinishLineApi.Store.Repositories;
 
 namespace FinishLineApi.Store.Contexts
 {
-    public interface IFinishLineDBContext: IDisposable
+    public interface IFinishLineDBContext: IGenericDbContext, IDisposable
     {
         DbSet<Project> Projects { get; set; }
         DbSet<Task> Tasks { get; set; }
@@ -16,15 +17,9 @@ namespace FinishLineApi.Store.Contexts
         DbSet<WorkNote> WorkNotes { get; set; }
         DbSet<ProjectList> ProjectLists { get; set; }
         DbSet<ProjectInProjectList> ProjectsInProjectList { get; set; }
-
-        EntityEntry<TEntity> Attach<TEntity>(TEntity entity) where TEntity : class;
-        EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
-        EntityEntry<TEntity> Update<TEntity>(TEntity entity) where TEntity : class;
-        EntityEntry<TEntity> Remove<TEntity>(TEntity entity) where TEntity : class;
-        bool CommitChanges();
     }
 
-    public class FinishLineDBContext: DbContext, IFinishLineDBContext
+    public class FinishLineDBContext: DbContext, IFinishLineDBContext, IGenericDbContext
     {
         private readonly ILogger<FinishLineDBContext> _logger;
 
@@ -36,8 +31,7 @@ namespace FinishLineApi.Store.Contexts
                 // This actually creates and initializes the database.
                 Database.EnsureCreated();
             }
-            this.
-            _logger = logger;
+            this._logger = logger;
         }
 
         public DbSet<Project> Projects { get; set; }
@@ -46,28 +40,5 @@ namespace FinishLineApi.Store.Contexts
         public DbSet<WorkNote> WorkNotes { get; set; }
         public DbSet<ProjectList> ProjectLists { get; set; }
         public DbSet<ProjectInProjectList> ProjectsInProjectList { get; set; }
-
-        public bool CommitChanges()
-        {
-            if (!ChangeTracker.HasChanges())
-            {
-                return true;
-            }
-
-            int count = 0;
-            try
-            {
-                count = SaveChanges();
-            }
-            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
-            {
-                if (string.IsNullOrEmpty(ex.Message) || 
-                    (!ex.Message.StartsWith("Database operation expected to affect 1 row(s)") && // This one comes from SQL server
-                    ex.Message != "Attempted to update or delete an entity that does not exist in the store.")) // This one comes from EF in-memory db
-                    throw;
-            }
-
-            return count > 0;
-        }
     }
 }

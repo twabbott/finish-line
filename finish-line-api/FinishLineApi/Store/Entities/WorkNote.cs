@@ -1,8 +1,9 @@
-﻿using System;
+﻿using FinishLineApi.Store.Repositories;
+using System;
 
 namespace FinishLineApi.Store.Entities
 {
-    public class WorkNote
+    public class WorkNote: IEntity
     {
         public int Id { get; set; }
         public int? ProjectId { get; set; }

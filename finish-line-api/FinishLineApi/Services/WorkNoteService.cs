@@ -3,36 +3,38 @@ using FinishLineApi.Dto;
 using FinishLineApi.DTO.Validators;
 using FinishLineApi.Store.Contexts;
 using FinishLineApi.Store.Entities;
+using FinishLineApi.Store.Repositories;
 using FluentValidation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace FinishLineApi.Services
 {
     public interface IWorkNoteService
     {
         IEnumerable<WorkNoteDto> ReadAllItems(DateTime? date = null);
-        WorkNoteDto ReadItem(int id);
-        WorkNoteDto CreateItem(WorkNoteDto newWorkNote);
-        WorkNoteDto UpdateItem(WorkNoteDto newWorkNote);
-        void DeleteItem(int id);
+        Task<WorkNoteDto> ReadItemAsync(int id);
+        Task<WorkNoteDto> CreateItemAsync(WorkNoteDto entry);
+        Task<WorkNoteDto> UpdateItemAsync(WorkNoteDto newEntry);
+        System.Threading.Tasks.Task DeleteItemAsync(int id);
     }
 
     public class WorkNoteService: IWorkNoteService
     {
-        private IFinishLineDBContext _dbContext;
+        private IGenericRepository<WorkNote> _repository;
         private IMapper _mapper;
 
-        public WorkNoteService(IFinishLineDBContext dbContext, IMapper mapper)
+        public WorkNoteService(IGenericRepository<WorkNote> repository, IMapper mapper)
         {
-            _dbContext = dbContext;
+            _repository = repository;
             _mapper = mapper;
         }
 
         public IEnumerable<WorkNoteDto> ReadAllItems(DateTime? date = null)
         {
-            var query = _dbContext.WorkNotes as IQueryable<WorkNote>;
+            IQueryable<WorkNote> query = _repository.GetAll();
             if (date.HasValue)
             {
                 query = query.Where(item => item.CreatedDate.Date == date.Value.Date);
@@ -43,14 +45,13 @@ namespace FinishLineApi.Services
             return _mapper.Map<IEnumerable<WorkNoteDto>>(results);
         }
 
-        public WorkNoteDto ReadItem(int id)
+        public async Task<WorkNoteDto> ReadItemAsync(int id)
         {
-            var query = _dbContext.WorkNotes.Where(item => item.Id == id);
-            var result = query.ToList().SingleOrDefault();
+            WorkNote result = await _repository.GetByIdAsync(id);
             return _mapper.Map<WorkNoteDto>(result);
         }
 
-        public WorkNoteDto CreateItem(WorkNoteDto entry)
+        public async Task<WorkNoteDto> CreateItemAsync(WorkNoteDto entry)
         {
             entry.Id = 0;
             if (entry.Content == null)
@@ -65,17 +66,17 @@ namespace FinishLineApi.Services
 
             var entity = _mapper.Map<WorkNote>(entry);
             entity.CreatedDate = DateTime.Now;
-            _dbContext.WorkNotes.Add(entity);
-            _dbContext.CommitChanges();
+
+            await _repository.CreateAsync(entity);
 
             return _mapper.Map<WorkNoteDto>(entity);
         }
 
-        public WorkNoteDto UpdateItem(WorkNoteDto newEntry)
+        public async Task<WorkNoteDto> UpdateItemAsync(WorkNoteDto newEntry)
         {
             Validation<WorkNoteDtoValidator, WorkNoteDto>.ValidateObject(newEntry, "default,Update");
 
-            WorkNote entry = _dbContext.WorkNotes.FirstOrDefault(item => item.Id == newEntry.Id);
+            WorkNote entry = _repository.GetAll().FirstOrDefault(item => item.Id == newEntry.Id);
             if (entry == null)
             {
                 throw new NotFoundException($"Item with id={newEntry.Id} not found.");
@@ -86,28 +87,14 @@ namespace FinishLineApi.Services
             entry.Title = newEntry.Title.Trim();
             entry.Content = (newEntry.Content ?? "").Trim();
 
-            if (!_dbContext.CommitChanges())
-            {
-                throw new NotFoundException($"Item with id={newEntry.Id} not updated.");
-            }
+            await _repository.UpdateAsync(entry);
 
             return _mapper.Map<WorkNoteDto>(entry);
         }
 
-        public void DeleteItem(int id)
+        public async System.Threading.Tasks.Task DeleteItemAsync(int id)
         {
-            WorkNote entry = _dbContext.WorkNotes.FirstOrDefault(item => item.Id == id);
-            if (entry == null)
-            {
-                throw new NotFoundException($"Item with id={id} not found.");
-            }
-
-            _dbContext.Remove(entry);
-
-            if (!_dbContext.CommitChanges())
-            {
-                throw new NotFoundException($"Item with id={id} not found.");
-            }
+            await _repository.DeleteAsync(id);
         }
     }
 }

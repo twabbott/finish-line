@@ -6,14 +6,14 @@ using Moq;
 using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Text;
 using Xunit;
 using FluentAssertions;
 using FinishLineApi.Dto;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Hosting;
 using FinishLineApi.DTO.Validators;
+using FinishLineApi.Store.Repositories;
+using System.Threading.Tasks;
 
 namespace ServiceTests
 {
@@ -22,42 +22,69 @@ namespace ServiceTests
         Mock<ILogger<FinishLineDBContext>> _mockLogger = new Mock<ILogger<FinishLineDBContext>>();
         Mock<IHostingEnvironment> _mockHostingEnvironment = new Mock<IHostingEnvironment>();
 
+        int _nextId = 1002;
         List<WorkNote> _testData = new List<WorkNote>
         {
-        };
-
-        public IFinishLineDBContext BuildDbContext()
-        {
-            // Build in-memory db context.  Need to add the Microsoft.EntityFrameworkCore.InMemory NuGet package.
-            var options = new DbContextOptionsBuilder<FinishLineDBContext>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString())
-                .Options;
-            IFinishLineDBContext context = new FinishLineDBContext(
-                options,
-                _mockLogger.Object,
-                _mockHostingEnvironment.Object);
-            context.WorkNotes.Add(new WorkNote()
+            new WorkNote()
             {
                 Id = 1000,
                 Title = "I did this",
                 Content = "No issues found",
                 CreatedDate = new DateTime(2019, 07, 15, 12, 30, 0)
-            });
-            context.WorkNotes.Add(new WorkNote()
+            },
+            new WorkNote()
             {
                 Id = 1001,
                 Title = "I did another thing",
                 Content = "Went all right, mostly.  I guess.",
                 CreatedDate = new DateTime(2019, 07, 16, 12, 30, 0)
-            });
-            context.CommitChanges();
+            }
+        };
 
-            return context;
-        }
-
-        public WorkNoteService BuildService(IFinishLineDBContext context)
+        public WorkNoteService BuildService()
         {
-            WorkNoteService service = new WorkNoteService(context, AutoMapperProfile.MapperFactory());
+            Mock<IGenericRepository<WorkNote>> mockRepository = new Mock<IGenericRepository<WorkNote>>();
+            mockRepository
+                .Setup(inst => inst.GetAll())
+                .Returns(() => _testData.AsQueryable());
+            mockRepository
+                .Setup(inst => inst.GetByIdAsync(It.IsAny<int>()))
+                .ReturnsAsync((int id) => _testData.Where(item => item.Id == id).SingleOrDefault());
+            mockRepository
+                .Setup(inst => inst.CreateAsync(It.IsAny<WorkNote>()))
+                .Callback((WorkNote newWorkNote) =>
+                {
+                    newWorkNote.Id = _nextId++;
+                    newWorkNote.CreatedDate = DateTime.Now;
+                    _testData.Add(newWorkNote);
+                });
+            mockRepository
+                .Setup(inst => inst.UpdateAsync(It.IsAny<WorkNote>()))
+                .Callback((WorkNote entry) =>
+                {
+                    var match = _testData.FirstOrDefault(item => item.Id == entry.Id);
+                    if (match == null)
+                    {
+                        throw new NotFoundException($"Item with id={entry.Id} not found.");
+                    }
+
+                    match.Title = entry.Title;
+                    match.Content = entry.Content;
+                });
+            mockRepository
+                .Setup(inst => inst.DeleteAsync(It.IsAny<int>()))
+                .Callback((int id) =>
+                {
+                    var match = _testData.FirstOrDefault(item => item.Id == id);
+                    if (match == null)
+                    {
+                        throw new NotFoundException($"Item with id={id} not found.");
+                    }
+
+                    _testData = _testData.Where(item => item.Id != id).ToList();
+                });
+
+            WorkNoteService service = new WorkNoteService(mockRepository.Object, AutoMapperProfile.MapperFactory());
 
             return service;
         }
@@ -67,49 +94,40 @@ namespace ServiceTests
         [Fact]
         public void ReadAll_HappyPath()
         {
-            using (var context = BuildDbContext())
-            {
-                var service = BuildService(context);
+            var service = BuildService();
 
-                IEnumerable<WorkNoteDto> result = service.ReadAllItems(null);
+            IEnumerable<WorkNoteDto> result = service.ReadAllItems(null);
 
-                result.Should()
-                    .NotBeNull()
-                    .And
-                    .HaveCount(2);
-            }
+            result.Should()
+                .NotBeNull()
+                .And
+                .HaveCount(2);
         }
 
         [Fact]
         public void ReadAll_HappyPath_WithDate()
         {
-            using (var context = BuildDbContext())
-            {
-                var service = BuildService(context);
+            var service = BuildService();
 
-                IEnumerable<WorkNoteDto> result = service.ReadAllItems(new DateTime(2019, 07, 15, 12, 30, 0));
+            IEnumerable<WorkNoteDto> result = service.ReadAllItems(new DateTime(2019, 07, 15, 12, 30, 0));
 
-                result.Should()
-                    .NotBeNull()
-                    .And
-                    .HaveCount(1);
-            }
+            result.Should()
+                .NotBeNull()
+                .And
+                .HaveCount(1);
         }
 
         [Fact]
         public void ReadAll_NoResultsForDate()
         {
-            using (var context = BuildDbContext())
-            {
-                var service = BuildService(context);
+            var service = BuildService();
 
-                IEnumerable<WorkNoteDto> result = service.ReadAllItems(new DateTime(2000, 01, 01, 12, 00, 00));
+            IEnumerable<WorkNoteDto> result = service.ReadAllItems(new DateTime(2000, 01, 01, 12, 00, 00));
 
-                result.Should()
-                    .NotBeNull()
-                    .And
-                    .HaveCount(0);
-            }
+            result.Should()
+                .NotBeNull()
+                .And
+                .HaveCount(0);
         }
 
         #endregion
@@ -117,32 +135,26 @@ namespace ServiceTests
         #region ### ReadItem ###################################################
 
         [Fact]
-        public void ReadItem_HappyPath()
+        public async void ReadItem_HappyPath()
         {
-            using (var context = BuildDbContext())
-            {
-                var service = BuildService(context);
+            var service = BuildService();
 
-                WorkNoteDto result = service.ReadItem(1001);
+            WorkNoteDto result = await service.ReadItemAsync(1001);
 
-                result.Should().NotBeNull("Result should not be null");
-                result.Title.Should().Be("I did another thing");
-                result.Content.Should().Be("Went all right, mostly.  I guess.");
-                result.CreatedDate.Year.Should().Be(2019);
-            }
+            result.Should().NotBeNull("Result should not be null");
+            result.Title.Should().Be("I did another thing");
+            result.Content.Should().Be("Went all right, mostly.  I guess.");
+            result.CreatedDate.Year.Should().Be(2019);
         }
 
         [Fact]
-        public void ReadItem_NoResultForId()
+        public async void ReadItem_NoResultForId()
         {
-            using (var context = BuildDbContext())
-            {
-                var service = BuildService(context);
+            var service = BuildService();
 
-                WorkNoteDto result = service.ReadItem(1234);
+            WorkNoteDto result = await service.ReadItemAsync(1234);
 
-                result.Should().BeNull();
-            }
+            result.Should().BeNull();
         }
 
         #endregion
@@ -150,281 +162,242 @@ namespace ServiceTests
         #region ### CreateItem #################################################
 
         [Fact]
-        public void CreateItem_HappyPath()
+        public async void CreateItem_HappyPath()
         {
-            using (var context = BuildDbContext())
+            var service = BuildService();
+
+            WorkNoteDto result = await service.CreateItemAsync(new WorkNoteDto
             {
-                var service = BuildService(context);
+                Title = "I did this",
+                Content = "No issues found",
+            });
 
-                WorkNoteDto result = service.CreateItem(new WorkNoteDto
-                {
-                    Title = "I did this",
-                    Content = "No issues found",
-                });
-
-                result.Should().NotBeNull();
-                result.Id.Should().BeGreaterThan(0);
-                result.Title.Should().Be("I did this");
-                result.Content.Should().Be("No issues found");
-                result.CreatedDate.Day.Should().Be(DateTime.Today.Day);
-            }
+            result.Should().NotBeNull();
+            result.Id.Should().Be(1002);
+            result.Title.Should().Be("I did this");
+            result.Content.Should().Be("No issues found");
+            result.CreatedDate.Day.Should().Be(DateTime.Today.Day);
         }
 
         [Fact]
-        public void CreateItem_TrimWhitespace()
+        public async void CreateItem_TrimWhitespace()
         {
-            using (var context = BuildDbContext())
+            var service = BuildService();
+
+            WorkNoteDto result = await service.CreateItemAsync(new WorkNoteDto
             {
-                var service = BuildService(context);
+                Title = @" 
+        I did this   ",
+                Content = @" No issues found   
+    ",
+            });
 
-                WorkNoteDto result = service.CreateItem(new WorkNoteDto
-                {
-                    Title = @" 
- I did this   ",
-                    Content = @" No issues found   
-",
-                });
-
-                result.Should().NotBeNull();
-                result.Id.Should().BeGreaterThan(0);
-                result.Title.Should().Be("I did this");
-                result.Content.Should().Be("No issues found");
-                result.CreatedDate.Day.Should().Be(DateTime.Today.Day);
-            }
+            result.Should().NotBeNull();
+            result.Id.Should().BeGreaterThan(0);
+            result.Title.Should().Be("I did this");
+            result.Content.Should().Be("No issues found");
+            result.CreatedDate.Day.Should().Be(DateTime.Today.Day);
         }
 
         [Fact]
-        public void CreateItem_NullContent()
+        public async void CreateItem_NullContent()
         {
-            using (var context = BuildDbContext())
+            var service = BuildService();
+
+            WorkNoteDto result = await service.CreateItemAsync(new WorkNoteDto
             {
-                var service = BuildService(context);
+                Title = "I did this",
+                Content = null,
+            });
 
-                WorkNoteDto result = service.CreateItem(new WorkNoteDto
-                {
-                    Title = "I did this",
-                    Content = null,
-                });
-
-                result.Should().NotBeNull();
-                result.Id.Should().BeGreaterThan(0);
-                result.Title.Should().Be("I did this");
-                result.Content.Should().Be("");
-                result.CreatedDate.Day.Should().Be(DateTime.Today.Day);
-            }
+            result.Should().NotBeNull();
+            result.Id.Should().BeGreaterThan(0);
+            result.Title.Should().Be("I did this");
+            result.Content.Should().Be("");
+            result.CreatedDate.Day.Should().Be(DateTime.Today.Day);
         }
 
         [Fact]
         public void CreateItem_Error_TitleNull()
         {
-            using (var context = BuildDbContext())
+            var service = BuildService();
+
+            var badItem = new WorkNoteDto
             {
-                var service = BuildService(context);
+                Title = null,
+                Content = "No issues found",
+            };
 
-                var badItem = new WorkNoteDto
-                {
-                    Title = null,
-                    Content = "No issues found",
-                };
-
-                Action act = () => service.CreateItem(badItem);
-                act.Should()
-                    .Throw<ContentValidationException>();
-            }
+            Func<Task<WorkNoteDto>> func = async () => await service.CreateItemAsync(badItem);
+            func.Should()
+                .Throw<ContentValidationException>();
         }
 
         [Fact]
         public void CreateItem_Error_TitleEmpty()
         {
-            using (var context = BuildDbContext())
+            var service = BuildService();
+
+            var badItem = new WorkNoteDto
             {
-                var service = BuildService(context);
+                Title = "",
+                Content = "No issues found",
+            };
 
-                var badItem = new WorkNoteDto
-                {
-                    Title = "",
-                    Content = "No issues found",
-                };
-
-                Action act = () => service.CreateItem(badItem);
-                act.Should()
-                    .Throw<ContentValidationException>();
-            }
+            Func<Task<WorkNoteDto>> func = async () => await service.CreateItemAsync(badItem);
+            func.Should()
+                .Throw<ContentValidationException>();
         }
 
         [Fact]
         public void CreateItem_Error_TitleBlank()
         {
-            using (var context = BuildDbContext())
+            var service = BuildService();
+
+            var badItem = new WorkNoteDto
             {
-                var service = BuildService(context);
+                Title = " ",
+                Content = "No issues found",
+            };
 
-                var badItem = new WorkNoteDto
-                {
-                    Title = " ",
-                    Content = "No issues found",
-                };
-
-                Action act = () => service.CreateItem(badItem);
-                act.Should()
-                    .Throw<ContentValidationException>();
-            }
+            Func<Task<WorkNoteDto>> func = async () => await service.CreateItemAsync(badItem);
+            func.Should()
+                .Throw<ContentValidationException>();
         }
 
         #endregion
 
         #region ### UpdateItem #################################################
-        
+
         [Fact]
-        public void UpdateItem_HappyPath()
+        public async void UpdateItem_HappyPath()
         {
-            using (var context = BuildDbContext())
+            var service = BuildService();
+
+            WorkNoteDto result = await service.UpdateItemAsync(new WorkNoteDto
             {
-                var service = BuildService(context);
+                Id = 1001,
+                Title = "Changed",
+                Content = "Changed"
+            });
 
-                WorkNoteDto result = service.UpdateItem(new WorkNoteDto
-                {
-                    Id = 1001,
-                    Title = "Changed",
-                    Content = "Changed"
-                });
-
-                result.Should().NotBeNull();
-                result.Id.Should().Be(1001);
-                result.Title.Should().Be("Changed");
-                result.Content.Should().Be("Changed");
-                result.CreatedDate.Year.Should().Be(2019);
-            }
+            result.Should().NotBeNull();
+            result.Id.Should().Be(1001);
+            result.Title.Should().Be("Changed");
+            result.Content.Should().Be("Changed");
+            result.CreatedDate.Year.Should().Be(2019);
         }
 
         [Fact]
-        public void UpdateItem_TrimWhitespace()
+        public async void UpdateItem_TrimWhitespace()
         {
-            using (var context = BuildDbContext())
-            {
-                var service = BuildService(context);
+            var service = BuildService();
 
-                WorkNoteDto result = service.UpdateItem(new WorkNoteDto
-                {
-                    Id = 1001,
-                    Title = @" 
+            WorkNoteDto result = await service.UpdateItemAsync(new WorkNoteDto
+            {
+                Id = 1001,
+                Title = @" 
  Changed   ",
-                    Content = @" Changed   
+                Content = @" Changed   
 ",
-                });
+            });
 
-                result.Should().NotBeNull();
-                result.Id.Should().Be(1001);
-                result.Title.Should().Be("Changed");
-                result.Content.Should().Be("Changed");
-                result.CreatedDate.Year.Should().Be(2019);
-            }
+            result.Should().NotBeNull();
+            result.Id.Should().Be(1001);
+            result.Title.Should().Be("Changed");
+            result.Content.Should().Be("Changed");
+            result.CreatedDate.Year.Should().Be(2019);
         }
 
         [Fact]
-        public void UpdateItem_Error_ContentNull()
+        public async void UpdateItem_Error_ContentNull()
         {
-            using (var context = BuildDbContext())
+            var service = BuildService();
+
+            WorkNoteDto result = await service.UpdateItemAsync(new WorkNoteDto
             {
-                var service = BuildService(context);
+                Id = 1001,
+                Title = "Changed",
+                Content = null
+            });
 
-                WorkNoteDto result = service.UpdateItem(new WorkNoteDto
-                {
-                    Id = 1001,
-                    Title = "Changed",
-                    Content = null
-                });
-
-                result.Should().NotBeNull();
-                result.Id.Should().Be(1001);
-                result.Title.Should().Be("Changed");
-                result.Content.Should().Be("");
-                result.CreatedDate.Year.Should().Be(2019);
-            }
+            result.Should().NotBeNull();
+            result.Id.Should().Be(1001);
+            result.Title.Should().Be("Changed");
+            result.Content.Should().Be("");
+            result.CreatedDate.Year.Should().Be(2019);
         }
 
         [Fact]
         public void UpdateItem_Error_NotFound()
         {
-            using (var context = BuildDbContext())
+            var service = BuildService();
+
+            WorkNoteDto badItem = new WorkNoteDto
             {
-                var service = BuildService(context);
+                Id = 999999,
+                Title = "Changed",
+                Content = "Changed"
+            };
 
-                WorkNoteDto badItem = new WorkNoteDto
-                {
-                    Id = 999999,
-                    Title = "Changed",
-                    Content = "Changed"
-                };
-
-                Action act = () => service.UpdateItem(badItem);
-                act.Should()
-                    .Throw<NotFoundException>()
-                    .WithMessage("Item with id=999999 not found.");
-            }
+            Func<Task<WorkNoteDto>> func = async () => await service.UpdateItemAsync(badItem);
+            func.Should()
+                .Throw<NotFoundException>()
+                .WithMessage("Item with id=999999 not found.");
         }
 
         [Fact]
         public void UpdateItem_Error_TitleNull()
         {
-            using (var context = BuildDbContext())
+            var service = BuildService();
+
+            WorkNoteDto badItem = new WorkNoteDto
             {
-                var service = BuildService(context);
+                Id = 1001,
+                Title = null,
+                Content = "Changed"
+            };
 
-                WorkNoteDto badItem = new WorkNoteDto
-                {
-                    Id = 1001,
-                    Title = null,
-                    Content = "Changed"
-                };
-
-                Action act = () => service.UpdateItem(badItem);
-                act.Should()
-                    .Throw<ContentValidationException>()
-                    .WithMessage("'Title' must not be empty.");
-            }
+            Func<Task<WorkNoteDto>> func = async () => await service.UpdateItemAsync(badItem);
+            func.Should()
+                .Throw<ContentValidationException>()
+                .WithMessage("'Title' must not be empty.");
         }
 
         [Fact]
         public void UpdateItem_Error_TitleEmpty()
         {
-            using (var context = BuildDbContext())
+            var service = BuildService();
+
+            WorkNoteDto badItem = new WorkNoteDto
             {
-                var service = BuildService(context);
+                Id = 1001,
+                Title = "",
+                Content = "Changed"
+            };
 
-                WorkNoteDto badItem = new WorkNoteDto
-                {
-                    Id = 1001,
-                    Title = "",
-                    Content = "Changed"
-                };
-
-                Action act = () => service.UpdateItem(badItem);
-                act.Should()
-                    .Throw<ContentValidationException>()
-                    .WithMessage("'Title' must not be empty.");
-            }
+            Func<Task<WorkNoteDto>> func = async () => await service.UpdateItemAsync(badItem);
+            func.Should()
+                .Throw<ContentValidationException>()
+                .WithMessage("'Title' must not be empty.");
         }
 
         [Fact]
         public void UpdateItem_Error_TitleBlank()
         {
-            using (var context = BuildDbContext())
+            var service = BuildService();
+
+            WorkNoteDto badItem = new WorkNoteDto
             {
-                var service = BuildService(context);
+                Id = 1001,
+                Title = "   ",
+                Content = "Changed"
+            };
 
-                WorkNoteDto badItem = new WorkNoteDto
-                {
-                    Id = 1001,
-                    Title = "   ",
-                    Content = "Changed"
-                };
-
-                Action act = () => service.UpdateItem(badItem);
-                act.Should()
-                    .Throw<ContentValidationException>()
-                    .WithMessage("'Title' must not be empty.");
-            }
+            Func<Task<WorkNoteDto>> func = async () => await service.UpdateItemAsync(badItem);
+            func.Should()
+                .Throw<ContentValidationException>()
+                .WithMessage("'Title' must not be empty.");
         }
 
         #endregion
@@ -432,32 +405,26 @@ namespace ServiceTests
         #region ### DeleteItem #################################################
 
         [Fact]
-        public void DeleteItem_HappyPath()
+        public async void DeleteItem_HappyPath()
         {
-            using (var context = BuildDbContext())
-            {
-                var service = BuildService(context);
+            var service = BuildService();
 
-                int count1 = service.ReadAllItems().Count();
-                service.DeleteItem(1001);
-                int count2 = service.ReadAllItems().Count();
+            int count1 = service.ReadAllItems().Count();
+            await service.DeleteItemAsync(1001);
+            int count2 = service.ReadAllItems().Count();
 
-                count2.Should().Be(count1 - 1);
-            }
+            count2.Should().Be(count1 - 1);
         }
 
         [Fact]
         public void DeleteItem_Error_NotFound()
         {
-            using (var context = BuildDbContext())
-            {
-                var service = BuildService(context);
+            var service = BuildService();
 
-                Action act = () => service.DeleteItem(999999);
-                act.Should()
-                    .Throw<NotFoundException>()
-                    .WithMessage("Item with id=999999 not found.");
-            }
+            Func<System.Threading.Tasks.Task> func = async () => await service.DeleteItemAsync(999999);
+            func.Should()
+                .Throw<NotFoundException>()
+                .WithMessage("Item with id=999999 not found.");
         }
 
         #endregion

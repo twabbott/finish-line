@@ -1,8 +1,9 @@
-﻿using System;
+﻿using FinishLineApi.Store.Repositories;
+using System;
 
 namespace FinishLineApi.Store.Entities
 {
-    public class Task
+    public class Task : IEntity
     {
         public int Id { get; set; }
         public string Title { get; set; }

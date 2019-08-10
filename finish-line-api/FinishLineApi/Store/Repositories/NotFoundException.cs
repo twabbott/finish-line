@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace FinishLineApi.DTO.Validators
+namespace FinishLineApi.Store.Repositories
 {
-    public class NotFoundException: ContentValidationException
+    public class NotFoundException: Exception
     {
         public NotFoundException(string message) : base(message)
         { }

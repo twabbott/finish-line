@@ -1,6 +1,8 @@
-﻿namespace FinishLineApi.Store.Entities
+﻿using FinishLineApi.Store.Repositories;
+
+namespace FinishLineApi.Store.Entities
 {
-    public class ProjectInProjectList
+    public class ProjectInProjectList : IEntity
     {
         public int Id { get; set; }
         public int ProjectInProjectListId { get; set; }

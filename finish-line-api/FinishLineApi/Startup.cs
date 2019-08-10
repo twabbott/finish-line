@@ -11,6 +11,8 @@ using System;
 using FinishLineApi.Models;
 using FinishLineApi.Services;
 using FinishLineApi.Store.Contexts;
+using FinishLineApi.Store.Repositories;
+using FinishLineApi.Store.Entities;
 
 namespace FinishLineApi
 {
@@ -43,10 +45,14 @@ namespace FinishLineApi
             var connection = @"Server=(localdb)\mssqllocaldb;Database=FinishLine;Trusted_Connection=True;ConnectRetryCount=0";
             services.AddDbContext<IFinishLineDBContext, FinishLineDBContext>(options => options.UseSqlServer(connection));
 
-            // Add all custom DI mappings for your services/etc. here.  For more info
-            // on lifetime, see this article: https://docs.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-2.1#service-lifetimes
+            // DI mappings for all services
             services
                 .AddScoped<IWorkNoteService, WorkNoteService>(); // Data services should have a scoped lifetime, not transient.
+
+            // DI mappings for all repositories
+            services
+                .AddScoped<IGenericDbContext, FinishLineDBContext>()
+                .AddScoped<IGenericRepository<WorkNote>, GenericRepository<WorkNote, FinishLineDBContext>>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
 using FinishLineApi.DTO.Validators;
+using FinishLineApi.Store.Repositories;
+using System.Threading.Tasks;
 
 namespace ControllerTests
 {
@@ -43,19 +45,19 @@ namespace ControllerTests
                 .Setup(inst => inst.ReadAllItems(It.IsAny<DateTime?>()))
                 .Returns((DateTime? date) => date == null ? _testData.ToArray() : _testData.Where(item => item.CreatedDate == date).ToArray());
             _mockWorkNotesService
-                .Setup(inst => inst.ReadItem(It.IsAny<int>()))
-                .Returns((int id) => _testData.Where(item => item.Id == id).SingleOrDefault());
+                .Setup(inst => inst.ReadItemAsync(It.IsAny<int>()))
+                .ReturnsAsync((int id) => _testData.Where(item => item.Id == id).SingleOrDefault());
             _mockWorkNotesService
-                .Setup(inst => inst.CreateItem(It.IsAny<WorkNoteDto>()))
-                .Returns((WorkNoteDto newWorkNote) =>
+                .Setup(inst => inst.CreateItemAsync(It.IsAny<WorkNoteDto>()))
+                .ReturnsAsync((WorkNoteDto newWorkNote) =>
                 {
                     newWorkNote.Id = _nextId++;
                     newWorkNote.CreatedDate = DateTime.Now;
                     return newWorkNote;
                 });
             _mockWorkNotesService
-                .Setup(inst => inst.UpdateItem(It.IsAny<WorkNoteDto>()))
-                .Returns((WorkNoteDto entry) =>
+                .Setup(inst => inst.UpdateItemAsync(It.IsAny<WorkNoteDto>()))
+                .ReturnsAsync((WorkNoteDto entry) =>
                 {
                     var match = _testData.FirstOrDefault(item => item.Id == entry.Id);
                     if (match == null)
@@ -69,8 +71,8 @@ namespace ControllerTests
                     return entry;
                 });
             _mockWorkNotesService
-                .Setup(inst => inst.DeleteItem(It.IsAny<int>()))
-                .Callback((int id) =>
+                .Setup(inst => inst.DeleteItemAsync(It.IsAny<int>()))
+                .Callback((int id) => 
                 {
                     var match = _testData.FirstOrDefault(item => item.Id == id);
                     if (match == null)
@@ -142,13 +144,13 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void Get_HappyPath()
+        public async Task Get_HappyPath()
         {
             // Arrange
             var controller = BuildController();
 
             // Act
-            var response = controller.Get(1000);
+            var response = await controller.GetAsync(1000);
 
             // Assert
             response.Result.Should().BeOfType<OkObjectResult>("Return a 200 OK response object, with content");
@@ -161,13 +163,13 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void Get_NotFound()
+        public async Task Get_NotFound()
         {
             // Arrange
             var controller = BuildController();
 
             // Act
-            var response = controller.Get(999);
+            var response = await controller.GetAsync(999);
 
             // Assert
             response.Result.Should().BeOfType<NotFoundResult>("Return a 404 response object");
@@ -177,16 +179,16 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void Get_Handles500()
+        public async Task Get_Handles500()
         {
             // Arrange
             var controller = BuildController();
             _mockWorkNotesService
-                .Setup(inst => inst.ReadItem(It.IsAny<int>()))
+                .Setup(inst => inst.ReadItemAsync(It.IsAny<int>()))
                 .Throws(new Exception("Yeeeet!"));
 
             // Act
-            var response = controller.Get(1000);
+            var response = await controller.GetAsync(1000);
 
             // Assert
             response.Result.Should().BeOfType<StatusCodeResult>("Return a 500 response object");
@@ -196,7 +198,7 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void Post_HappyPath()
+        public async Task Post_HappyPath()
         {
             // Arrange
             var testTitle = "I did this";
@@ -208,7 +210,7 @@ namespace ControllerTests
                 Title = testTitle,
                 Content = "Because it was hard"
             };
-            var response = controller.Create(entry);
+            var response = await controller.CreateAsync(entry);
 
             // Assert
             response.Result.Should().BeOfType<CreatedAtActionResult>("Return a 200 OK response object, with content");
@@ -223,12 +225,12 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void Post_ContentValidationFailure()
+        public async Task Post_ContentValidationFailure()
         {
             // Arrange
             var controller = BuildController();
             _mockWorkNotesService
-                .Setup(inst => inst.CreateItem(It.IsAny<WorkNoteDto>()))
+                .Setup(inst => inst.CreateItemAsync(It.IsAny<WorkNoteDto>()))
                 .Throws(new ContentValidationException("Yeeeet!"));
 
             // Act
@@ -237,19 +239,19 @@ namespace ControllerTests
                 Title = "I did this",
                 Content = null
             };
-            var response = controller.Create(entry);
+            var response = await controller.CreateAsync(entry);
 
             // Assert
             response.Result.Should().BeOfType<BadRequestObjectResult>("Return a 400 result");
         }
 
         [Fact]
-        public void Post_Handles500()
+        public async Task Post_Handles500()
         {
             // Arrange
             var controller = BuildController();
             _mockWorkNotesService
-                .Setup(inst => inst.CreateItem(It.IsAny<WorkNoteDto>()))
+                .Setup(inst => inst.CreateItemAsync(It.IsAny<WorkNoteDto>()))
                 .Throws(new Exception("Yeeeet!"));
 
             // Act
@@ -258,7 +260,7 @@ namespace ControllerTests
                 Title = "I did this",
                 Content = "Because it was hard"
             };
-            var response = controller.Create(entry);
+            var response = await controller.CreateAsync(entry);
 
             // Assert
             response.Result.Should().BeOfType<StatusCodeResult>("Return a 500 response object");
@@ -268,7 +270,7 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void Put_HappyPath()
+        public async Task Put_HappyPath()
         {
             // Arrange
             var testId = 1001;
@@ -283,7 +285,7 @@ namespace ControllerTests
                 Title = testTitle,
                 Content = testContent
             };
-            var response = controller.Update(testId, entry);
+            var response = await controller.UpdateAsync(testId, entry);
 
             // Assert
             response.Result.Should().BeOfType<OkObjectResult>("Return a 200 OK response object, with content");
@@ -298,7 +300,7 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void Put_NotFound()
+        public async Task Put_NotFound()
         {
             // Arrange
             var testId = 999;
@@ -313,7 +315,7 @@ namespace ControllerTests
                 Title = testTitle,
                 Content = testContent
             };
-            var response = controller.Update(testId, entry);
+            var response = await controller.UpdateAsync(testId, entry);
 
             // Assert
             response.Result.Should().BeOfType<NotFoundObjectResult>("Return a 404 result");
@@ -323,7 +325,7 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void Put_UrlIdMismatch()
+        public async Task Put_UrlIdMismatch()
         {
             // Arrange
             var testId = 1001;
@@ -338,20 +340,20 @@ namespace ControllerTests
                 Title = testTitle,
                 Content = testContent
             };
-            var response = controller.Update(999, entry);
+            var response = await controller.UpdateAsync(999, entry);
 
             // Assert
             response.Result.Should().BeOfType<BadRequestObjectResult>("Return a 400 result");
         }
 
         [Fact]
-        public void Put_ContentValidationFailure()
+        public async Task Put_ContentValidationFailure()
         {
             // Arrange
             int testId = 1000;
             var controller = BuildController();
             _mockWorkNotesService
-                .Setup(inst => inst.UpdateItem(It.IsAny<WorkNoteDto>()))
+                .Setup(inst => inst.UpdateItemAsync(It.IsAny<WorkNoteDto>()))
                 .Throws(new ContentValidationException("Yeeeet!"));
 
             // Act
@@ -361,19 +363,19 @@ namespace ControllerTests
                 Title = "I did this",
                 Content = null
             };
-            var response = controller.Update(testId, entry);
+            var response = await controller.UpdateAsync(testId, entry);
 
             // Assert
             response.Result.Should().BeOfType<BadRequestObjectResult>("Return a 400 result");
         }
 
         [Fact]
-        public void Put_Handles500()
+        public async Task Put_Handles500()
         {
             // Arrange
             var controller = BuildController();
             _mockWorkNotesService
-                .Setup(inst => inst.UpdateItem(It.IsAny<WorkNoteDto>()))
+                .Setup(inst => inst.UpdateItemAsync(It.IsAny<WorkNoteDto>()))
                 .Throws(new Exception("Yeeeet!"));
 
             // Act
@@ -383,7 +385,7 @@ namespace ControllerTests
                 Title = "I did this",
                 Content = "Because it was hard"
             };
-            var response = controller.Update(1000, entry);
+            var response = await controller.UpdateAsync(1000, entry);
 
             // Assert
             response.Result.Should().BeOfType<StatusCodeResult>("Return a 500 response object");
@@ -393,27 +395,27 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void Delete_HappyPath()
+        public async Task Delete_HappyPath()
         {
             // Arrange
             var controller = BuildController();
 
             // Act
-            var response = controller.Delete(1000);
+            var response = await controller.DeleteAsync(1000);
 
             // Assert
             response.Should().BeOfType<NoContentResult>("Return a 204 response object");
         }
 
         [Fact]
-        public void Delete_NotFound()
+        public async Task Delete_NotFound()
         {
             // Arrange
             var testId = 999;
             var controller = BuildController();
 
             // Act
-            var response = controller.Delete(testId);
+            var response = await controller.DeleteAsync(testId);
 
             // Assert
             response.Should().BeOfType<NotFoundObjectResult>("Return a 404 result");
@@ -423,17 +425,17 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void Delete_Handles500()
+        public async Task Delete_Handles500()
         {
             // Arrange
             var testId = 999;
             var controller = BuildController();
             _mockWorkNotesService
-                .Setup(inst => inst.DeleteItem(It.IsAny<int>()))
+                .Setup(inst => inst.DeleteItemAsync(It.IsAny<int>()))
                 .Throws(new Exception("Yeeeet!"));
 
             // Act
-            var response = controller.Delete(testId);
+            var response = await controller.DeleteAsync(testId);
 
             // Assert
             response.Should().BeOfType<StatusCodeResult>("Return a 500 response object");

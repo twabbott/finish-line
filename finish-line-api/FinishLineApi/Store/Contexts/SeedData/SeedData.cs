@@ -11,7 +11,7 @@ namespace FinishLineApi.Models
         public static void CreateSeedData(this IFinishLineDBContext dbContext)
         {
             dbContext.SeedWorkNote();
-            dbContext.CommitChanges();
+            dbContext.SaveChanges();
         }
 
         private static void SeedWorkNote(this IFinishLineDBContext dbContext)
