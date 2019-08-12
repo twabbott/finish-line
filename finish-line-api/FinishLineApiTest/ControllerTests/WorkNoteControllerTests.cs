@@ -42,8 +42,8 @@ namespace ControllerTests
         public WorkNotesController BuildController()
         {
             _mockWorkNotesService
-                .Setup(inst => inst.ReadAllItems(It.IsAny<DateTime?>()))
-                .Returns((DateTime? date) => date == null ? _testData.ToArray() : _testData.Where(item => item.CreatedDate == date).ToArray());
+                .Setup(inst => inst.ReadAllItemsAsync(It.IsAny<DateTime?>()))
+                .ReturnsAsync((DateTime? date) => date == null ? _testData.ToArray() : _testData.Where(item => item.CreatedDate == date).ToArray());
             _mockWorkNotesService
                 .Setup(inst => inst.ReadItemAsync(It.IsAny<int>()))
                 .ReturnsAsync((int id) => _testData.Where(item => item.Id == id).SingleOrDefault());
@@ -87,13 +87,13 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void GetAll_HappyPath()
+        public async void GetAll_HappyPathAsync()
         {
             // Arrange
             var controller = BuildController();
 
             // Act
-            var response = controller.GetAll(null);
+            var response = await controller.GetAllAsync(null);
 
             // Assert
             response.Result.Should().BeOfType<OkObjectResult>("Return a 200 OK response object, with content");
@@ -106,13 +106,13 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void GetAll_SpecificDate()
+        public async void GetAll_SpecificDateAsync()
         {
             // Arrange
             var controller = BuildController();
 
             // Act
-            var response = controller.GetAll(new DateTime(2019, 07, 16, 12, 30, 0));
+            var response = await controller.GetAllAsync(new DateTime(2019, 07, 16, 12, 30, 0));
 
             // Assert
             response.Result.Should().BeOfType<OkObjectResult>("Return a 200 OK response object, with content");
@@ -125,16 +125,16 @@ namespace ControllerTests
         }
 
         [Fact]
-        public void GetAll_Handles500()
+        public async void GetAll_Handles500()
         {
             // Arrange
             WorkNotesController controller = BuildController();
             _mockWorkNotesService
-                .Setup(inst => inst.ReadAllItems(It.IsAny<DateTime?>()))
+                .Setup(inst => inst.ReadAllItemsAsync(It.IsAny<DateTime?>()))
                 .Throws(new Exception("Yeeeet!"));
 
             // Act
-            var response = controller.GetAll(null);
+            var response = await controller.GetAllAsync(null);
 
             // Assert
             response.Result.Should().BeOfType<StatusCodeResult>("Return a 500 response object");

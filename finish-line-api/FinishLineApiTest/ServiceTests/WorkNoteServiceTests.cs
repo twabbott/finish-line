@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Hosting;
 using FinishLineApi.DTO.Validators;
 using FinishLineApi.Store.Repositories;
 using System.Threading.Tasks;
+using FinishLineApiTest.Utilities;
 
 namespace ServiceTests
 {
@@ -45,8 +46,8 @@ namespace ServiceTests
         {
             Mock<IGenericRepository<WorkNote>> mockRepository = new Mock<IGenericRepository<WorkNote>>();
             mockRepository
-                .Setup(inst => inst.GetAll())
-                .Returns(() => _testData.AsQueryable());
+                .Setup(inst => inst.All)
+                .Returns(() => new TestAsyncEnumerable<WorkNote>(_testData));
             mockRepository
                 .Setup(inst => inst.GetByIdAsync(It.IsAny<int>()))
                 .ReturnsAsync((int id) => _testData.Where(item => item.Id == id).SingleOrDefault());
@@ -92,11 +93,11 @@ namespace ServiceTests
         #region ### ReadAll ####################################################
 
         [Fact]
-        public void ReadAll_HappyPath()
+        public async void ReadAll_HappyPathAsync()
         {
             var service = BuildService();
 
-            IEnumerable<WorkNoteDto> result = service.ReadAllItems(null);
+            IEnumerable<WorkNoteDto> result = await service.ReadAllItemsAsync(null);
 
             result.Should()
                 .NotBeNull()
@@ -105,11 +106,11 @@ namespace ServiceTests
         }
 
         [Fact]
-        public void ReadAll_HappyPath_WithDate()
+        public async void ReadAll_HappyPath_WithDate()
         {
             var service = BuildService();
 
-            IEnumerable<WorkNoteDto> result = service.ReadAllItems(new DateTime(2019, 07, 15, 12, 30, 0));
+            IEnumerable<WorkNoteDto> result = await service.ReadAllItemsAsync(new DateTime(2019, 07, 15, 12, 30, 0));
 
             result.Should()
                 .NotBeNull()
@@ -118,11 +119,11 @@ namespace ServiceTests
         }
 
         [Fact]
-        public void ReadAll_NoResultsForDate()
+        public async void ReadAll_NoResultsForDate()
         {
             var service = BuildService();
 
-            IEnumerable<WorkNoteDto> result = service.ReadAllItems(new DateTime(2000, 01, 01, 12, 00, 00));
+            IEnumerable<WorkNoteDto> result = await service.ReadAllItemsAsync(new DateTime(2000, 01, 01, 12, 00, 00));
 
             result.Should()
                 .NotBeNull()
@@ -409,9 +410,9 @@ namespace ServiceTests
         {
             var service = BuildService();
 
-            int count1 = service.ReadAllItems().Count();
+            int count1 = (await service.ReadAllItemsAsync()).Count();
             await service.DeleteItemAsync(1001);
-            int count2 = service.ReadAllItems().Count();
+            int count2 = (await service.ReadAllItemsAsync()).Count();
 
             count2.Should().Be(count1 - 1);
         }

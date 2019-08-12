@@ -8,31 +8,8 @@ using System.Threading.Tasks;
 
 namespace FinishLineApi.Store.Repositories
 {
-    public interface IGenericDbContext
-    {
-        DbSet<TEntity> Set<TEntity>() where TEntity : class;
-        ChangeTracker ChangeTracker { get; }
-        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default(CancellationToken));
-        int SaveChanges();
-    }
-
-    public interface IEntity
-    {
-        int Id { get; set; }
-    }
-
-    public interface IGenericRepository<TEntity>
-        where TEntity : class, IEntity
-    {
-        IQueryable<TEntity> GetAll();
-        Task<TEntity> GetByIdAsync(int id);
-        Task CreateAsync(TEntity entity);
-        Task UpdateAsync(TEntity entity);
-        Task DeleteAsync(int id);
-    }
-
     public class GenericRepository<TEntity, TContext> : IGenericRepository<TEntity>
-        where TEntity : class, IEntity
+        where TEntity : class, IEntity, new()
     {
         private readonly IGenericDbContext _dbContext;
 
@@ -41,14 +18,17 @@ namespace FinishLineApi.Store.Repositories
             _dbContext = dbContext;
         }
 
-        public IQueryable<TEntity> GetAll()
+        public IQueryable<TEntity> All
         {
-            return _dbContext.Set<TEntity>().AsNoTracking();
+            get
+            {
+                return _dbContext.Set<TEntity>().AsNoTracking();
+            }
         }
 
         public async Task<TEntity> GetByIdAsync(int id)
         {
-            return await _dbContext.Set<TEntity>()
+            return await All
                 .AsNoTracking()
                 .FirstOrDefaultAsync(e => e.Id == id);
         }
@@ -70,14 +50,13 @@ namespace FinishLineApi.Store.Repositories
 
         public async Task DeleteAsync(int id)
         {
-            var entity = await _dbContext.Set<TEntity>().FindAsync(id);
-            _dbContext.Set<TEntity>().Remove(entity);
+            TEntity stub = new TEntity() { Id = id };
+            _dbContext.Set<TEntity>().Remove(stub);
             if (!(await SaveChangesAsync()))
             {
                 throw new NotFoundException($"Unable to delete {typeof(TEntity)} for id={id}.");
             }
         }
-
 
         private async Task<bool> SaveChangesAsync()
         {

@@ -30,13 +30,13 @@ namespace FinishLineApi.Controllers
         // GET api/v1/work-notes?date=2019-04-23
         [HttpGet]
         [Route("work-notes")]
-        public ActionResult<List<WorkNoteDto>> GetAll(DateTime? date)
+        public async Task<ActionResult<List<WorkNoteDto>>> GetAllAsync(DateTime? date)
         {
             IEnumerable<WorkNoteDto> list;
             try
             {
 
-                list = _workNoteService.ReadAllItems(date);
+                list = await _workNoteService.ReadAllItemsAsync(date);
             }
             catch (Exception ex)
             {
@@ -92,8 +92,8 @@ namespace FinishLineApi.Controllers
             }
 
             return CreatedAtAction(
-                "Get",  // Tell WebAPI to use the route-info for our Get() method when creating the location header
-                new { id = workNote.Id }, // Parameters that the Get() method needs
+                "GetAsync",  // Tell WebAPI to use the route-info for our GetAsync() method when creating the location header
+                new { id = workNote.Id }, // Parameters that the GetAsync() method needs
                 workNote); // The new thing that was created.
         }
 
