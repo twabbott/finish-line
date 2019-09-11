@@ -25,13 +25,13 @@ namespace FinishLineApi.Controllers
         }
 
         [HttpGet]
-        [Route("folders/{folderId:int?}")]
-        public async Task<ActionResult<FolderInfoDto>> GetFolderInfoAsync(int? folderId = null)
+        [Route("folders/{folderId:int?}/contents")]
+        public async Task<ActionResult<FolderContentsDto>> GetFolderInfoAsync(int? folderId = null)
         {
-            FolderInfoDto folderInfo = null;
+            FolderContentsDto folderInfo = null;
             try
             {
-                folderInfo = await _folderService.ReadItemAsync(folderId);
+                folderInfo = await _folderService.ReadContentsAsync(folderId);
             }
             catch (Exception ex)
             {
@@ -57,9 +57,9 @@ namespace FinishLineApi.Controllers
 
         [HttpPost]
         [Route("folders")]
-        public async Task<ActionResult<FolderInfoDto>> CreateFolderAsync([FromBody] FolderInfoDto newItem)
+        public async Task<ActionResult<FolderDto>> CreateFolderAsync([FromBody] FolderDto newItem)
         {
-            FolderInfoDto folderInfo;
+            FolderDto folderInfo;
             try
             {
                 folderInfo = await _folderService.CreateItemAsync(newItem);
@@ -70,13 +70,13 @@ namespace FinishLineApi.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogCritical(ex, $"Error creating FolderInfo Name=\"{newItem?.Folder?.Name}\"");
+                _logger.LogCritical(ex, $"Error creating FolderInfo Name=\"{newItem?.Name}\"");
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
 
             return CreatedAtAction(
                 "GetFolderInfoAsync",  // Tell WebAPI to use the route-info for our GetAsync() method when creating the location header
-                new { id = folderInfo.Folder.Id }, // Parameters that the GetAsync() method needs
+                new { id = folderInfo.Id }, // Parameters that the GetAsync() method needs
                 folderInfo); // The new thing that was created.
         }
     }

@@ -19,8 +19,8 @@ namespace ControllerTests
         Mock<ILogger<FolderController>> _mockLogger = new Mock<ILogger<FolderController>>();
 
         int _nextId = 1010;
-        List<FolderInfoDto> _testData = new List<FolderInfoDto> {
-            new FolderInfoDto {
+        List<FolderContentsDto> _testData = new List<FolderContentsDto> {
+            new FolderContentsDto {
                 Folder = null,
                 Subfolders = new List<FolderDto>()
                 {
@@ -38,7 +38,7 @@ namespace ControllerTests
 
                 Projects = new List<ProjectDto>()
             },
-            new FolderInfoDto
+            new FolderContentsDto
             {
                 Folder = new FolderDto
                 {
@@ -62,7 +62,7 @@ namespace ControllerTests
 
                 Projects = new List<ProjectDto>()
             },
-            new FolderInfoDto
+            new FolderContentsDto
             {
                 Folder = new FolderDto
                 {
@@ -91,10 +91,10 @@ namespace ControllerTests
         public FolderController BuildController()
         {
             _mockFolderService
-                .Setup(inst => inst.ReadItemAsync(It.IsAny<int?>()))
+                .Setup(inst => inst.ReadContentsAsync(It.IsAny<int?>()))
                 .ReturnsAsync((int? id) =>
                 {
-                    FolderInfoDto item = null;
+                    FolderContentsDto item = null;
                     if (id == null)
                     {
                         item = _testData
@@ -111,11 +111,11 @@ namespace ControllerTests
                     return item;
                 });
             _mockFolderService
-                .Setup(inst => inst.CreateItemAsync(It.IsAny<FolderInfoDto>()))
-                .ReturnsAsync((FolderInfoDto folderInfo) =>
+                .Setup(inst => inst.CreateItemAsync(It.IsAny<FolderDto>()))
+                .ReturnsAsync((FolderDto folder) =>
                 {
-                    folderInfo.Folder.Id = _nextId++;
-                    return folderInfo;
+                    folder.Id = _nextId++;
+                    return folder;
                 });
 
             return new FolderController(_mockFolderService.Object, _mockLogger.Object);
@@ -134,9 +134,9 @@ namespace ControllerTests
             response.Result.Should().BeOfType<OkObjectResult>("Return a 200 OK response object, with content");
 
             var result = response.Result as OkObjectResult;
-            result.Value.Should().BeOfType<FolderInfoDto>("Content should be of type FolderContentDto");
+            result.Value.Should().BeOfType<FolderContentsDto>("Content should be of type FolderContentDto");
 
-            var folderContent = result.Value as FolderInfoDto;
+            var folderContent = result.Value as FolderContentsDto;
             folderContent.Folder.Should().BeNull();
             folderContent.Projects.Should().NotBeNull();
             folderContent.Projects.Count.Should().Be(0);
@@ -158,9 +158,9 @@ namespace ControllerTests
             response.Result.Should().BeOfType<OkObjectResult>("Return a 200 OK response object, with content");
 
             var result = response.Result as OkObjectResult;
-            result.Value.Should().BeOfType<FolderInfoDto>("Content should be of type FolderContentDto");
+            result.Value.Should().BeOfType<FolderContentsDto>("Content should be of type FolderContentDto");
 
-            var folderContent = result.Value as FolderInfoDto;
+            var folderContent = result.Value as FolderContentsDto;
             folderContent.Folder.Should().NotBeNull();
             folderContent.Folder.Id.Should().Be(1000);
             folderContent.Folder.Name.Should().Be("Sprints");
@@ -193,7 +193,7 @@ namespace ControllerTests
             // Arrange
             var controller = BuildController();
             _mockFolderService
-                .Setup(inst => inst.ReadItemAsync(It.IsAny<int?>()))
+                .Setup(inst => inst.ReadContentsAsync(It.IsAny<int?>()))
                 .Throws(new Exception("Yeeeet!"));
 
             // Act
@@ -214,12 +214,9 @@ namespace ControllerTests
             var controller = BuildController();
 
             // Act
-            FolderInfoDto newFolder = new FolderInfoDto
+            FolderDto newFolder = new FolderDto
             {
-                Folder = new FolderDto
-                {
-                    Name = "New Folder"
-                }
+                Name = "New Folder"
             };
 
             var response = await controller.CreateFolderAsync(newFolder);
@@ -228,12 +225,12 @@ namespace ControllerTests
             response.Result.Should().BeOfType<CreatedAtActionResult>("Return a 200 OK response object, with content");
 
             var result = response.Result as CreatedAtActionResult;
-            result.Value.Should().BeOfType<FolderInfoDto>("Content should be of type FolderInfoDto");
+            result.Value.Should().BeOfType<FolderDto>("Content should be of type FolderContentsDto");
 
-            var item = result.Value as FolderInfoDto;
-            item.Folder.Should().NotBeNull();
-            item.Folder.Id.Should().Be(nextId);
-            item.Folder.Name.Should().Be("New Folder");
+            var item = result.Value as FolderDto;
+            item.Should().NotBeNull();
+            item.Id.Should().Be(nextId);
+            item.Name.Should().Be("New Folder");
         }
 
         /* TODO: Need to finish this out.  I don't really have a service layer yet, or a

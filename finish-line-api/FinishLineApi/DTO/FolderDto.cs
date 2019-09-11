@@ -14,9 +14,5 @@ namespace FinishLineApi.DTO
         public int ParentId { get; set; }
 
         public string Name { get; set; }
-
-        public List<FolderDto> Subfolders { get; set; }
-
-        public List<ProjectDto> Projects { get; set; }
     }
 }

@@ -8,8 +8,8 @@ namespace FinishLineApi.Services
 {
     public interface IFolderService
     {
-        Task<FolderInfoDto> ReadItemAsync(int? id);
-        Task<FolderInfoDto> CreateItemAsync(FolderInfoDto folderInfo);
+        Task<FolderContentsDto> ReadContentsAsync(int? id);
+        Task<FolderDto> CreateItemAsync(FolderDto folderInfo);
     }
 
     public class FolderService: IFolderService
@@ -17,12 +17,12 @@ namespace FinishLineApi.Services
         public FolderService()
         { }
 
-        public Task<FolderInfoDto> ReadItemAsync(int? id)
+        public Task<FolderContentsDto> ReadContentsAsync(int? id)
         {
-            return Task.FromResult<FolderInfoDto>(null);
+            return Task.FromResult<FolderContentsDto>(null);
         }
 
-        public Task<FolderInfoDto> CreateItemAsync(FolderInfoDto folderInfo)
+        public Task<FolderDto> CreateItemAsync(FolderDto folderInfo)
         {
             throw new NotImplementedException();
         }

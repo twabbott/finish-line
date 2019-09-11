@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace FinishLineApi.DTO
 {
-    public class FolderInfoDto
+    public class FolderContentsDto
     {
         public FolderDto Folder { get; set; }
 
