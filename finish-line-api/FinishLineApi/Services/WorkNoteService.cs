@@ -77,9 +77,6 @@ namespace FinishLineApi.Services
         {
             Validation<WorkNoteDtoValidator, WorkNoteDto>.ValidateObject(newEntry, "default,Update");
 
-            // TODO: in the name of efficiency, this call should probably
-            // not perform a fetch, but should just add a new un-tracked object,
-            // then call UpdateAsync and update ALL fields.
             WorkNote entry = _repository.All.FirstOrDefault(item => item.Id == newEntry.Id);
             if (entry == null)
             {

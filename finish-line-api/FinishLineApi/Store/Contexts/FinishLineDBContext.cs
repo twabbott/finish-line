@@ -11,12 +11,12 @@ namespace FinishLineApi.Store.Contexts
 {
     public interface IFinishLineDBContext: IGenericDbContext, IDisposable
     {
+        DbSet<Folder> Folders { get; set; }
         DbSet<Project> Projects { get; set; }
-        DbSet<Task> Tasks { get; set; }
+        DbSet<ProjectInFolder> ProjectsInFolders { get; set; }
+        DbSet<WorkItem> WorkItems { get; set; }
         DbSet<Resource> ReferenceItems { get; set; }
         DbSet<WorkNote> WorkNotes { get; set; }
-        DbSet<ProjectList> ProjectLists { get; set; }
-        DbSet<ProjectInProjectList> ProjectsInProjectList { get; set; }
     }
 
     public class FinishLineDBContext: DbContext, IFinishLineDBContext, IGenericDbContext
@@ -34,11 +34,11 @@ namespace FinishLineApi.Store.Contexts
             this._logger = logger;
         }
 
+        public DbSet<Folder> Folders { get; set; }
         public DbSet<Project> Projects { get; set; }
-        public DbSet<Task> Tasks { get; set; }
+        public DbSet<ProjectInFolder> ProjectsInFolders { get; set; }
+        public DbSet<WorkItem> WorkItems { get; set; }
         public DbSet<Resource> ReferenceItems { get; set; }
         public DbSet<WorkNote> WorkNotes { get; set; }
-        public DbSet<ProjectList> ProjectLists { get; set; }
-        public DbSet<ProjectInProjectList> ProjectsInProjectList { get; set; }
     }
 }
