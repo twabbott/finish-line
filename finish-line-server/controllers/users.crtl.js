@@ -1,9 +1,9 @@
 const responses = require("./responses");
-const User = require("../models/user.model");
+const userSchema = require("../models/user.model");
 
 module.exports.getUsers = async function(req, res) {
   try {
-    const items = await User.find();
+    const items = await userSchema.find();
     return responses.ok(res, items);
   } catch(err) {
     return responses.internalServerError(res, err);
@@ -15,7 +15,7 @@ module.exports.getUserById = async function(req, res) {
     let item = null;
     
     try {
-      item = await User.findById(req.params.id);
+      item = await userSchema.findById(req.params.id);
     } catch (err) {
       console.log(err);
     }
@@ -31,12 +31,11 @@ module.exports.getUserById = async function(req, res) {
 
 module.exports.createUser = async function(req, res) {
   const body = req.body;
-
   if (!body) {
     return responses.badRequest(res, "You must provide a user.");
   }
 
-  const newItem = new User({
+  const newItem = new userSchema({
     name: body.name,
     email: body.email,
     password: body.password,
@@ -65,7 +64,7 @@ module.exports.updateUser = async function(req, res) {
   let item = null;
     
   try {
-    item = await User.findById(req.params.id);
+    item = await userSchema.findById(req.params.id);
   } catch (err) {
     console.log(err);
   }
@@ -90,7 +89,7 @@ module.exports.deleteUser = async function(req, res) {
   try {
     let found = false;
     try {
-      const result = await User.deleteOne({ _id: req.params.id });
+      const result = await userSchema.deleteOne({ _id: req.params.id });
       found = result && result.deletedCount > 0;
     } catch (err) {
       console.log(err);

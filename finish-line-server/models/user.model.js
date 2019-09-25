@@ -6,7 +6,7 @@ function ValidateEmail(address)
   return /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(address);
 }
 
-const User = new Schema(
+const userSchema = new Schema(
   {
     name: { 
       type: String, 
@@ -39,4 +39,4 @@ const User = new Schema(
   },
 );
 
-module.exports = mongoose.model("users", User);
+module.exports = mongoose.model("users", userSchema);
