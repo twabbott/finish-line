@@ -36,6 +36,13 @@ module.exports.badRequest = function(res, message) {
     .json(errorMessage(message));
 };
 
+module.exports.unauthorized = function(res, message) {
+  message = message || "Unknown username or invalid password";
+  return res
+    .status(401)
+    .json(errorMessage(message));
+};
+
 module.exports.internalServerError = function(res, err) {
   console.log(err);
   return res

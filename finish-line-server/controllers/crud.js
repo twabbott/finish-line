@@ -27,6 +27,9 @@ module.exports = function(schema, collectionName, mapFunc) {
   };
 
   crud.readAllItems = async function(req, res) {
+    // TODO: this must always filter by user, so somehow get the userId from the
+    //    current set of credentials and add it to the query.  We should 
+    //    probably have an index on userId.
     try {
       const items = await schema.find();
       return responses.ok(res, items);
@@ -36,6 +39,7 @@ module.exports = function(schema, collectionName, mapFunc) {
   };  
 
   crud.readItem = async function(req, res) {
+    // TODO: this must always filter by user.  See readAllItems().
     try {
       let item = null;
       
@@ -55,6 +59,7 @@ module.exports = function(schema, collectionName, mapFunc) {
   };
 
   crud.updateItem = async function(req, res) {
+    // TODO: this must always filter by user.  See readAllItems().
     const body = req.body;
     if (typeof body !== "object") {
       return responses.badRequest(res, "Error parsing request body.");
@@ -84,6 +89,7 @@ module.exports = function(schema, collectionName, mapFunc) {
   };
   
   crud.deleteItem = async function(req, res) {
+    // TODO: this must always filter by user.  See readAllItems().
     try {
       let found = false;
       try {

@@ -1,12 +1,18 @@
 const express = require("express");
+const config = require("config");
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 
 const db = require("./db");
-const movieRouter = require("./routes");
+const router = require("./routes");
 
-const app = express();
+if (!config.get("myprivatekey")) {
+  console.error("FATAL ERROR: myprivatekey is not defined.");
+  process.exit(1);
+}
+
+const app = express(express.json());
 
 const apiPort = (process.env.PORT || 3000);
 app.set("port", apiPort);
@@ -25,7 +31,7 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-app.use("/api", movieRouter);
+app.use("/api", router);
 
 app.use(function(req, res) {
   const err = new Error("Not Found");
