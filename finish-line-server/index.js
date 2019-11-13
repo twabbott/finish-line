@@ -1,5 +1,5 @@
 const express = require("express");
-const config = require("config");
+const config = require("./config");
 const morgan = require("morgan");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -7,15 +7,9 @@ const cors = require("cors");
 const db = require("./db");
 const router = require("./routes");
 
-if (!config.get("myprivatekey")) {
-  console.error("FATAL ERROR: myprivatekey is not defined.");
-  process.exit(1);
-}
-
 const app = express(express.json());
 
-const apiPort = (process.env.PORT || 3000);
-app.set("port", apiPort);
+app.set("port", config.port);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -39,7 +33,7 @@ app.use(function(req, res) {
   res.json(err);
 });
 
-app.listen(apiPort, () => { 
-  console.log(`Server running on port ${apiPort}`);
-  console.log(`View server status at: http://localhost:${apiPort}`);
+app.listen(config.port, () => { 
+  console.log(`Server running on port ${config.port}`);
+  console.log(`View server status at: http://localhost:${config.port}`);
 });

@@ -1,9 +1,10 @@
 const foldersCtrl = require("../controllers/folders.ctrl");
+const auth = require("../middleware/auth");
 
 module.exports.init = function(router) {
   // Get all folders:
   //   GET .../v1/folders
-  router.get("/v1/folders", foldersCtrl.readAllItems);
+  router.get("/v1/folders", auth.validateToken, foldersCtrl.readAllItems);
 
   // Get specific folder
   //   GET .../v1/folders/:id

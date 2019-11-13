@@ -1,8 +1,8 @@
-
-
 const responses = require("./responses");
 const users = require("../models/user.model");
 const passwords = require("../security/passwords");
+const config = require("../config");
+const jwt = require('jsonwebtoken');
 
 module.exports.signin = async function(req, res) {
   try {
@@ -27,7 +27,21 @@ module.exports.signin = async function(req, res) {
       return responses.unauthorized(res);
     }
 
-    return responses.ok(res, user);
+    // Ok, email/password checks out.  Make a token
+    const credentials = {
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin
+    }
+
+    let token = jwt.sign(credentials,
+      config.jwtSecret,
+      { 
+        expiresIn: '24h' // expires in 24 hours
+      }
+    );
+
+    return responses.ok(res, token, `User ${user.email} authenticated.`);
   } catch(err) {
     return responses.internalServerError(res, err);
   }
