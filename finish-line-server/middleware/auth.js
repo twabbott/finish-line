@@ -12,9 +12,10 @@ function validateToken(req, res, next) {
   }
 
   // Remove "Bearer" from string
-  if (token.startsWith('Bearer ')) {
-    token = token.slice(7, token.length);
+  if (!token.startsWith('Bearer ')) {
+    return responses.unauthorized(res, "Bearer token expected.");
   }
+  token = token.slice(7, token.length);
 
   try {
     // if can verify the token, set req.user and pass to next middleware

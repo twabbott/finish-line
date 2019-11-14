@@ -1,9 +1,8 @@
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
 
 const ObjectId = mongoose.Types.ObjectId;
 
-const folderSchema = new Schema(
+const folderSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     userId: { type: ObjectId, indexed: true, required: true },
@@ -14,4 +13,4 @@ const folderSchema = new Schema(
   { timestamps: true },
 );
 
-module.exports = mongoose.model("folders", folderSchema);
+module.exports.folderSchema = mongoose.model("folders", folderSchema);

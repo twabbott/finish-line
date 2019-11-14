@@ -29,6 +29,7 @@ module.exports.signin = async function(req, res) {
 
     // Ok, email/password checks out.  Make a token
     const credentials = {
+      userId: user._id,
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin

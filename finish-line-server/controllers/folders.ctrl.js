@@ -1,35 +1,58 @@
 const responses = require("./responses");
-const crud = require("./crud");
-const folderSchema = require("../models/folder.model");
+const crudFactory = require("./crud");
+const { folderSchema } = require("../models/folder.model");
+const { ObjectId } = require("mongodb");
 
 function transform(schemaItem, body, isCreate) {
   schemaItem.name = body.name;
 }
 
-module.exports = crud(folderSchema, "Folder", transform);
+module.exports = {};
 
-module.exports.createRootItem = async function(req, res) {
-  const body = req.body;
-  if (typeof body !== "object") {
-    return responses.badRequest(res, "Error parsing request body.");
+module.exports.createFolder = crudFactory.create(async (params, body, credentials) => {
+  const parentId = params.parentId || null;
+  if (parentId && !await folderSchema.findOne({ _id: parentId, userId: credentials.userId })) {
+    throw Error(`Folder with parentId=${params.parentId} not found.`);
   }
 
-  const newItem = new schema();
-  newItem.name = body.name;
-  newItem.userId = body.userId; // TODO: get this from the user's credentials, not from the request.  ;-)
-  newItem.parentId = null;
-  newItem.childrenIds = [];
-  newItem.projectIds = [];
+  const item = new folderSchema();
 
-  try {
-    try {
-      await newItem.save();
-    } catch (err) {
-      return responses.badRequest(res, err.message);
-    }
+  item.name = body.name;
+  item.userId = credentials.userId;
+  item.parentId = parentId;
+  item.childrenIds = [];
+  item.projectIds = [];
 
-    return responses.created(req, res, newItem);
-  } catch (err) {
-    return responses.internalServerError(res, err);
+  await item.save();
+
+  return item;
+});
+
+module.exports.readAllFolders = crudFactory.readAll(async (params, credentials) => {
+  return await folderSchema.find({ userId: credentials.userId});
+});
+
+module.exports.readFolder = crudFactory.read(async (params, credentials) => {
+  return await folderSchema.findOne({ _id: params.id, userId: credentials.userId });
+});
+
+module.exports.updateFolder = crudFactory.update(async (params, body, credentials) => {
+  const item = await folderSchema.findOne({ _id: params.id, userId: credentials.userId });
+  if (!item) {
+    return null;
   }
-};
+
+  item.name = body.name;
+  item.parentId = body.parentId;
+  item.childrenIds = body.childrenIds;
+  item.projectIds = body.projectIds;
+
+  await item.save();
+
+  return item;
+});
+
+module.exports.deleteFolder = crudFactory.delete(async (params, credentials) => {
+  const result = await folderSchema.deleteOne({ _id: params.id, userId: credentials.userId });
+  return result && result.deletedCount > 0;
+});

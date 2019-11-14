@@ -1,114 +1,100 @@
 const responses = require("./responses");
-const folderSchema = require("../models/folder.model");
 
-module.exports = function(schema, collectionName, mapFunc) {
-  const crud = {};
+module.exports = {
+  create(createFunc) {
+    return async function(req, res) {
+      const body = req.body;
+      if (typeof body !== "object") {
+        return responses.badRequest(res, "Error parsing request body.");
+      }
 
-  crud.createItem = async function(req, res) {
-    const body = req.body;
-    if (typeof body !== "object") {
-      return responses.badRequest(res, "Error parsing request body.");
-    }
-
-    const newItem = new schema();
-    mapFunc(newItem, body, true);
-
-    try {
+      let newItem;
       try {
-        await newItem.save();
+        newItem = await createFunc(req.params, req.body, req.user);
       } catch (err) {
-        return responses.badRequest(res, err.message);
+        return err?
+          responses.badRequest(res, err.message):
+          responses.internalServerError(res, err);
       }
+  
+      return newItem?
+        responses.created(req, res, newItem):
+        responses.badRequest(res);
+    };
+  },
 
-      return responses.created(req, res, newItem);
-    } catch (err) {
-      return responses.internalServerError(res, err);
-    }
-  };
-
-  crud.readAllItems = async function(req, res) {
-    // TODO: this must always filter by user, so somehow get the userId from the
-    //    current set of credentials and add it to the query.  We should 
-    //    probably have an index on userId.
-    try {
-      const items = await schema.find();
-      return responses.ok(res, items);
-    } catch(err) {
-      return responses.internalServerError(res, err);
-    }
-  };  
-
-  crud.readItem = async function(req, res) {
-    // TODO: this must always filter by user.  See readAllItems().
-    try {
-      let item = null;
-      
+  readAll(findFunc) {
+    return async function(req, res) {
+      let items;
       try {
-        item = await folderSchema.findById(req.params.id);
+        items = await findFunc(req.params, req.user);
       } catch (err) {
-        console.log(err);
-      }
-      if (!item) {
-        return responses.notFound(res, `${collectionName} _id=${req.params.id} not found.`);
+        return err?
+          responses.badRequest(res, err.message):
+          responses.internalServerError(res, err);
       }
 
-      return responses.ok(res, item);
-    } catch (err) {
-      return responses.internalServerError(res, err);
-    }
-  };
+      return items?
+        responses.ok(res, items):
+        responses.badRequest(res);
+    };
+  },
 
-  crud.updateItem = async function(req, res) {
-    // TODO: this must always filter by user.  See readAllItems().
-    const body = req.body;
-    if (typeof body !== "object") {
-      return responses.badRequest(res, "Error parsing request body.");
-    }
-  
-    console.log(`PUT ${req.params.id} ==> ${JSON.stringify(body)}`);
-    let item = null;
-      
-    try {
-      item = await schema.findById(req.params.id);
-    } catch (err) {
-      console.log(err);
-    }
-    if (!item) {
-      return responses.notFound(res, `${collectionName} _id=${req.params.id} not found.`);
-    }
-  
-    mapFunc(item, body, false);
-  
-    try {
-      await item.save();
-  
-      return responses.ok(res, item);
-    } catch (err) {
-      return responses.badRequest(res, err.message);
-    }
-  };
-  
-  crud.deleteItem = async function(req, res) {
-    // TODO: this must always filter by user.  See readAllItems().
-    try {
+  read(findFunc) {
+    return async function(req, res) {
+      let item = null;        
+      try {
+        item = await findFunc(req.params, req.user);
+      } catch (err) {
+        return err?
+          responses.badRequest(res, err.message):
+          responses.internalServerError(res, err);
+      }
+
+      return item?
+        responses.ok(res, item):
+        responses.notFound(res, `Item not found.`);
+    };
+  },
+
+  update(updateFunc) {
+    return async function(req, res) {
+      const body = req.body;
+      if (typeof body !== "object") {
+        return responses.badRequest(res, "Error parsing request body.");
+      }
+    
+      let item = null;        
+      try {
+        item = await updateFunc(req.params, req.body, req.user);
+      } catch (err) {
+        return err?
+          responses.badRequest(res, err.message):
+          responses.internalServerError(res, err);
+      }
+    
+      return item?
+        responses.ok(res, item):
+        responses.notFound(res, `Item not found.`);
+    };    
+  },
+
+  delete(deleteFunc) {
+    return async function(req, res) {
       let found = false;
       try {
-        const result = await schema.deleteOne({ _id: req.params.id });
-        found = result && result.deletedCount > 0;
+        found = await deleteFunc(req.params, req.user)
       } catch (err) {
-        console.log(err);
+        return err?
+          responses.badRequest(res, err.message):
+          responses.internalServerError(res, err);
       }
-      if (!found) {
-        return responses.notFound(res, `${collectionName} _id=${req.params.id} not found.`);
-      }
-  
-      return responses.noContent(res);
-    } catch (err) {
-      return responses.internalServerError(res, err);
-    }
-  };
 
-  return crud;
+      return found?
+        responses.noContent(res):
+        responses.notFound(res, `Item not found.`);
+    };    
+  }
 }
 
 
