@@ -12,7 +12,7 @@ function validateToken(req, res, next) {
   }
 
   // Remove "Bearer" from string
-  if (!token.startsWith('Bearer ')) {
+  if (!token.startsWith("Bearer ")) {
     return responses.unauthorized(res, "Bearer token expected.");
   }
   token = token.slice(7, token.length);
@@ -26,7 +26,7 @@ function validateToken(req, res, next) {
     // if invalid token
     return responses.unauthorized(res, "Invalid token.");
   }
-};
+}
 
 module.exports = {
   validateToken

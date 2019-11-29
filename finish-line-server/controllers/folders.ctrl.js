@@ -1,58 +1,100 @@
-const responses = require("./responses");
-const crudFactory = require("./crud");
-const { folderSchema } = require("../models/folder.model");
-const { ObjectId } = require("mongodb");
+const {
+  makeGetMany,
+  makeGetOne,
+  makePost,
+  makePut,
+  makeDelete,
+  autoMapper
+} = require("./controllerFactory");
 
-function transform(schemaItem, body, isCreate) {
-  schemaItem.name = body.name;
-}
+const foldersService = require("../services/folder.service");
 
-module.exports = {};
+const mapper = {
+  allDetails: autoMapper(
+    ["_id", "id"],
+    "name",
+    "parentId",
+    "childrenIds",
+    "projectIds",
+    "userId",
+    "isActive",
+    "createdAt",
+    "createdBy",
+    "updatedAt",
+    "updatedBy"
+  ),
+  treeView: autoMapper(
+    ["_id", "id"],
+    "name",
+    "parentId",
+    "childrenIds",
+    "projectIds",
+    "isActive"
+  )
+};
 
-module.exports.createFolder = crudFactory.create(async (params, body, credentials) => {
-  const parentId = params.parentId || null;
-  if (parentId && !await folderSchema.findOne({ _id: parentId, userId: credentials.userId })) {
-    throw Error(`Folder with parentId=${params.parentId} not found.`);
+
+const readAllFolders = makeGetMany(async (params, credentials) => {
+  const folders = await foldersService.readMany(credentials.userId);
+
+  const map = {};
+  const rootFolders = [];
+
+  folders.forEach(folder => {
+    const copy = mapper.treeView(folder);
+    map[folder._id] = copy;
+  });
+
+  for (let k in map) {
+    const folder = map[k];
+    folder.children = [];
+    folder.childrenIds.forEach(childId => folder.children.push(map[childId]));
+    delete folder.childrenIds;
+    if (!folder.parentId) {
+      rootFolders.push(folder);
+    }
   }
 
-  const item = new folderSchema();
-
-  item.name = body.name;
-  item.userId = credentials.userId;
-  item.parentId = parentId;
-  item.childrenIds = [];
-  item.projectIds = [];
-
-  await item.save();
-
-  return item;
+  return rootFolders;
 });
 
-module.exports.readAllFolders = crudFactory.readAll(async (params, credentials) => {
-  return await folderSchema.find({ userId: credentials.userId});
+const readFolder = makeGetOne(async (params, credentials) => {
+  const folder = await foldersService.readOne(params.id, credentials.userId);
+  return mapper.allDetails(folder);
 });
 
-module.exports.readFolder = crudFactory.read(async (params, credentials) => {
-  return await folderSchema.findOne({ _id: params.id, userId: credentials.userId });
+const createFolder = makePost(async (params, body, credentials) => {
+  const newFolder = await foldersService.create(
+    body.name, 
+    credentials.userId,
+    body.parentId,
+    credentials.userId);
+
+  return mapper.allDetails(newFolder);
 });
 
-module.exports.updateFolder = crudFactory.update(async (params, body, credentials) => {
-  const item = await folderSchema.findOne({ _id: params.id, userId: credentials.userId });
-  if (!item) {
-    return null;
-  }
+const updateFolder = makePut(async (params, body, credentials) => {
+  const folder = await foldersService.update(
+    params.id,
+    body.name,
+    body.isActive,
+    body.parentId,
+    credentials.userId
+  );
 
-  item.name = body.name;
-  item.parentId = body.parentId;
-  item.childrenIds = body.childrenIds;
-  item.projectIds = body.projectIds;
-
-  await item.save();
-
-  return item;
+  return mapper.allDetails(folder);
 });
 
-module.exports.deleteFolder = crudFactory.delete(async (params, credentials) => {
-  const result = await folderSchema.deleteOne({ _id: params.id, userId: credentials.userId });
-  return result && result.deletedCount > 0;
+const deleteFolder = makeDelete(async (params, credentials) => {  
+  return await foldersService.delete(params.id, credentials.userId);
 });
+
+module.exports = {
+  createFolder,
+  readAllFolders,
+  readFolder,
+  updateFolder,
+  deleteFolder
+};
+
+

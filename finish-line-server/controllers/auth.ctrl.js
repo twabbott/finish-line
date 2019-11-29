@@ -2,7 +2,7 @@ const responses = require("./responses");
 const users = require("../models/user.model");
 const passwords = require("../security/passwords");
 const config = require("../config");
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
 module.exports.signin = async function(req, res) {
   try {
@@ -33,12 +33,12 @@ module.exports.signin = async function(req, res) {
       name: user.name,
       email: user.email,
       isAdmin: user.isAdmin
-    }
+    };
 
     let token = jwt.sign(credentials,
       config.jwtSecret,
       { 
-        expiresIn: '24h' // expires in 24 hours
+        expiresIn: "24h" // expires in 24 hours
       }
     );
 

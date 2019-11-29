@@ -2,7 +2,7 @@ const responses = require("./responses");
 const users = require("../models/user.model");
 const passwords = require("../security/passwords");
 
-module.exports.getUsers = async function(req, res) {
+const getUsers = async function(req, res) {
   try {
     const items = await users.userSchema.find();
     return responses.ok(res, items);
@@ -11,7 +11,7 @@ module.exports.getUsers = async function(req, res) {
   }
 };
 
-module.exports.getUserById = async function(req, res) {
+const getUserById = async function(req, res) {
   try {
     let item = null;
     
@@ -30,7 +30,7 @@ module.exports.getUserById = async function(req, res) {
   }
 };
 
-module.exports.createUser = async function(req, res) {
+const createUser = async function(req, res) {
   const body = req.body;
   if (!body) {
     return responses.badRequest(res, "You must provide a user.");
@@ -57,7 +57,7 @@ module.exports.createUser = async function(req, res) {
   }
 };
 
-module.exports.updateUser = async function(req, res) {
+const updateUser = async function(req, res) {
   const body = req.body;
 
   if (!body) {
@@ -94,41 +94,41 @@ module.exports.updateUser = async function(req, res) {
   }
 };
 
-module.exports.patchUser = async function(req, res) {
-  const body = req.body;
+// const patchUser = async function(req, res) {
+//   const body = req.body;
 
-  if (!body) {
-    return responses.badRequest(res, "You must provide a user.");
-  }
+//   if (!body) {
+//     return responses.badRequest(res, "You must provide a user.");
+//   }
 
-  let item = null;
+//   let item = null;
     
-  try {
-    item = await users.userSchema.findById(req.params.id);
-  } catch (err) {
-    console.log(err);
-  }
-  if (!item) {
-    return responses.notFound(res, `User _id=${req.params.id} not found.`);
-  }
+//   try {
+//     item = await users.userSchema.findById(req.params.id);
+//   } catch (err) {
+//     console.log(err);
+//   }
+//   if (!item) {
+//     return responses.notFound(res, `User _id=${req.params.id} not found.`);
+//   }
 
-  try {
-    item.name = body.hasOwnProperty("name") ? body.name: item.name;
-    item.email = body.hasOwnProperty("email") ? body.email: item.email;
-    if (body.hasOwnProperty("newPassword") && await passwords.comparePasswords(item.hashedPassword, body.password)) {
-      item.hashedPassword = await passwords.createEncryptedPassword(body.newPassword);
-    }
-    item.isAdmin = body.hasOwnProperty("isAdmin") ? body.isAdmin: item.isAdmin;
+//   try {
+//     item.name = body.hasOwnProperty("name") ? body.name: item.name;
+//     item.email = body.hasOwnProperty("email") ? body.email: item.email;
+//     if (body.hasOwnProperty("newPassword") && await passwords.comparePasswords(item.hashedPassword, body.password)) {
+//       item.hashedPassword = await passwords.createEncryptedPassword(body.newPassword);
+//     }
+//     item.isAdmin = body.hasOwnProperty("isAdmin") ? body.isAdmin: item.isAdmin;
 
-    await item.save();
+//     await item.save();
 
-    return responses.ok(res, item);
-  } catch (err) {
-    return responses.badRequest(res, err.message);
-  }
-};
+//     return responses.ok(res, item);
+//   } catch (err) {
+//     return responses.badRequest(res, err.message);
+//   }
+// };
 
-module.exports.deleteUser = async function(req, res) {
+const deleteUser = async function(req, res) {
   try {
     let found = false;
     try {
@@ -145,4 +145,13 @@ module.exports.deleteUser = async function(req, res) {
   } catch (err) {
     return responses.internalServerError(res, err);
   }
+};
+
+module.exports = {
+  getUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  //patchUser,
+  deleteUser
 };

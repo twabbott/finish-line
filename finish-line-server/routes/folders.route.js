@@ -19,10 +19,6 @@ module.exports.init = function(router) {
   //   POST .../v1/folders
   router.post("/v1/folders", auth.validateToken, foldersCtrl.createFolder);
 
-  // Create a subfolder
-  //   POST .../v1/folders/:parentId/subfolders
-  router.post("/v1/folders/:parentId/subfolders", foldersCtrl.createFolder);
-
   // Modify (rename) a folder
   //   PUT .../v1/folders/:id
   //     * You can only change the folder's name.  No other props are recognized.

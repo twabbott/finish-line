@@ -18,4 +18,4 @@ module.exports = {
   port: getValue("PORT", 3000),
   jwtSecret: getValue("JWT_SECRET"),
   dbConnectionUrl: getValue("DB_CONNECTION_URL")
-}
+};

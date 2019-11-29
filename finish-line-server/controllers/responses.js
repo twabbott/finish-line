@@ -46,7 +46,7 @@ module.exports.badRequest = function(res, message) {
 };
 
 module.exports.unauthorized = function(res, message) {
-  res.set("WWW-Authenticate", `Bearer realm="finish-line"`);
+  res.set("WWW-Authenticate", "Bearer realm=\"finish-line\"");
   return res
     .status(401)
     .json(errorMessage(message || "Unknown username or invalid password"));
