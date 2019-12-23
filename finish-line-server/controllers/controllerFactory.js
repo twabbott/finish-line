@@ -93,31 +93,69 @@ function makeDelete(deleteFunc) {
   };
 }
 
-function autoMapper(...fields) {
-  return function(inObject) {
+/*
+{
+}
+
+*/
+
+// function autoMapper(...fields) {
+//   return function(inObject) {
+//     if (!inObject) {
+//       return null;
+//     }
+    
+//     const outObject = {};
+    
+//     for (let i = 0; i < fields.length; i++) {
+//       const key = fields[i];
+//       switch (typeof key) {
+//       case "string":
+//         outObject[key] = inObject[key];
+//         break;
+
+//       case "object":
+//         if (Array.isArray(key)) {
+//           outObject[key[1]] = inObject[key[0]];
+//         }
+//         break;
+//       }
+//     }
+
+//     return outObject;
+//   };
+// }
+
+function autoMapper(props) {
+  function mapper(props, inObject) {
     if (!inObject) {
-      return null;
+      return;
     }
-    
+
     const outObject = {};
-    
-    for (let i = 0; i < fields.length; i++) {
-      const key = fields[i];
-      switch (typeof key) {
+
+    for (let key in props) {
+      const inKey = props[key];
+
+      switch(typeof inKey) {
       case "string":
-        outObject[key] = inObject[key];
+        outObject[key] = inObject[inKey];
         break;
 
-      case "object":
-        if (Array.isArray(key)) {
-          outObject[key[1]] = inObject[key[0]];
-        }
+      case "function":
+        outObject[key] = inKey(inObject);
+        break;
+
+      default:
+        outObject[key] = inObject[key];
         break;
       }
     }
 
     return outObject;
-  };
+  }
+
+  return (inObject) => mapper(props, inObject);
 }
 
 module.exports = {

@@ -35,11 +35,15 @@ module.exports.signin = async function(req, res) {
       isAdmin: user.isAdmin
     };
 
-    let token = jwt.sign(credentials,
+    const tokenOptions = {};
+    if (!config.devMode) {
+      tokenOptions.expiresIn = "24h"; // expires in 24 hours
+    }
+
+    let token = jwt.sign(
+      credentials,
       config.jwtSecret,
-      { 
-        expiresIn: "24h" // expires in 24 hours
-      }
+      tokenOptions
     );
 
     return responses.ok(res, token, `User ${user.email} authenticated.`);

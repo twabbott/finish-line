@@ -1,0 +1,25 @@
+// Project
+{
+	name: "D-52885: Creating a new user in Blackbird is not creating a record on dlrDirector.dbo.Users",
+	links: [
+		{
+			url: "https://www8.v1host.com/DealerSocket/defect.mvc/Summary?oidToken=Defect%3A2275804",
+			text: "D-48628: Creating a new user in Blackbird is not creating a record on dlrDirector.dbo.Users (Add logging)",
+		},
+		{
+			url: "Confluence article",
+			text: "https://dealersocket.atlassian.net/wiki/spaces/EA/pages/945685374/TraceContext",
+		}
+	],
+	order: 0,
+	status: "Active", // Active, Blocked, On Hold, Completed
+	dueDate: "(some date) | null",
+	todo: [
+		{
+			title: "walk the dog"
+			status: "Active", // Active, Blocked, On Hold, Completed
+			details: "this is free-form markdown text!",
+			dueDate: "(some date) | null"
+		}
+	]
+}

@@ -1,4 +1,4 @@
-const { folderSchema } = require("../models/folder.model");
+const { folderSchema } = require("../models");
 const { AppError } = require("../shared");
 
 async function create(name, userId, parentId, createdBy) {
@@ -22,6 +22,7 @@ async function create(name, userId, parentId, createdBy) {
     folder.isActive = true;
     folder.createdBy = createdBy;
     folder.updatedBy = createdBy;
+    folder.foobar = "Yeeet!";
   
     await folder.save();
     created = true;

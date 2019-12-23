@@ -27,7 +27,7 @@ function successPayload(data, message) {
   return {
     success: true,
     data,
-    message: message || "OK"
+    message: message || messages.ok
   };
 }
 
@@ -36,6 +36,49 @@ function errorPayload(message) {
     success: false,
     message
   };
+}
+
+function wwwAuthenticateChallenge(challengeOptions) {
+  if (typeof challengeOptions==="object") {
+    if (!challengeOptions.hasOwnProperty("scheme")) {
+      throw new Error("challengeOptions parameter missing \"scheme\" property.");
+    }
+
+    const scheme = challengeOptions.scheme.charAt(0).toUpperCase() + challengeOptions.scheme.slice(1)
+    const params = []
+    for (let prop in challengeOptions) {
+      if (prop==="scheme") {
+        continue;
+      }
+
+      const value = challengeOptions[prop];
+      switch (typeof value) {
+        case "string":
+            params.push(`${prop}="${value}"`);  
+          break;
+
+        case "number":
+        case "boolean":
+            params.push(`${prop}=${value}`);  
+          break;
+
+        default:
+          throw new Error(`Error processing field "${prop}" in challengeOptions.  Value must be string, number, or boolean.`);
+      }
+    }
+
+    if (!params.length) {
+      return scheme;
+    }
+
+    return `${scheme} ${params.join(", ")}`;
+  } 
+  
+  if (typeof challengeOptions === "string") {
+    return challengeOptions;
+  }
+  
+  throw new Error("Error processing challengeOptions.  Parameter must be an object or a string.");
 }
 
 const messages = {
@@ -95,7 +138,11 @@ function responses() {
     };
     
     // 401
-    res.unauthorized = function(message) {
+    res.unauthorized = function(challengeOptions, message) {
+      if (challengeOptions) {
+        res.set("WWW-Authenticate", wwwAuthenticateChallenge(challengeOptions));
+      }
+
       return res.errorResponse(401, message || messages.unauthorized);
     };
     
@@ -130,9 +177,10 @@ function responses() {
 
 module.exports = {
   responses,
-  payloads: {
+  utilities: {
     successPayload,
-    errorPayload
+    errorPayload,
+    wwwAuthenticateChallenge
   },
   defaultMessages: messages
 };

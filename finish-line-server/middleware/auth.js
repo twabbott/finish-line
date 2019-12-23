@@ -4,7 +4,7 @@ const responses = require("../controllers/responses");
 
 function validateToken(req, res, next) {
   // get the token from the header if present
-  let token = req.headers["x-access-token"] || req.headers["authorization"];
+  let token = req.headers["authorization"];
 
   // if no token found, return response (without going to the next middelware)
   if (!token) {

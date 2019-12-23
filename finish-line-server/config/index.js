@@ -17,5 +17,6 @@ function getValue(key, defaultValue) {
 module.exports = {
   port: getValue("PORT", 3000),
   jwtSecret: getValue("JWT_SECRET"),
-  dbConnectionUrl: getValue("DB_CONNECTION_URL")
+  dbConnectionUrl: getValue("DB_CONNECTION_URL"),
+  devMode: true
 };

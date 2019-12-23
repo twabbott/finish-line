@@ -10,27 +10,27 @@ const {
 const foldersService = require("../services/folder.service");
 
 const mapper = {
-  allDetails: autoMapper(
-    ["_id", "id"],
-    "name",
-    "parentId",
-    "childrenIds",
-    "projectIds",
-    "userId",
-    "isActive",
-    "createdAt",
-    "createdBy",
-    "updatedAt",
-    "updatedBy"
-  ),
-  treeView: autoMapper(
-    ["_id", "id"],
-    "name",
-    "parentId",
-    "childrenIds",
-    "projectIds",
-    "isActive"
-  )
+  allDetails: autoMapper({
+    id: "_id",
+    name: true,
+    parentId: true,
+    childrenIds: true,
+    projectIds: true,
+    userId: true,
+    isActive: true,
+    createdAt: true,
+    createdBy: true,
+    updatedAt: true,
+    updatedBy: true
+  }),
+  treeView: autoMapper({
+    id: "_id",
+    name: true,
+    parentId: true,
+    childrenIds: true,
+    projectIds: true,
+    isActive: true
+  })
 };
 
 
@@ -96,5 +96,3 @@ module.exports = {
   updateFolder,
   deleteFolder
 };
-
-
