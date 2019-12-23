@@ -1,70 +1,27 @@
 const { expect } = require("chai");
 
 const repartee = require("../../middleware/repartee");
+const { mockState } = require("../test-utils/express-shim");
 
 describe("repartee", () => {
   const testMessage = "This is the message.";
   const testData = { a: "some string", b: 6, c: true };
 
-  function buildFixture(mockReq, mockRes) {
+  function buildResponse(mockReq, mockRes, mockNext) {
     const middleware = repartee.responses();
 
-    const req = {
-      headers: {
-        host: "blah.com",
-      },
-      url: "/",
-      ...mockReq,
-    };
-
-    const res = {
-      ...mockRes,
-      finalResponse: {
-        status: undefined,
-        message: undefined,
-        body: undefined,
-        headers: {},
-        isSent: false
-      },
-
-      status(status) {
-        this.finalResponse.status = status;
-        return this;
-      },
-
-      json(body) {
-        this.finalResponse.body = body;
-        this.finalResponse.isSent = true;
-        return this;
-      },
-
-      set(header, value) {
-        this.finalResponse.headers[header] = value;
-        return this;
-      },
-
-      sendStatus(status) {
-        this.finalResponse.status = status;
-        this.finalResponse.isSent = true;
-      }
-    };
-
-    const next = () => {};
+    const [req, res, next] = mockState(mockReq, mockRes, mockNext);
 
     middleware(req, res, next);
 
     return res;
   }
 
-  beforeEach(() => {
-
-  });
-
   describe("responses", () => {
     //////////////////////////////////////////////////////////////////////////////
     describe("200 ok()", () => {
       it("should return default 200 response", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.ok();
     
@@ -76,7 +33,7 @@ describe("repartee", () => {
       });
     
       it("should return 200 response with message", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.ok(undefined, testMessage);
     
@@ -88,7 +45,7 @@ describe("repartee", () => {
       });
     
       it("should return 200 response with payload", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.ok({...testData});
     
@@ -109,7 +66,7 @@ describe("repartee", () => {
           },
           url: "/foo",
         }
-        const mockRes = buildFixture(mockReq);
+        const mockRes = buildResponse(mockReq);
     
         mockRes.created(testData, 1234);
     
@@ -128,7 +85,7 @@ describe("repartee", () => {
           },
           url: "/foo",
         }
-        const mockRes = buildFixture(mockReq);
+        const mockRes = buildResponse(mockReq);
         const testMsg = "Hello world";
 
         mockRes.created(testData, 1234, testMsg);
@@ -145,7 +102,7 @@ describe("repartee", () => {
     //////////////////////////////////////////////////////////////////////////////
     describe("204 noContent()", () => {
       it("should return a 204 response", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
 
         mockRes.noContent();
     
@@ -157,7 +114,7 @@ describe("repartee", () => {
     //////////////////////////////////////////////////////////////////////////////
     describe("400 badRequest()", () => {
       it("should return default 400 response", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.badRequest();
     
@@ -169,7 +126,7 @@ describe("repartee", () => {
       });
     
       it("should return 400 response with message", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.badRequest(testMessage);
     
@@ -184,7 +141,7 @@ describe("repartee", () => {
     //////////////////////////////////////////////////////////////////////////////
     describe("401 unauthorized()", () => {
       it("should return default 401 response", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.unauthorized();
     
@@ -196,7 +153,7 @@ describe("repartee", () => {
       });
     
       it("should return 401 response with message", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.unauthorized(null, testMessage);
     
@@ -208,7 +165,7 @@ describe("repartee", () => {
       });
     
       it("should return 401 response with WWW-Authenticate challenge", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         const mockChallenge = {
           scheme: "Basic",
@@ -226,7 +183,7 @@ describe("repartee", () => {
     //////////////////////////////////////////////////////////////////////////////
     describe("403 forbidden()", () => {
       it("should return default 403 response", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.forbidden();
     
@@ -238,7 +195,7 @@ describe("repartee", () => {
       });
     
       it("should return 403 response with message", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.forbidden(testMessage);
     
@@ -253,7 +210,7 @@ describe("repartee", () => {
     //////////////////////////////////////////////////////////////////////////////
     describe("404 notFound()", () => {
       it("should return default 404 response", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.notFound();
     
@@ -265,7 +222,7 @@ describe("repartee", () => {
       });
     
       it("should return 404 response with message", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.notFound(testMessage);
     
@@ -280,7 +237,7 @@ describe("repartee", () => {
     //////////////////////////////////////////////////////////////////////////////
     describe("405 methodNotAllowed()", () => {
       it("should return default 405 response", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.methodNotAllowed();
     
@@ -292,7 +249,7 @@ describe("repartee", () => {
       });
     
       it("should return 405 response with message", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.methodNotAllowed(testMessage);
     
@@ -307,7 +264,7 @@ describe("repartee", () => {
     //////////////////////////////////////////////////////////////////////////////
     describe("409 conflict()", () => {
       it("should return default 409 response", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.conflict();
     
@@ -319,7 +276,7 @@ describe("repartee", () => {
       });
     
       it("should return 409 response with message", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.conflict(testMessage);
     
@@ -334,7 +291,7 @@ describe("repartee", () => {
     //////////////////////////////////////////////////////////////////////////////
     describe("500 internalServerError()", () => {
       it("should return default 500 response", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.internalServerError();
     
@@ -346,7 +303,7 @@ describe("repartee", () => {
       });
     
       it("should return 500 response with message", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.internalServerError(testMessage);
     
@@ -361,7 +318,7 @@ describe("repartee", () => {
     //////////////////////////////////////////////////////////////////////////////
     describe("errorResponse()", () => {
       it("should return status code 999 and test message", () => {
-        const mockRes = buildFixture();
+        const mockRes = buildResponse();
     
         mockRes.errorResponse(999, testMessage);
     

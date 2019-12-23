@@ -30,6 +30,7 @@
     "chai-as-promised": "^7.1.1",
     "chai-http": "^4.3.0",
     "mocha": "^6.2.2",
-    "nodemon": "^1.19.2"
+    "nodemon": "^1.19.2",
+    "sinon": "^8.0.1"
   }
 }
