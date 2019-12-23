@@ -38,6 +38,24 @@ function errorPayload(message) {
   };
 }
 
+const messages = {
+  // 2xx
+  ok: "OK",
+  created: "Created",
+
+  // 4xx
+  badRequest: "Bad request", // 400
+  forbidden: "Forbidden", // 401
+  unauthorized: "Unauthorized", // 403
+  notFound: "Not found", // 404
+  methodNotAllowed: "Method not allowed", // 405
+  conflict: "Conflict", // 409
+  unprocessableentity: "Unprocessable entity", // 422
+
+  // 5xx
+  internalServerError: "Internal server error"
+}
+
 // Make this a funciton that returns a middleware.  This allows you to 
 // someday add config params
 function responses() {
@@ -46,16 +64,16 @@ function responses() {
     res.ok = function(data, message) {
       res
         .status(200)
-        .json(successPayload(data, message || "OK"));
+        .json(successPayload(data, message || messages.ok));
     };
 
     // 201
-    res.created = function(data, message) {
-      var uri = `http://${req.headers["host"]}${req.url}/${data._id}`;
+    res.created = function(data, id, message) {
+      var uri = `http://${req.headers["host"]}${req.url}/${id}`;
       res
         .set("Location", uri)
         .status(201)
-        .json(successPayload(data, message || "Created"));
+        .json(successPayload(data, message || messages.created));
     };
 
     // 204
@@ -64,34 +82,46 @@ function responses() {
         .sendStatus(204);
     };
 
+    // 4xx
+    res.errorResponse = function(status, message) {
+      return res
+        .status(status)
+        .json(errorPayload(message));
+    };
+
     // 400
     res.badRequest = function(message) {
-      return res
-        .status(400)
-        .json(errorPayload(message || "Bad request"));
+      return res.errorResponse(400, message || messages.badRequest);
+    };
+    
+    // 401
+    res.unauthorized = function(message) {
+      return res.errorResponse(401, message || messages.unauthorized);
+    };
+    
+    // 403
+    res.forbidden = function(message) {
+      return res.errorResponse(403, message || messages.forbidden);
     };
     
     // 404
     res.notFound = function(message) {
-      return res
-        .status(404)
-        .json(errorPayload(message || "Not found"));
+      return res.errorResponse(404, message || messages.notFound);
     };
     
-    // 403
-    res.unauthorized = function(message) {
-      res.set("WWW-Authenticate", "Bearer realm=\"finish-line\"");
-      return res
-        .status(401)
-        .json(errorPayload(message || "Unknown username or invalid password"));
+    // 405
+    res.methodNotAllowed = function(message) {
+      return res.errorResponse(405, message || messages.methodNotAllowed);
+    };
+    
+    // 409
+    res.conflict = function(message) {
+      return res.errorResponse(409, message || messages.conflict);
     };
 
     // 500
-    res.internalServerError = function(err, message) {
-      console.log(err || "Unknown internal server error");
-      return res
-        .status(500)
-        .json(errorPayload(message || "Internal server error"));
+    res.internalServerError = function(message) {
+      return res.errorResponse(500, message || messages.internalServerError);
     };
 
     next();
@@ -103,5 +133,6 @@ module.exports = {
   payloads: {
     successPayload,
     errorPayload
-  }
+  },
+  defaultMessages: messages
 };
