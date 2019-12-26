@@ -12,4 +12,6 @@ mongoose.connect(config.dbConnectionUrl, connectionOptions)
   .then(() => console.log(`MongoDB connected at ${config.dbConnectionUrl}`))
   .catch(e => console.error("Connection error: ", e.message));
 
+mongoose.connection.on("error", console.error.bind(console, "MongoDB connection error:"));
+
 module.exports = mongoose.connection;

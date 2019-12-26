@@ -1,10 +1,18 @@
-const usersCtrl = require("../controllers/users.ctrl");
+var express = require('express')
+var router = express.Router()
 
-module.exports.init = function(router) {
-  router.post("/v1/users", usersCtrl.createUser);
-  router.put("/v1/users/:id", usersCtrl.updateUser);
-  router.delete("/v1/users/:id", usersCtrl.deleteUser);
-  //router.patch("/v1/users/:id", usersCtrl.patchUser);
-  router.get("/v1/users/:id", usersCtrl.getUserById);
-  router.get("/v1/users", usersCtrl.getUsers);
-};
+const { createUser, updateUser, deleteUser, getUserById, getUsers } = require("../controllers/users.ctrl");
+const { validateToken } = require("../middleware/auth");
+
+// Require authorization
+router.use(validateToken);
+
+router.post("/v1/users", createUser);
+router.put("/v1/users/:id", updateUser);
+router.delete("/v1/users/:id", deleteUser);
+//router.patch("/v1/users/:id", patchUser);
+router.get("/v1/users/:id", getUserById);
+router.get("/v1/users", getUsers);
+
+module.exports = router;
+

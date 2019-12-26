@@ -1,10 +1,14 @@
-const projectsCtrl = require("../controllers/projects.ctrl");
-const auth = require("../middleware/auth");
+var express = require('express')
+var router = express.Router()
 
-module.exports.init = function(router) {
+const { createProject } = require("../controllers/projects.ctrl");
+const { validateToken } = require("../middleware/auth");
 
+// Require authorization
+router.use(validateToken);
 
-  // Create a project:
-  //   POST .../v1/projects
-  router.post("/v1/folders", auth.validateToken, projectsCtrl.createProject);
-};
+// Create a project:
+//   POST .../v1/projects
+router.post("/v1/folders", createProject);
+
+module.exports = router;

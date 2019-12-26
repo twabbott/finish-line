@@ -1,11 +1,10 @@
 const express = require("express");
 const config = require("./config");
-const morgan = require("morgan");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 
-const db = require("./db");
-const router = require("./routes");
+require("./db");
+const routes = require("./routes");
 const responses = require("./controllers/responses");
 
 const app = express(express.json());
@@ -20,21 +19,7 @@ app.use ((error, req, res, next) => { // eslint-disable-line
 
 app.use(cors());
 
-app.use(express.static("static"));
-
-app.use(morgan("dev"));
-
-db.on("error", console.error.bind(console, "MongoDB connection error:"));
-
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
-
-app.use("/api", router);
-
-app.use(function(req, res) {
-  responses.notFound(res, "Not found");
-});
+app.use(routes);
 
 app.listen(config.port, () => { 
   console.log(`Server running on port ${config.port}`);

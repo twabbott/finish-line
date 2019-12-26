@@ -1,5 +1,8 @@
-const authCtrl = require("../controllers/auth.ctrl");
+var express = require('express')
+var router = express.Router()
 
-module.exports.init = function(router) {
-  router.post("/auth/signin", authCtrl.signin);
-};
+const { signin } = require("../controllers/auth.ctrl");
+
+router.post("/auth/signin", signin);
+
+module.exports = router;
