@@ -39,6 +39,14 @@ function validateDateType(value, key, errors) {
   return true;
 }
 
+function ValidateSubDocument(obj, schema) {
+  if (obj === undefined || obj === null) {
+
+  }
+
+  return validateObjectProperties(obj, schema);
+}
+
 function validateObjectProperties(obj, schema) {
   const data = {};
   const errors = [];
@@ -101,6 +109,38 @@ function validateObjectProperties(obj, schema) {
       case Date:
         if (!validateDateType(value, key, errors, constraints)) {
           continue;
+        }
+        break;
+
+      case Object:
+        if (value === undefined) {
+          if (constraints && constraints.default === null) {
+            value = null;
+            break;
+          }
+
+          continue;
+        }
+
+        if (typeof value !== "object") {
+          errors.push(`Property "${key}" must contain a nested object.`);
+          continue;
+        }
+
+        if (value === null) {
+          if (constraints && constraints.required) {
+            errors.push(`Property "${key}" is required and may not be null.`);
+            continue;
+          }
+
+          break;
+        }
+
+        const [childData, childErrors] = ValidateSubDocument(value, constraints.schema); 
+        if (childErrors.length < 1) {
+          value = childData;
+        } else {
+          errors.push(...childErrors);
         }
         break;
   
@@ -171,7 +211,23 @@ function errorCheck(schema) {
     }
 
     if (!isSupportedType(constraints.type)) {
-      throw new Error(`Constraints object for property ${key} has invalid/unsupported type.`);
+      if (constraints.type === Object) {
+        if (!constraints.hasOwnProperty("schema")) {
+          throw new Error(`Constraints for property ${key} of type Object has missing schema.`);
+        }
+        
+        if (!constraints.schema || typeof constraints.schema !== "object") {
+          throw new Error(`Constraints for property ${key} of type Object has invalid schema.`);
+        }
+        
+        errorCheck(constraints.schema);
+
+        if (constraints.hasOwnProperty("default") && constraints.default !== null) {
+          throw new Error(`Constraints for property ${key} of type Object may only have a default value of null.`);
+        }
+      } else {
+        throw new Error(`Constraints object for property ${key} has invalid/unsupported type.`);
+      }
     }
 
     if (constraints.hasOwnProperty("default") && constraints.default !== null) {

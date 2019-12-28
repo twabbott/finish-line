@@ -233,6 +233,45 @@ describe("vet", () => {
         });
       });
     });
+
+    describe("schema for sub-document", () => {
+      it("should throw an error if schema property is missing.", () => {
+        const schema = {
+          profile: { 
+            type: Object
+          }
+        };
+
+        expect(() => vet(schema)).to.throw("Constraints for property profile of type Object has missing schema.");
+      });
+
+      it("should throw an error if schema property is not an object.", () => {
+        const schema = {
+          profile: { 
+            type: Object,
+            schema: null
+          }
+        };
+
+        expect(() => vet(schema)).to.throw("Constraints for property profile of type Object has invalid schema.");
+      });
+
+      it("should throw an error if default constraint is not null (default can only be null).", () => {
+        const schema = {
+          profile: { 
+            type: Object,
+            default: {},
+            schema: {
+              name: String,
+              age: Number,
+              isVeteran: Boolean
+            }
+          }
+        };
+
+        expect(() => vet(schema)).to.throw("Constraints for property profile of type Object may only have a default value of null.");
+      });
+    });
   });
 
   describe("validation for individual props", () => {
@@ -779,53 +818,248 @@ describe("vet", () => {
         });
     });
   
-    it("should only copy fields defined in the schema", () => {
-      const schema = {
-        isVeteran: Boolean,
-        isMale: Boolean
-      };
+    describe("Object", () => {
+      it("should validate a property that contains a nested schema", () => {
+        const schema = {
+          profile: { 
+            type: Object,
 
-      const body = {
-        name: "Tom",
-        isVeteran: true,
-        age: 25,
-        isMale: false,
-        birthDate: "1997-01-01T01-01-01"
-      }
-
-      const req = buildState(schema, body);
-
-      expect(req.errors.length).to.equal(0);
-
-      expect(req.data).to.be.ok;
-      expect(Object.keys(req.data).length).to.equal(2);
-      expect(req.data.name).to.be.undefined;
-      expect(req.data.isVeteran).to.be.true;
-      expect(req.data.age).to.be.undefined;
-      expect(req.data.isMale).to.be.false;
-      expect(req.data.birthDate).to.be.undefined;
-    });
+            schema: {
+              name: String,
+              age: Number,
+              isVeteran: Boolean
+            }
+          }
+        };
   
-    it("should do nothing for fields that are missing", () => {
-      const schema = {
-        isVeteran: Boolean,
-        isMale: Boolean
-      };
+        const body = {
+          profile: {
+            name: "Billy Bob",
+            age: 22,
+            isVeteran: false
+          }
+        };
+  
+        const req = buildState(schema, body);
+  
+        expect(req.errors.length).to.equal(0);
+  
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(1);
+        expect(req.data.profile).to.be.ok;
+        expect(req.data.hasOwnProperty("profile")).to.be.true;
+        expect(req.data.profile.name).to.be.equal("Billy Bob");
+        expect(req.data.profile.age).to.be.equal(22);
+        expect(req.data.profile.isVeteran).to.be.equal(false);
+      });
 
-      const body = {
-        name: "Tom",
-        age: 25,
-        birthDate: "2019-12-25T05:35:18"
-      }
+      it("should ignore nested document if not required", () => {
+        const schema = {
+          profile: { 
+            type: Object,
 
-      const req = buildState(schema, body);
+            schema: {
+              name: String,
+              age: Number,
+              isVeteran: Boolean
+            }
+          }
+        };
+  
+        const body = {
+        };
+  
+        const req = buildState(schema, body);
+  
+        expect(req.errors.length).to.equal(0);
+  
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(0);
+        expect(req.data.hasOwnProperty("profile")).to.be.false;
+      });
 
-      expect(req.errors.length).to.equal(0);
+      it("should use null if { default: null } was specified.", () => {
+        const schema = {
+          profile: { 
+            type: Object,
+            default: null,
+            schema: {
+              name: String,
+              age: Number,
+              isVeteran: Boolean
+            }
+          }
+        };
+  
+        const body = {
+        };
+  
+        const req = buildState(schema, body);
+  
+        expect(req.errors.length).to.equal(0);
+  
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(1);
+        expect(req.data.hasOwnProperty("profile")).to.be.true;
+        expect(req.data.profile).to.be.null;
+      });
 
-      expect(req.data).to.be.ok;
-      expect(Object.keys(req.data).length).to.equal(0);
-      expect(req.data.hasOwnProperty("isVeteran")).to.be.false;
-      expect(req.data.hasOwnProperty("isMale")).to.be.false;
+      it("should allow null for nested document.", () => {
+        const schema = {
+          profile: { 
+            type: Object,
+            schema: {
+              name: String,
+              age: Number,
+              isVeteran: Boolean
+            }
+          }
+        };
+  
+        const body = {
+          profile: null
+        };
+  
+        const req = buildState(schema, body);
+  
+        expect(req.errors.length).to.equal(0);
+  
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(1);
+        expect(req.data.hasOwnProperty("profile")).to.be.true;
+        expect(req.data.profile).to.be.null;
+      });
+
+      it("should fail validation if required constraint is true", () => {
+        const schema = {
+          profile: { 
+            type: Object,
+            required: true,
+            schema: {
+              name: String,
+              age: Number,
+              isVeteran: Boolean
+            }
+          }
+        };
+  
+        const body = {
+        };
+  
+        const req = buildState(schema, body);
+
+        expect(req.errors.length).to.equal(1);
+        expect(req.errors[0]).to.equal("Property \"profile\" is required.")
+
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(0);
+        expect(req.data.hasOwnProperty("profile")).to.be.false;
+      });
+
+      it("should fail validation if required constraint is true, but null is given", () => {
+        const schema = {
+          profile: { 
+            type: Object,
+            required: true,
+            schema: {
+              name: String,
+              age: Number,
+              isVeteran: Boolean
+            }
+          }
+        };
+  
+        const body = {
+          profile: null
+        };
+  
+        const req = buildState(schema, body);
+
+        expect(req.errors.length).to.equal(1);
+        expect(req.errors[0]).to.equal("Property \"profile\" is required and may not be null.")
+
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(0);
+        expect(req.data.hasOwnProperty("profile")).to.be.false;
+      });
+
+      it("should fail validation if nested document is not an object", () => {
+        const schema = {
+          profile: { 
+            type: Object,
+            schema: {
+              name: String,
+              age: Number,
+              isVeteran: Boolean
+            }
+          }
+        };
+  
+        const body = {
+          profile: "wuuuut??"
+        };
+  
+        const req = buildState(schema, body);
+
+        expect(req.errors.length).to.equal(1);
+        expect(req.errors[0]).to.equal("Property \"profile\" must contain a nested object.")
+
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(0);
+        expect(req.data.hasOwnProperty("isVeteran")).to.be.false;
+        expect(req.data.hasOwnProperty("isMale")).to.be.false;
+      });
+    });
+
+    describe("general", () => {
+      it("should only copy fields defined in the schema", () => {
+        const schema = {
+          isVeteran: Boolean,
+          isMale: Boolean
+        };
+  
+        const body = {
+          name: "Tom",
+          isVeteran: true,
+          age: 25,
+          isMale: false,
+          birthDate: "1997-01-01T01-01-01"
+        }
+  
+        const req = buildState(schema, body);
+  
+        expect(req.errors.length).to.equal(0);
+  
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(2);
+        expect(req.data.name).to.be.undefined;
+        expect(req.data.isVeteran).to.be.true;
+        expect(req.data.age).to.be.undefined;
+        expect(req.data.isMale).to.be.false;
+        expect(req.data.birthDate).to.be.undefined;
+      });
+    
+      it("should do nothing for fields that are missing", () => {
+        const schema = {
+          isVeteran: Boolean,
+          isMale: Boolean
+        };
+  
+        const body = {
+          name: "Tom",
+          age: 25,
+          birthDate: "2019-12-25T05:35:18"
+        }
+  
+        const req = buildState(schema, body);
+  
+        expect(req.errors.length).to.equal(0);
+  
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(0);
+        expect(req.data.hasOwnProperty("isVeteran")).to.be.false;
+        expect(req.data.hasOwnProperty("isMale")).to.be.false;
+      });
     });
   });
 });
