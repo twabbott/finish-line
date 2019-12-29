@@ -20,51 +20,53 @@ describe("vet", () => {
   }
 
   describe("schema error checking", () => {
-    it("should allow all supported types", () => {
-      const schema = {
-        bool: Boolean,
-        num: Number,
-        str: String,
-        date: Date
-      };
-
-      expect(() => vet(schema)).to.not.throw();
-    })
-
-    it("constraints object should allow all supported types", () => {
-      const schema = {
-        bool: { type: Boolean },
-        num: { type: Number },
-        str: { type: String },
-        date: { type: Date }
-      };
-
-      expect(() => vet(schema)).to.not.throw();
-    })
-
-    it("should throw error for undefined type", () => {
-      const schema = {
-        prop: undefined
-      };
-
-      expect(() => vet(schema)).to.throw("Invalid constraints for property prop.");
+    describe("Basic checks", () => {
+      it("should allow all supported types", () => {
+        const schema = {
+          bool: Boolean,
+          num: Number,
+          str: String,
+          date: Date
+        };
+  
+        expect(() => vet(schema)).to.not.throw();
+      })
+  
+      it("constraints object should allow all supported types", () => {
+        const schema = {
+          bool: { type: Boolean },
+          num: { type: Number },
+          str: { type: String },
+          date: { type: Date }
+        };
+  
+        expect(() => vet(schema)).to.not.throw();
+      })
+  
+      it("should throw error for undefined type", () => {
+        const schema = {
+          prop: undefined
+        };
+  
+        expect(() => vet(schema)).to.throw("Invalid constraints for property prop.");
+      });
+  
+      it("should throw error for null type", () => {
+        const schema = {
+          prop: null
+        };
+  
+        expect(() => vet(schema)).to.throw("Invalid constraints for property prop.");
+      });
+  
+      it("should throw error for unsupported types", () => {
+        const schema = {
+          prop: Symbol
+        };
+  
+        expect(() => vet(schema)).to.throw("Property prop has unsupported type.");
+      })
     });
-
-    it("should throw error for null type", () => {
-      const schema = {
-        prop: null
-      };
-
-      expect(() => vet(schema)).to.throw("Invalid constraints for property prop.");
-    });
-
-    it("should throw error for unsupported types", () => {
-      const schema = {
-        prop: Symbol
-      };
-
-      expect(() => vet(schema)).to.throw("Property prop has unsupported type.");
-    })
 
     describe("constraints object", () => {
       describe("type property", () => {
@@ -269,12 +271,24 @@ describe("vet", () => {
           }
         };
 
-        expect(() => vet(schema)).to.throw("Constraints for property profile of type Object may only have a default value of null.");
+        expect(() => vet(schema)).to.throw("Vet schema error for property profile: when type is Object, property default may only have a value of null.");
+      });
+    });
+
+    describe("Arrays", () => {
+      it("should throw an error if ofType property is missing.", () => {
+        const schema = {
+          fibonacci: { 
+            type: Array,
+          }
+        };
+
+        expect(() => vet(schema)).to.throw("Vet schema error for property fibonacci: when type is Array, property ofType is required");
       });
     });
   });
 
-  describe("validation for individual props", () => {
+  describe.only("validation for individual props", () => {
     describe("boolean", () => {
       it("should validate value of either true or false", () => {
         const schema = {
@@ -815,7 +829,7 @@ describe("vet", () => {
         expect(Object.keys(req.data).length).to.equal(0);
         expect(req.data.hasOwnProperty("startDate")).to.be.false;
         expect(req.data.hasOwnProperty("endDate")).to.be.false;
-        });
+      });
     });
   
     describe("Object", () => {
@@ -841,7 +855,6 @@ describe("vet", () => {
         };
   
         const req = buildState(schema, body);
-  
         expect(req.errors.length).to.equal(0);
   
         expect(req.data).to.be.ok;
@@ -853,7 +866,7 @@ describe("vet", () => {
         expect(req.data.profile.isVeteran).to.be.equal(false);
       });
 
-      it("should ignore nested document if not required", () => {
+      it("should ignore missing nested document if property is not required", () => {
         const schema = {
           profile: { 
             type: Object,
@@ -1008,6 +1021,143 @@ describe("vet", () => {
         expect(Object.keys(req.data).length).to.equal(0);
         expect(req.data.hasOwnProperty("isVeteran")).to.be.false;
         expect(req.data.hasOwnProperty("isMale")).to.be.false;
+      });
+    });
+  
+    describe("Array", () => { /*****/
+      it("should validate a property that contains an array of values", () => {
+        const fibs = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
+        const schema = {
+          fibonacci: { 
+            type: Array,
+            ofType: Number
+          }
+        };
+  
+        const body = {
+          fibonacci: [...fibs]
+        };
+  
+        const req = buildState(schema, body);
+  
+        expect(req.errors.length).to.equal(0);
+  
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(1);
+        expect(req.data.fibonacci).to.be.ok;
+        expect(req.data.hasOwnProperty("fibonacci")).to.be.true;
+        for (let i in req.data.fibonacci) {
+          expect(req.data.fibonacci[i]).to.equal(fibs[i]);
+        }
+      });
+
+      it("should fail validation if array contains an element of the wrong type.", () => {
+        const schema = {
+          fibonacci: { 
+            type: Array,
+            ofType: Number
+          }
+        };
+  
+        const body = {
+          fibonacci: [1, 2, 3, "whaaaat??"]
+        };
+  
+        const req = buildState(schema, body);
+
+        expect(req.errors.length).to.equal(1);
+        expect(req.errors[0]).to.equal("Property \"fibonacci\" must have all elements of type number. See item at index 3.");
+
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(0);
+        expect(req.data.hasOwnProperty("fibonacci")).to.be.false;
+      });
+
+      it("should ignore missing array if property is not required", () => {
+        const fibs = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
+        const schema = {
+          fibonacci: { 
+            type: Array,
+            ofType: Number
+          }
+        };
+  
+        const body = {
+        };
+  
+        const req = buildState(schema, body);
+        expect(req.errors.length).to.equal(0);
+  
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(0);
+        expect(req.data.hasOwnProperty("fibonacci")).to.be.false;
+      });
+
+      it("should fail validation if property value is not an array", () => {
+        const schema = {
+          fibonacci: { 
+            type: Array,
+            ofType: Number
+          }
+        };
+  
+        const body = {
+          fibonacci: "whaaaat??"
+        };
+  
+        const req = buildState(schema, body);
+
+        expect(req.errors.length).to.equal(1);
+        expect(req.errors[0]).to.equal("Property \"fibonacci\" must contain an array.");
+
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(0);
+        expect(req.data.hasOwnProperty("fibonacci")).to.be.false;
+      });
+
+      it("should fail validation if required constraint is true, but null is given", () => {
+        const schema = {
+          fibonacci: { 
+            type: Array,
+            ofType: Number,
+            required: true
+          }
+        };
+  
+        const body = {
+          fibonacci: null
+        };
+  
+        const req = buildState(schema, body);
+
+        expect(req.errors.length).to.equal(1);
+        expect(req.errors[0]).to.equal("Property \"fibonacci\" is required and may not be null.")
+
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(0);
+        expect(req.data.hasOwnProperty("fibonacci")).to.be.false;
+      });
+
+      it("should allow null for array if no required constraint given.", () => {
+        const schema = {
+          fibonacci: { 
+            type: Array,
+            ofType: Number,
+          }
+        };
+  
+        const body = {
+          fibonacci: null
+        };
+  
+        const req = buildState(schema, body);
+  
+        expect(req.errors.length).to.equal(0);
+  
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(1);
+        expect(req.data.hasOwnProperty("fibonacci")).to.be.true;
+        expect(req.data.fibonacci).to.be.null;
       });
     });
 

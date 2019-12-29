@@ -39,12 +39,76 @@ function validateDateType(value, key, errors) {
   return true;
 }
 
-function ValidateSubDocument(obj, schema) {
-  if (obj === undefined || obj === null) {
+function ValidateSubDocument(key, value, constraints) {
+  if (value === undefined) {
+    if (constraints && constraints.default === null) {
+      return { value: null, errors: [] };
+    }
 
+    return undefined;
   }
 
-  return validateObjectProperties(obj, schema);
+  if (typeof value !== "object") {
+    return { value: undefined, errors: [`Property "${key}" must contain a nested object.`] };
+  }
+
+  if (value === null) {
+    if (constraints && constraints.required) {
+      return { value: undefined, errors: [`Property "${key}" is required and may not be null.`]};
+    }
+
+    return { value: null, errors: []};
+  }
+
+  const result = validateObjectProperties(value, constraints.schema); 
+
+  if (result.errors.length > 0) {
+    return { value: undefined, errors: result.errors };
+  } else {
+    return { value: result.value, errors: [] };
+  }
+}
+
+function validateArray(key, value, constraints) {
+  if (value === undefined) {
+    if (constraints && constraints.default === null) {
+      return { value: null, errors: [] };
+    }
+  
+    return undefined;
+  }
+
+  if (!(typeof value === "object" && Array.isArray(value) || value === null)) {
+    return { value: undefined, errors: [`Property "${key}" must contain an array.`] };
+  }
+
+  if (value === null) {
+    if (constraints && constraints.required) {
+      return { value: undefined, errors: [`Property "${key}" is required and may not be null.`]};
+    }
+
+    return { value: null, errors: []};
+  }
+
+  const array = [];
+  const basicType = typeMap.get(constraints.ofType);
+  if (basicType) {
+    for (let i = 0; i < value.length; i++) {
+      const item = value[i];
+      if (typeof item !== basicType) {
+        return {
+          value: undefined,
+          errors: [`Property "${key}" must have all elements of type ${basicType}. See item at index ${i}.`] 
+        };
+      }
+
+      array.push(item);
+    }
+
+    return { value: array, errors: [] }
+  }
+
+  return { value: array, errors };
 }
 
 function validateObjectProperties(obj, schema) {
@@ -76,7 +140,7 @@ function validateObjectProperties(obj, schema) {
     }
 
     let value = obj[key];
-
+    let result;
     switch(type) {
       case Boolean:
         if (!validatePrimitiveType(value, key, errors, "boolean")) {
@@ -113,34 +177,26 @@ function validateObjectProperties(obj, schema) {
         break;
 
       case Object:
-        if (value === undefined) {
-          if (constraints && constraints.default === null) {
-            value = null;
-            break;
-          }
-
+        result = ValidateSubDocument(key, value, constraints);
+        if (result === undefined) {
           continue;
-        }
-
-        if (typeof value !== "object") {
-          errors.push(`Property "${key}" must contain a nested object.`);
+        } else if (result.errors.length > 0) {
+          errors.push(...result.errors);
           continue;
-        }
-
-        if (value === null) {
-          if (constraints && constraints.required) {
-            errors.push(`Property "${key}" is required and may not be null.`);
-            continue;
-          }
-
-          break;
-        }
-
-        const [childData, childErrors] = ValidateSubDocument(value, constraints.schema); 
-        if (childErrors.length < 1) {
-          value = childData;
         } else {
-          errors.push(...childErrors);
+          value = result.value;
+        }
+        break;
+
+      case Array:
+        result = validateArray(key, value, constraints);
+        if (result === undefined) {
+          continue;
+        } else if (result.errors.length > 0) {
+          errors.push(...result.errors);
+          continue;
+        } else {
+          value = result.value;
         }
         break;
   
@@ -157,7 +213,7 @@ function validateObjectProperties(obj, schema) {
     data[key] = value;
   }
   
-  return [data, errors];
+  return { value: data, errors };
 }
 
 const typeMap = new Map();
@@ -166,7 +222,7 @@ typeMap.set(Number, "number");
 typeMap.set(String, "string");
 typeMap.set(Date, "string");
 
-function isSupportedType(type) {
+function checkBasicType(type) {
   return !!typeMap.get(type);
 }
 
@@ -183,6 +239,34 @@ function checkTypeForValue(key, value, type, name) {
   }
 }
 
+function checkObject(key, constraints) {
+  if (!constraints.hasOwnProperty("schema")) {
+    throw new Error(`Constraints for property ${key} of type Object has missing schema.`);
+  }
+  
+  if (!constraints.schema || typeof constraints.schema !== "object") {
+    throw new Error(`Constraints for property ${key} of type Object has invalid schema.`);
+  }
+  
+  errorCheck(constraints.schema);
+
+  if (constraints.hasOwnProperty("default") && constraints.default !== null) {
+    throw new Error(`Vet schema error for property ${key}: when type is Object, property default may only have a value of null.`);
+  }
+}
+
+function checkArray(key, constraints) {
+  if (!constraints.hasOwnProperty("ofType")) {
+    throw new Error(`Vet schema error for property ${key}: when type is Array, property ofType is required.`);
+  }
+
+  if (checkBasicType(constraints.ofType)) {
+    return;
+  }
+
+  throw new Error("not implemented")
+}
+
 function errorCheck(schema) {
   if (typeof schema !== "object") {
     throw new Error("Schema must be an object.");
@@ -196,7 +280,7 @@ function errorCheck(schema) {
       throw new Error(`Invalid constraints for property ${key}.`);
     }
 
-    if (isSupportedType(constraints)) {
+    if (checkBasicType(constraints)) {
       // Simple type constraint (Boolean, Number, String, Date, etc.)
       continue;
     }
@@ -210,21 +294,11 @@ function errorCheck(schema) {
       throw new Error(`Constraints object for ${key} must have type property.`);
     }
 
-    if (!isSupportedType(constraints.type)) {
+    if (!checkBasicType(constraints.type)) {
       if (constraints.type === Object) {
-        if (!constraints.hasOwnProperty("schema")) {
-          throw new Error(`Constraints for property ${key} of type Object has missing schema.`);
-        }
-        
-        if (!constraints.schema || typeof constraints.schema !== "object") {
-          throw new Error(`Constraints for property ${key} of type Object has invalid schema.`);
-        }
-        
-        errorCheck(constraints.schema);
-
-        if (constraints.hasOwnProperty("default") && constraints.default !== null) {
-          throw new Error(`Constraints for property ${key} of type Object may only have a default value of null.`);
-        }
+        checkObject(key, constraints);
+      } else if(constraints.type === Array) {
+        checkArray(key, constraints);
       } else {
         throw new Error(`Constraints object for property ${key} has invalid/unsupported type.`);
       }
@@ -268,10 +342,10 @@ function vet(schema) {
     if (typeof req.body !== "object") {
       req.errors = ["Request payload must be a JSON object"];
     } else {
-      const [data, errors] = validateObjectProperties(req.body, schema);
+      const result = validateObjectProperties(req.body, schema);
     
-      req.data = data;
-      req.errors = errors;
+      req.data = result.value;
+      req.errors = result.errors;
     }
 
     next();
