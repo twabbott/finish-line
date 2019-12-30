@@ -1,12 +1,45 @@
+/*
+    TODO:
+    ===========================
+    Consider
+    
+    Arrays:
+      * n-dimensional arrays
+      * maxLength, minLength
+      * Allow shorthand syntax of [{schema}], or [BasicType]
+
+    Number:
+      * round: true
+
+    Strings:
+      * regex
+      * toLowerCase / toUpperCase
+      * trim
+      * minLength
+      * maxLength
+
+    Dates:
+      * Min and Max
+
+    All:
+      * validate: a funciton that has its this-object bound to 
+        the current object, and receives the current value as its property
+      * message: a message to return if the current property is missing
 
 
-const sampleSchema = {
-  name: String,
-  height: Number,
-  isVeteran: Boolean,
-  birthday: Date,
-  address: {
+*/
 
+function internalError(key, msg) {
+  throw new Error(`Vet internal error while processing key ${key}: ${msg}`);
+}
+
+function wrappedResult(result) {
+  if (result === undefined) {
+    return undefined;
+  } else if (result.errors.length > 0) {
+    return { value: undefined, errors: result.errors };
+  } else {
+    return { value: result.value, errors: [] };
   }
 }
 
@@ -60,13 +93,7 @@ function ValidateSubDocument(key, value, constraints) {
     return { value: null, errors: []};
   }
 
-  const result = validateObjectProperties(value, constraints.schema); 
-
-  if (result.errors.length > 0) {
-    return { value: undefined, errors: result.errors };
-  } else {
-    return { value: result.value, errors: [] };
-  }
+  return wrappedResult(validateObjectProperties(value, constraints.schema)); 
 }
 
 function validateArray(key, value, constraints) {
@@ -95,6 +122,7 @@ function validateArray(key, value, constraints) {
   if (basicType) {
     for (let i = 0; i < value.length; i++) {
       const item = value[i];
+
       if (typeof item !== basicType) {
         return {
           value: undefined,
@@ -104,11 +132,22 @@ function validateArray(key, value, constraints) {
 
       array.push(item);
     }
+  } else if (constraints.ofType === Object) {
+    for (let i = 0; i < value.length; i++) {
+      const item = value[i];
+      
+      const result = ValidateSubDocument(key, item, constraints);
+      if (result.errors.length > 0) {
+        return { value: undefined, errors: result.errors };
+      }
 
-    return { value: array, errors: [] }
+      array.push(result.value);
+    }
+  } else {
+    internalError(key, `ofType property contains a type that is not supported.`);
   }
 
-  return { value: array, errors };
+  return { value: array, errors: [] };
 }
 
 function validateObjectProperties(obj, schema) {
@@ -176,32 +215,23 @@ function validateObjectProperties(obj, schema) {
         }
         break;
 
-      case Object:
-        result = ValidateSubDocument(key, value, constraints);
-        if (result === undefined) {
-          continue;
-        } else if (result.errors.length > 0) {
-          errors.push(...result.errors);
-          continue;
-        } else {
-          value = result.value;
-        }
-        break;
-
-      case Array:
-        result = validateArray(key, value, constraints);
-        if (result === undefined) {
-          continue;
-        } else if (result.errors.length > 0) {
-          errors.push(...result.errors);
-          continue;
-        } else {
-          value = result.value;
-        }
-        break;
-  
       default:
-        throw new Error(`Schema property ${key} has unsupported type.`);
+        if (type === Object) {
+          result = ValidateSubDocument(key, value, constraints);
+        } else if (type === Array) {
+          result = validateArray(key, value, constraints);
+        } else {
+          throw new Error(`Schema property ${key} has unsupported type.`);
+        }
+
+        if (result === undefined) {
+          continue;
+        } else if (result.errors.length > 0) {
+          errors.push(...result.errors);
+          continue;
+        } else {
+          value = result.value;
+        }
         break;
     }
 
@@ -244,11 +274,7 @@ function checkObject(key, constraints) {
     throw new Error(`Constraints for property ${key} of type Object has missing schema.`);
   }
   
-  if (!constraints.schema || typeof constraints.schema !== "object") {
-    throw new Error(`Constraints for property ${key} of type Object has invalid schema.`);
-  }
-  
-  errorCheck(constraints.schema);
+  checkSchemaDefinition(constraints.schema, key);
 
   if (constraints.hasOwnProperty("default") && constraints.default !== null) {
     throw new Error(`Vet schema error for property ${key}: when type is Object, property default may only have a value of null.`);
@@ -264,12 +290,23 @@ function checkArray(key, constraints) {
     return;
   }
 
-  throw new Error("not implemented")
+  if (constraints.ofType === Object) {
+    if (!constraints.hasOwnProperty("schema")) {
+      throw new Error(`Vet schema error for property ${key}: when type is Array and ofType is Object, schema property is required.`);
+    }
+
+    checkSchemaDefinition(constraints.schema, key);
+  }
 }
 
-function errorCheck(schema) {
-  if (typeof schema !== "object") {
-    throw new Error("Schema must be an object.");
+function checkSchemaDefinition(schema, parentKey) {
+  if (!schema || (schema && (typeof schema !== "object" || Array.isArray(schema)))) {
+    let err = "Invalid schema definition, schema must be an object.";
+    if (parentKey) {
+      err = `Vet schema error for property ${parentKey}: ${err}`;
+    }
+
+    throw new Error(err);
   }
 
   const errors = [];
@@ -336,7 +373,7 @@ function errorCheck(schema) {
 }
 
 function vet(schema) {
-  errorCheck(schema);
+  checkSchemaDefinition(schema);
 
   return function(req, res, next) {
     if (typeof req.body !== "object") {

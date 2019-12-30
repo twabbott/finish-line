@@ -19,6 +19,14 @@ describe("vet", () => {
     return req;
   }
 
+  function expectZeroErrors(errors) {
+    for (err of errors) {
+      console.log("Spurious error: " + err);
+    }
+
+    expect(errors.length).to.equal(0);
+  }
+
   describe("schema error checking", () => {
     describe("Basic checks", () => {
       it("should allow all supported types", () => {
@@ -96,7 +104,7 @@ describe("vet", () => {
       });
 
       describe("default property", () => {
-        it("should allow null for default value.", () => {
+        it("should allow null for default value", () => {
           const schema = {
             prop1: {
               type: Boolean,
@@ -237,7 +245,7 @@ describe("vet", () => {
     });
 
     describe("schema for sub-document", () => {
-      it("should throw an error if schema property is missing.", () => {
+      it("should throw an error if schema property is missing", () => {
         const schema = {
           profile: { 
             type: Object
@@ -247,7 +255,7 @@ describe("vet", () => {
         expect(() => vet(schema)).to.throw("Constraints for property profile of type Object has missing schema.");
       });
 
-      it("should throw an error if schema property is not an object.", () => {
+      it("should throw an error if schema property is null", () => {
         const schema = {
           profile: { 
             type: Object,
@@ -255,10 +263,32 @@ describe("vet", () => {
           }
         };
 
-        expect(() => vet(schema)).to.throw("Constraints for property profile of type Object has invalid schema.");
+        expect(() => vet(schema)).to.throw("Vet schema error for property profile: Invalid schema definition, schema must be an object.");
       });
 
-      it("should throw an error if default constraint is not null (default can only be null).", () => {
+      it("should throw an error if schema property is an array", () => {
+        const schema = {
+          profile: { 
+            type: Object,
+            schema: []
+          }
+        };
+
+        expect(() => vet(schema)).to.throw("Vet schema error for property profile: Invalid schema definition, schema must be an object.");
+      });
+
+      it("should throw an error if schema property is a string", () => {
+        const schema = {
+          profile: { 
+            type: Object,
+            schema: "blarg, whatever"
+          }
+        };
+
+        expect(() => vet(schema)).to.throw("Vet schema error for property profile: Invalid schema definition, schema must be an object.");
+      });
+
+      it("should throw an error if default constraint is not null (default can only be null)", () => {
         const schema = {
           profile: { 
             type: Object,
@@ -276,7 +306,30 @@ describe("vet", () => {
     });
 
     describe("Arrays", () => {
-      it("should throw an error if ofType property is missing.", () => {
+      it("should allow arrays of all basic types", () => {
+        const schema = {
+          bools: {
+            type: Array,
+            ofType: Boolean
+          },
+          numbers: {
+            type: Array,
+            ofType: Number
+          },
+          strings: {
+            type: Array,
+            ofType: String
+          },
+          dates: {
+            type: Array,
+            ofType: Date
+          }
+        };
+
+        expect(() => vet(schema)).to.not.throw();
+      });
+
+      it("should throw an error if ofType property is missing", () => {
         const schema = {
           fibonacci: { 
             type: Array,
@@ -285,10 +338,26 @@ describe("vet", () => {
 
         expect(() => vet(schema)).to.throw("Vet schema error for property fibonacci: when type is Array, property ofType is required");
       });
+
+      it ("should allow ofType: Object, with a schema property", () => {
+        const schema = {
+          colors: { 
+            type: Array,
+            ofType: Object,
+            schema: {
+              r: Number,
+              g: Number,
+              b: Number
+            }
+          }
+        };
+  
+        expect(() => vet(schema)).to.not.throw();
+      });
     });
   });
 
-  describe.only("validation for individual props", () => {
+  describe("validation for individual props", () => {
     describe("boolean", () => {
       it("should validate value of either true or false", () => {
         const schema = {
@@ -303,7 +372,7 @@ describe("vet", () => {
   
         const req = buildState(schema, body);
   
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(2);
@@ -352,7 +421,7 @@ describe("vet", () => {
     
           const req = buildState(schema, body);
     
-          expect(req.errors.length).to.equal(0);
+          expectZeroErrors(req.errors);
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(2);
@@ -377,7 +446,7 @@ describe("vet", () => {
     
           const req = buildState(schema, body);
     
-          expect(req.errors.length).to.equal(0);
+          expectZeroErrors(req.errors);
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(2);
@@ -428,7 +497,7 @@ describe("vet", () => {
   
         const req = buildState(schema, body);
   
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(2);
@@ -477,7 +546,7 @@ describe("vet", () => {
     
           const req = buildState(schema, body);
     
-          expect(req.errors.length).to.equal(0);
+          expectZeroErrors(req.errors);
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(2);
@@ -502,7 +571,7 @@ describe("vet", () => {
     
           const req = buildState(schema, body);
     
-          expect(req.errors.length).to.equal(0);
+          expectZeroErrors(req.errors);
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(2);
@@ -616,7 +685,7 @@ describe("vet", () => {
     
           const req = buildState(schema, body);
     
-          expect(req.errors.length).to.equal(0);
+          expectZeroErrors(req.errors);
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(2);
@@ -672,7 +741,7 @@ describe("vet", () => {
     
           const req = buildState(schema, body);
     
-          expect(req.errors.length).to.equal(0);
+          expectZeroErrors(req.errors);
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(2);
@@ -696,7 +765,7 @@ describe("vet", () => {
   
         const req = buildState(schema, body);
 
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
 
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(2);
@@ -747,7 +816,7 @@ describe("vet", () => {
   
           const req = buildState(schema, body);
   
-          expect(req.errors.length).to.equal(0);
+          expectZeroErrors(req.errors);
   
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(2);
@@ -800,7 +869,7 @@ describe("vet", () => {
   
         const req = buildState(schema, body);
     
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(2);
@@ -855,7 +924,7 @@ describe("vet", () => {
         };
   
         const req = buildState(schema, body);
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(1);
@@ -884,14 +953,14 @@ describe("vet", () => {
   
         const req = buildState(schema, body);
   
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
         expect(req.data.hasOwnProperty("profile")).to.be.false;
       });
 
-      it("should use null if { default: null } was specified.", () => {
+      it("should use null if { default: null } was specified", () => {
         const schema = {
           profile: { 
             type: Object,
@@ -909,7 +978,7 @@ describe("vet", () => {
   
         const req = buildState(schema, body);
   
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(1);
@@ -917,7 +986,7 @@ describe("vet", () => {
         expect(req.data.profile).to.be.null;
       });
 
-      it("should allow null for nested document.", () => {
+      it("should allow null for nested document", () => {
         const schema = {
           profile: { 
             type: Object,
@@ -935,7 +1004,7 @@ describe("vet", () => {
   
         const req = buildState(schema, body);
   
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(1);
@@ -1040,7 +1109,7 @@ describe("vet", () => {
   
         const req = buildState(schema, body);
   
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(1);
@@ -1051,7 +1120,7 @@ describe("vet", () => {
         }
       });
 
-      it("should fail validation if array contains an element of the wrong type.", () => {
+      it("should fail validation if array contains an element of the wrong type", () => {
         const schema = {
           fibonacci: { 
             type: Array,
@@ -1086,7 +1155,7 @@ describe("vet", () => {
         };
   
         const req = buildState(schema, body);
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
@@ -1138,7 +1207,7 @@ describe("vet", () => {
         expect(req.data.hasOwnProperty("fibonacci")).to.be.false;
       });
 
-      it("should allow null for array if no required constraint given.", () => {
+      it("should allow null for array if no required constraint given", () => {
         const schema = {
           fibonacci: { 
             type: Array,
@@ -1152,13 +1221,108 @@ describe("vet", () => {
   
         const req = buildState(schema, body);
   
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(1);
         expect(req.data.hasOwnProperty("fibonacci")).to.be.true;
         expect(req.data.fibonacci).to.be.null;
       });
+
+      it("should validate a property that contains an array of objects", () => {
+        const colors = [{ r: 255, g: 255, b: 255}, { r: 0, g: 0, b: 0 }];
+        const schema = {
+          colors: { 
+            type: Array,
+            ofType: Object,
+            schema: {
+              r: Number,
+              g: Number,
+              b: Number
+            }
+          }
+        };
+  
+        const body = {
+          colors: [...colors]
+        };
+
+        const req = buildState(schema, body);
+  
+        expectZeroErrors(req.errors);
+  
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(1);
+        expect(req.data.hasOwnProperty("colors")).to.be.true;
+        expect(req.data.colors).to.be.ok;
+        expect(Array.isArray(req.data.colors)).to.be.true;
+        expect(req.data.colors.length).to.equal(colors.length);
+        for (let i = 0; i < req.data.colors.length; i++) {
+          expect(req.data.colors[i].r).to.equal(colors[i].r);
+          expect(req.data.colors[i].g).to.equal(colors[i].g);
+          expect(req.data.colors[i].b).to.equal(colors[i].b);
+        }
+      });
+
+      // it("should validate a property that contains an array of arrays (n-dimensional array)", () => {
+      //   const cubeData = [
+      //     [
+      //       [1, 2, 3],
+      //       [2, 4, 6],
+      //       [3, 6, 9]
+      //     ],
+      //     [
+      //       [2, 4, 6],
+      //       [4, 8, 12],
+      //       [3, 12, 18]
+      //     ],
+      //     [
+      //       [3, 6, 9],
+      //       [6, 12, 18],
+      //       [9, 18, 27]
+      //     ],
+      //   ];
+
+      //   const schema = {
+      //     cube: { 
+      //       type: Array,
+      //       maxLength: 3,
+      //       ofType: {
+      //         type: Array,
+      //         maxLength: 3,
+      //         ofType: {
+      //           type: Array,
+      //           ofType: Number,
+      //           maxLength: 3
+      //         }
+      //       }
+      //     }
+      //   };
+  
+      //   const body = {
+      //     cube: [...cubeData]
+      //   };
+
+      //   const req = buildState(schema, body);
+
+      //   expectZeroErrors(req.errors);
+  
+      //   expect(req.data).to.be.ok;
+      //   expect(Object.keys(req.data).length).to.equal(1);
+      //   expect(req.data.hasOwnProperty("cube")).to.be.true;
+      //   expect(req.data.cube).to.be.ok;
+      //   expect(Array.isArray(req.data.cube)).to.be.true;
+      //   expect(req.data.cube.length).to.equal(cube.length);
+      //   for (let i = 0; i < req.data.cube.length; i++) {
+      //     expect(req.data.cube[i].length).to.equal(cubeData[i].length);
+      //     for (let j = 0; j < req.data.cube[i].length; j++) {
+      //       expect(req.data.cube[i][j].length).to.equal(cubeData[i][j].length);
+      //       for (let k = 0; k < req.data.cube[i][j].length; k++) {
+      //         expect(req.data.cube[i][j][k]).to.equal(cubeData[i][j][k]);
+      //       }
+      //     }
+      //   }
+      // });
     });
 
     describe("general", () => {
@@ -1178,7 +1342,7 @@ describe("vet", () => {
   
         const req = buildState(schema, body);
   
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(2);
@@ -1203,7 +1367,7 @@ describe("vet", () => {
   
         const req = buildState(schema, body);
   
-        expect(req.errors.length).to.equal(0);
+        expectZeroErrors(req.errors);
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
