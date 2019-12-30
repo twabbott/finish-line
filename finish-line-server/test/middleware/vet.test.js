@@ -5,7 +5,7 @@ const { expect } = require("chai");
 const { mockState } = require("../test-utils/express-shim");
 const vet = require("../../middleware/vet");
 
-describe("vet", () => {
+describe.only("vet", () => {
   function buildState(schema, body) {
     const mockReq = {
       body
@@ -183,7 +183,18 @@ describe("vet", () => {
         });        
       });
 
-      describe("number min and max", () => {
+      describe("type: Number", () => {
+        it("should throw an error if trunc is not a boolean", () => {
+          const schema = {
+            prop: {
+              type: Number,
+              trunc: "23"
+            }
+          };
+
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: value must be either true or false");
+        });
+
         it("should throw an error if min is not a number", () => {
           const schema = {
             prop: {
@@ -353,6 +364,67 @@ describe("vet", () => {
         };
   
         expect(() => vet(schema)).to.not.throw();
+      });
+
+      it ("should reject maxLength property if type is not number", () => {
+        const schema = {
+          primes: { 
+            type: Array,
+            ofType: Number,
+            maxLength: true
+          }
+        };
+  
+        expect(() => vet(schema)).to.throw("Vet schema error for property primes: property \"maxLength\" must be a number.");
+      });
+
+      it ("should reject maxLength property if value < 0", () => {
+        const schema = {
+          primes: { 
+            type: Array,
+            ofType: Number,
+            maxLength: -22
+          }
+        };
+  
+        expect(() => vet(schema)).to.throw("Vet schema error for property primes: property \"maxLength\" cannot be less than zero.");
+      });
+
+      it ("should reject minLength property if type is not number", () => {
+        const schema = {
+          primes: { 
+            type: Array,
+            ofType: Number,
+            minLength: true
+          }
+        };
+  
+        expect(() => vet(schema)).to.throw("Vet schema error for property primes: property \"minLength\" must be a number.");
+      });
+
+      it ("should reject minLength property if value < 0", () => {
+        const schema = {
+          primes: { 
+            type: Array,
+            ofType: Number,
+            minLength: -22
+          }
+        };
+  
+        expect(() => vet(schema)).to.throw("Vet schema error for property primes: property \"minLength\" cannot be less than zero.");
+      });
+
+      it ("should reject minLength if value > maxLength", () => {
+        const schema = {
+          primes: { 
+            type: Array,
+            ofType: Number,
+            maxLength: 10,
+            minLength: 11
+          }
+        };
+  
+        expect(() => vet(schema)).to.throw("Vet schema error for property primes: property \"minLength\" cannot be greater than maxLength.");
       });
     });
   });
@@ -604,6 +676,38 @@ describe("vet", () => {
           expect(Object.keys(req.data).length).to.equal(0);
           expect(req.data.hasOwnProperty("age")).to.be.false;
           expect(req.data.hasOwnProperty("weight")).to.be.false;
+        });
+
+        it("should truncate a real number to an integer", () => {
+          const schema = {
+            intVal: {
+              type: Number,
+              trunc: true
+            },
+            floatVal: {
+              type: Number,
+              trunc: false
+            },
+            untouchedVal: {
+              type: Number
+            }
+          };
+    
+          const body = {
+            intVal: 3.14159,
+            floatVal: 3.14159,
+            untouchedVal: 3.14159
+          };
+    
+          const req = buildState(schema, body);
+    
+          expectZeroErrors(req.errors);
+    
+          expect(req.data).to.be.ok;
+          expect(Object.keys(req.data).length).to.equal(3);
+          expect(req.data.intVal).to.be.equal(3.0);
+          expect(req.data.floatVal).to.be.equal(3.14159);
+          expect(req.data.untouchedVal).to.be.equal(3.14159);
         });
 
         it("should give an error for a value below min constraint", () => {
@@ -1323,6 +1427,76 @@ describe("vet", () => {
       //     }
       //   }
       // });
+
+      it("should fail validation if array longer than maxLength is given", () => {
+        const schema = {
+          primes: { 
+            type: Array,
+            ofType: Number,
+            maxLength: 3
+          }
+        };
+  
+        const body = {
+          primes: [2, 3, 5, 7, 11]
+        };
+  
+        const req = buildState(schema, body);
+
+        expect(req.errors.length).to.equal(1);
+        expect(req.errors[0]).to.equal("Property \"primes\" cannot have more than 3 elments in its array.")
+
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(0);
+        expect(req.data.hasOwnProperty("primes")).to.be.false;
+      });
+
+      it("should fail validation if array shorter than minLength is given", () => {
+        const schema = {
+          primes: { 
+            type: Array,
+            ofType: Number,
+            minLength: 10
+          }
+        };
+
+        const body = {
+          primes: [2, 3, 5, 7, 11]
+        };
+
+        const req = buildState(schema, body);
+
+        expect(req.errors.length).to.equal(1);
+        expect(req.errors[0]).to.equal("Property \"primes\" must have at least 10 elments in its array.")
+
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(0);
+        expect(req.data.hasOwnProperty("primes")).to.be.false;
+      });
+
+      it("should allow array size between minLength and maxLength", () => {
+        const schema = {
+          primes: { 
+            type: Array,
+            ofType: Number,
+            minLength: 2,
+            maxLength: 10
+          }
+        };
+
+        const body = {
+          primes: [2, 3, 5, 7, 11]
+        };
+  
+        const req = buildState(schema, body);
+  
+        expectZeroErrors(req.errors);
+  
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(1);
+        expect(req.data.hasOwnProperty("primes")).to.be.true;
+        expect(req.data.primes.length).to.equal(5);
+      });
     });
 
     describe("general", () => {

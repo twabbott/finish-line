@@ -1,15 +1,12 @@
 /*
     TODO:
     ===========================
-    Consider
+    change all schema errors to use the schemaError function
+    call checkValidConstraints for all types.  this will help you in the future
     
     Arrays:
       * n-dimensional arrays
-      * maxLength, minLength
       * Allow shorthand syntax of [{schema}], or [BasicType]
-
-    Number:
-      * round: true
 
     Strings:
       * regex
@@ -31,6 +28,10 @@
 
 function internalError(key, msg) {
   throw new Error(`Vet internal error while processing key ${key}: ${msg}`);
+}
+
+function schemaError(key, msg) {
+  throw new Error(`Vet schema error for property ${key}: ${msg}`);
 }
 
 function wrappedResult(result) {
@@ -117,6 +118,14 @@ function validateArray(key, value, constraints) {
     return { value: null, errors: []};
   }
 
+  if (constraints.maxLength && value.length > constraints.maxLength) {
+    return { value: undefined, errors: [`Property "${key}" cannot have more than ${constraints.maxLength} elments in its array.`]}
+  }
+
+  if (constraints.minLength && value.length < constraints.minLength) {
+    return { value: undefined, errors: [`Property "${key}" must have at least ${constraints.minLength} elments in its array.`]}
+  }
+
   const array = [];
   const basicType = typeMap.get(constraints.ofType);
   if (basicType) {
@@ -192,14 +201,20 @@ function validateObjectProperties(obj, schema) {
           continue;
         };
 
-        if (constraints && constraints.min && value < constraints.min) {
-          errors.push(`Property "${key}" is below the minimum value of ${constraints.min}.`);
-          continue;
-        }
+        if (constraints) {
+          if (constraints.trunc) {
+            value = Math.trunc(value);
+          }
 
-        if (constraints && constraints.max && value > constraints.max) {
-          errors.push(`Property "${key}" is above the maximum value of ${constraints.max}.`);
-          continue;
+          if (constraints.min && value < constraints.min) {
+            errors.push(`Property "${key}" is below the minimum value of ${constraints.min}.`);
+            continue;
+          }
+  
+          if (constraints.max && value > constraints.max) {
+            errors.push(`Property "${key}" is above the maximum value of ${constraints.max}.`);
+            continue;
+          }
         }
         break;
 
@@ -252,6 +267,23 @@ typeMap.set(Number, "number");
 typeMap.set(String, "string");
 typeMap.set(Date, "string");
 
+function checkValidConstraints(type, constraints, ...knownProps) {
+  for (let key in constraints) {
+    let index = -1;
+
+    for (let i = 0; i < knownProps.length; i++) {
+      if (knownProps[i] === key) {
+        index = i;
+        break;
+      }
+    }
+
+    if (index < 0) {
+      schemaError(key, `constraint is invalid for type ${type}.`);
+    }
+  }
+}
+
 function checkBasicType(type) {
   return !!typeMap.get(type);
 }
@@ -282,21 +314,48 @@ function checkObject(key, constraints) {
 }
 
 function checkArray(key, constraints) {
+  const validConstraints = ["type", "ofType", "required", "maxLength", "minLength"];
+
   if (!constraints.hasOwnProperty("ofType")) {
     throw new Error(`Vet schema error for property ${key}: when type is Array, property ofType is required.`);
   }
-
-  if (checkBasicType(constraints.ofType)) {
-    return;
-  }
-
-  if (constraints.ofType === Object) {
-    if (!constraints.hasOwnProperty("schema")) {
-      throw new Error(`Vet schema error for property ${key}: when type is Array and ofType is Object, schema property is required.`);
+  
+  if (constraints.hasOwnProperty("maxLength")) {
+    if (typeof constraints.maxLength !== "number") {
+      schemaError(key, "property \"maxLength\" must be a number.");
     }
 
-    checkSchemaDefinition(constraints.schema, key);
+    if (constraints.maxLength < 0) {
+      schemaError(key, "property \"maxLength\" cannot be less than zero.");
+    }
   }
+
+  if (constraints.hasOwnProperty("minLength")) {
+    if (typeof constraints.minLength !== "number") {
+      schemaError(key, "property \"minLength\" must be a number.");
+    }
+
+    if (constraints.minLength < 0) {
+      schemaError(key, "property \"minLength\" cannot be less than zero.");
+    }
+
+    if (constraints.maxLength && constraints.minLength > constraints.maxLength) {
+      schemaError(key, "property \"minLength\" cannot be greater than maxLength.");
+    }
+  }
+
+  if (!checkBasicType(constraints.ofType)) {
+    if (constraints.ofType === Object) {
+      if (!constraints.hasOwnProperty("schema")) {
+        throw new Error(`Vet schema error for property ${key}: when type is Array and ofType is Object, schema property is required.`);
+      }
+  
+      validConstraints.push("schema");
+      checkSchemaDefinition(constraints.schema, key);
+    }
+  }
+
+  checkValidConstraints("Array", constraints, ...validConstraints);
 }
 
 function checkSchemaDefinition(schema, parentKey) {
@@ -309,7 +368,6 @@ function checkSchemaDefinition(schema, parentKey) {
     throw new Error(err);
   }
 
-  const errors = [];
   for (let key in schema) {
     const constraints = schema[key];
 
@@ -346,6 +404,10 @@ function checkSchemaDefinition(schema, parentKey) {
     }
 
     if (constraints.type === Number) {
+      if (constraints.hasOwnProperty("trunc") && typeof constraints.trunc !== "boolean") {
+        schemaError(key, "value must be either true or false.");
+      }
+
       if (constraints.hasOwnProperty("min")) {
         checkTypeForValue(key, constraints.min, constraints.type, "min");
       }
@@ -368,8 +430,6 @@ function checkSchemaDefinition(schema, parentKey) {
       }
     }
   }
-
-  return errors;
 }
 
 function vet(schema) {
