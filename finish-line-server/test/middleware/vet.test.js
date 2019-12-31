@@ -56,7 +56,7 @@ describe.only("vet", () => {
           prop: undefined
         };
   
-        expect(() => vet(schema)).to.throw("Invalid constraints for property prop.");
+        expect(() => vet(schema)).to.throw("Vet schema error for property prop: constraints object expected.");
       });
   
       it("should throw error for null type", () => {
@@ -64,7 +64,7 @@ describe.only("vet", () => {
           prop: null
         };
   
-        expect(() => vet(schema)).to.throw("Invalid constraints for property prop.");
+        expect(() => vet(schema)).to.throw("Vet schema error for property prop: constraints object expected.");
       });
   
       it("should throw error for unsupported types", () => {
@@ -72,7 +72,7 @@ describe.only("vet", () => {
           prop: Symbol
         };
   
-        expect(() => vet(schema)).to.throw("Property prop has unsupported type.");
+        expect(() => vet(schema)).to.throw("Vet schema error for property prop: expected primitive type, or Date, or constraints object.");
       })
     });
 
@@ -83,7 +83,7 @@ describe.only("vet", () => {
             prop: {}
           };
     
-          expect(() => vet(schema)).to.throw("Constraints object for prop must have type property.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: constraints object must have property \"type\".");
         });
         
         it("should throw error if type property is null", () => {
@@ -91,7 +91,7 @@ describe.only("vet", () => {
             prop: { type: null }
           };
     
-          expect(() => vet(schema)).to.throw("Constraints object for property prop has invalid/unsupported type.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: constraints object has invalid/unsupported value for property \"type\".");
         });
         
         it("should throw error if value for type property is invalid", () => {
@@ -99,7 +99,7 @@ describe.only("vet", () => {
             prop: { type: 4 }
           };
     
-          expect(() => vet(schema)).to.throw("Constraints object for property prop has invalid/unsupported type.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: constraints object has invalid/unsupported value for property \"type\".");
         });
       });
 
@@ -135,7 +135,7 @@ describe.only("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.throw("Property prop has invalid value for default constraint.  Value must be a boolean.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: value for property \"default\" must be a boolean.");
         });
 
         it("should throw error if default prop for Number is invalid type", () => {
@@ -146,7 +146,7 @@ describe.only("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.throw("Property prop has invalid value for default constraint.  Value must be a number.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: value for property \"default\" must be a number.");
         });
 
         it("should throw error if default prop for String is invalid type", () => {
@@ -157,7 +157,7 @@ describe.only("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.throw("Property prop has invalid value for default constraint.  Value must be a string.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: value for property \"default\" must be a string.");
         });
 
         it("should throw error if default prop for Date is not a string", () => {
@@ -168,7 +168,7 @@ describe.only("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.throw("Property prop has invalid value for default constraint.  Value must be a string.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: value for property \"default\" must be a string.");
         });
 
         it("should throw error if default prop for Date is not a valid date string", () => {
@@ -179,7 +179,7 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Property prop has invalid value for default constraint.  Value must be a valid date string.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: value for property \"default\" must be a valid date string.");
         });        
       });
 
@@ -203,7 +203,7 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Property prop has invalid value for min constraint.  Value must be a number.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: value for property \"min\" must be a number");
         });
 
         it("should throw an error if max is not a number", () => {
@@ -214,7 +214,7 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Property prop has invalid value for max constraint.  Value must be a number.");
+          expect(() => vet(schema)).to.throw("et schema error for property prop: value for property \"max\" must be a number.");
         });
 
         it("should throw an error if min > max", () => {
@@ -226,7 +226,7 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Property prop has min constraint that is greater than max constraint.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: min constraint cannot be greater than max constraint.");
         });
       });
 
@@ -239,7 +239,7 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Property prop has invalid values constraint.  Expected an array of values.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: property \"values\" must be an array.");
         });
 
         it("Should throw an error if values do not match type", () => {
@@ -250,7 +250,7 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Property prop has invalid value for values constraint.  Value must be a number.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property prop: value for property \"values\" must be a number.");
         });
       });
     });
@@ -263,7 +263,7 @@ describe.only("vet", () => {
           }
         };
 
-        expect(() => vet(schema)).to.throw("Constraints for property profile of type Object has missing schema.");
+        expect(() => vet(schema)).to.throw("Vet schema error for property profile: when type is Object, property \"schema\" is required.");
       });
 
       it("should throw an error if schema property is null", () => {
@@ -312,7 +312,7 @@ describe.only("vet", () => {
           }
         };
 
-        expect(() => vet(schema)).to.throw("Vet schema error for property profile: when type is Object, property default may only have a value of null.");
+        expect(() => vet(schema)).to.throw("Vet schema error for property profile: when type is Object, property \"default\" may only have a value of null.");
       });
     });
 
@@ -347,7 +347,7 @@ describe.only("vet", () => {
           }
         };
 
-        expect(() => vet(schema)).to.throw("Vet schema error for property fibonacci: when type is Array, property ofType is required");
+        expect(() => vet(schema)).to.throw("Vet schema error for property fibonacci: when type is Array, property \"ofType\" is required.");
       });
 
       it ("should allow ofType: Object, with a schema property", () => {

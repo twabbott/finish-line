@@ -236,7 +236,7 @@ function validateObjectProperties(obj, schema) {
         } else if (type === Array) {
           result = validateArray(key, value, constraints);
         } else {
-          throw new Error(`Schema property ${key} has unsupported type.`);
+          schemaError(key, "unsupported value for property \"type\".");
         }
 
         if (result === undefined) {
@@ -291,25 +291,25 @@ function checkBasicType(type) {
 function checkTypeForValue(key, value, type, name) {
   const typeName = typeMap.get(type);
   if (typeof value !== typeName) {
-    throw new Error(`Property ${key} has invalid value for ${name} constraint.  Value must be a ${typeName}.`);
+    schemaError(key, `value for property "${name}" must be a ${typeName}.`);
   }
-  
+
   if (type === Date) {
     if (typeof value !== "string" || typeof value === "string" && isNaN(Date.parse(value))) {
-      throw new Error(`Property ${key} has invalid value for ${name} constraint.  Value must be a valid date string.`);
+      schemaError(key, `value for property "${name}" must be a valid date string.`);
     }
   }
 }
 
 function checkObject(key, constraints) {
   if (!constraints.hasOwnProperty("schema")) {
-    throw new Error(`Constraints for property ${key} of type Object has missing schema.`);
+    schemaError(key, "when type is Object, property \"schema\" is required.");
   }
   
   checkSchemaDefinition(constraints.schema, key);
 
   if (constraints.hasOwnProperty("default") && constraints.default !== null) {
-    throw new Error(`Vet schema error for property ${key}: when type is Object, property default may only have a value of null.`);
+    schemaError(key, "when type is Object, property \"default\" may only have a value of null.");
   }
 }
 
@@ -317,7 +317,7 @@ function checkArray(key, constraints) {
   const validConstraints = ["type", "ofType", "required", "maxLength", "minLength"];
 
   if (!constraints.hasOwnProperty("ofType")) {
-    throw new Error(`Vet schema error for property ${key}: when type is Array, property ofType is required.`);
+    schemaError(key, "when type is Array, property \"ofType\" is required.");
   }
   
   if (constraints.hasOwnProperty("maxLength")) {
@@ -347,7 +347,7 @@ function checkArray(key, constraints) {
   if (!checkBasicType(constraints.ofType)) {
     if (constraints.ofType === Object) {
       if (!constraints.hasOwnProperty("schema")) {
-        throw new Error(`Vet schema error for property ${key}: when type is Array and ofType is Object, schema property is required.`);
+        schemaError(key, "when type is Array and property \"ofType\" is Object, property \"schema\" is required.");
       }
   
       validConstraints.push("schema");
@@ -362,7 +362,7 @@ function checkSchemaDefinition(schema, parentKey) {
   if (!schema || (schema && (typeof schema !== "object" || Array.isArray(schema)))) {
     let err = "Invalid schema definition, schema must be an object.";
     if (parentKey) {
-      err = `Vet schema error for property ${parentKey}: ${err}`;
+      schemaError(parentKey, err);
     }
 
     throw new Error(err);
@@ -372,7 +372,7 @@ function checkSchemaDefinition(schema, parentKey) {
     const constraints = schema[key];
 
     if (!constraints) {
-      throw new Error(`Invalid constraints for property ${key}.`);
+      schemaError(key, "constraints object expected.");
     }
 
     if (checkBasicType(constraints)) {
@@ -381,12 +381,12 @@ function checkSchemaDefinition(schema, parentKey) {
     }
 
     if (typeof constraints !== "object") {
-      throw new Error(`Property ${key} has unsupported type.`);
+      schemaError(key, "expected primitive type, or Date, or constraints object.");
     }
 
     // At this point, we're looking at a constraints object.
     if (!constraints.hasOwnProperty("type")) {
-      throw new Error(`Constraints object for ${key} must have type property.`);
+      schemaError(key, "constraints object must have property \"type\".");
     }
 
     if (!checkBasicType(constraints.type)) {
@@ -395,7 +395,7 @@ function checkSchemaDefinition(schema, parentKey) {
       } else if(constraints.type === Array) {
         checkArray(key, constraints);
       } else {
-        throw new Error(`Constraints object for property ${key} has invalid/unsupported type.`);
+        schemaError(key, "constraints object has invalid/unsupported value for property \"type\".");
       }
     }
 
@@ -416,13 +416,13 @@ function checkSchemaDefinition(schema, parentKey) {
       }
 
       if (constraints.hasOwnProperty("min") && constraints.hasOwnProperty("max") && constraints.min > constraints.max) {
-        throw new Error(`Property ${key} has min constraint that is greater than max constraint.`);
+        schemaError(key, "min constraint cannot be greater than max constraint.");
       }
     }
 
     if (constraints.hasOwnProperty("values")) {
       if (!Array.isArray(constraints.values)) {
-        throw new Error(`Property ${key} has invalid values constraint.  Expected an array of values.`);
+        schemaError(key, "property \"values\" must be an array.");
       }
 
       for (let v of constraints.values) {
