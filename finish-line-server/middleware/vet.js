@@ -7,7 +7,6 @@
 
     Strings:
       * regex
-      * trim
       * minLength
       * maxLength
 
@@ -227,6 +226,10 @@ function validateObjectProperties(obj, schema) {
           if (constraints.toUpperCase) {
             value = value.toUpperCase();
           }
+
+          if (constraints.trim) {
+            value = value.trim();
+          }
         }
         break;
 
@@ -436,6 +439,10 @@ function checkSchemaDefinition(schema, parentKey) {
 
       if (constraints.toLowerCase === true && constraints.toUpperCase === true) {
         schemaError(key, "cannot have both toLowerCase and toUpperCase set to true.");
+      }
+
+      if (constraints.hasOwnProperty("trim") && typeof constraints.trim !== "boolean") {
+        schemaError(key, "value must be either true or false.");
       }
     }
 

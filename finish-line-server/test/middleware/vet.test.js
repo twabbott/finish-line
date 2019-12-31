@@ -264,6 +264,17 @@ describe.only("vet", () => {
 
           expect(() => vet(schema)).to.throw("Vet schema error for property testProp: cannot have both toLowerCase and toUpperCase set to true.");
         });
+
+        it("should throw an error if trim is not a boolean.", () => {
+          const schema = {
+            testProp: {
+              type: String,
+              trim: 1234
+            }
+          };
+
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value must be either true or false");
+        });
       });
 
       describe("values array", () => {
@@ -999,6 +1010,38 @@ describe.only("vet", () => {
           expect(req.data.test1).to.be.equal("AABBCCDD");
           expect(req.data.test2).to.be.equal("AaBbCcDd");
           expect(req.data.test3).to.be.equal("AaBbCcDd");
+        });
+
+        it("should handle the trim property", () => {
+          const schema = {
+            test1: { 
+              type: String,
+              trim: true
+            },
+            test2: { 
+              type: String,
+              trim: false
+            },
+            test3: { 
+              type: String
+            }
+          };
+
+          const body = {
+            test1: "\t test\r\n ",
+            test2: "\t test\r\n ",
+            test3: "\t test\r\n ",
+          };
+  
+          const req = buildState(schema, body);
+  
+          expectZeroErrors(req.errors);
+  
+          expect(req.data).to.be.ok;
+          expect(Object.keys(req.data).length).to.equal(3);
+          expect(req.data.test1).to.be.equal("test");
+          expect(req.data.test2).to.be.equal("\t test\r\n ");
+          expect(req.data.test3).to.be.equal("\t test\r\n ");
         });
 
         it("should validate a string from an array of values", () => {
