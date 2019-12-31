@@ -1,16 +1,12 @@
 /*
     TODO:
     ===========================
-    change all schema errors to use the schemaError function
-    call checkValidConstraints for all types.  this will help you in the future
-    
     Arrays:
       * n-dimensional arrays
       * Allow shorthand syntax of [{schema}], or [BasicType]
 
     Strings:
       * regex
-      * toLowerCase / toUpperCase
       * trim
       * minLength
       * maxLength
@@ -222,6 +218,16 @@ function validateObjectProperties(obj, schema) {
         if (!validatePrimitiveType(value, key, errors, "string")) {
           continue;
         };
+
+        if (constraints) {
+          if (constraints.toLowerCase) {
+            value = value.toLowerCase();
+          }
+
+          if (constraints.toUpperCase) {
+            value = value.toUpperCase();
+          }
+        }
         break;
 
       case Date:
@@ -411,12 +417,25 @@ function checkSchemaDefinition(schema, parentKey) {
       if (constraints.hasOwnProperty("min")) {
         checkTypeForValue(key, constraints.min, constraints.type, "min");
       }
+
       if (constraints.hasOwnProperty("max")) {
         checkTypeForValue(key, constraints.max, constraints.type, "max");
       }
 
       if (constraints.hasOwnProperty("min") && constraints.hasOwnProperty("max") && constraints.min > constraints.max) {
         schemaError(key, "min constraint cannot be greater than max constraint.");
+      }
+    } else if (constraints.type === String) {
+      if (constraints.hasOwnProperty("toLowerCase") && typeof constraints.toLowerCase !== "boolean") {
+        schemaError(key, "value must be either true or false.");
+      }
+
+      if (constraints.hasOwnProperty("toUpperCase") && typeof constraints.toUpperCase !== "boolean") {
+        schemaError(key, "value must be either true or false.");
+      }
+
+      if (constraints.toLowerCase === true && constraints.toUpperCase === true) {
+        schemaError(key, "cannot have both toLowerCase and toUpperCase set to true.");
       }
     }
 
