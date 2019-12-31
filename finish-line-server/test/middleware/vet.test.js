@@ -91,7 +91,7 @@ describe.only("vet", () => {
             testProp: { type: null }
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: constraints object has invalid/unsupported value for property \"type\".");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: constraints object has invalid/unsupported value for constraint \"type\".");
         });
         
         it("should throw error if value for type property is invalid", () => {
@@ -99,7 +99,7 @@ describe.only("vet", () => {
             testProp: { type: 4 }
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: constraints object has invalid/unsupported value for property \"type\".");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: constraints object has invalid/unsupported value for constraint \"type\".");
         });
       });
 
@@ -135,7 +135,7 @@ describe.only("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"default\" must be a boolean.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a boolean.");
         });
 
         it("should throw error if default testProp for Number is invalid type", () => {
@@ -146,7 +146,7 @@ describe.only("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"default\" must be a number.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a number.");
         });
 
         it("should throw error if default testProp for String is invalid type", () => {
@@ -157,7 +157,7 @@ describe.only("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"default\" must be a string.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a string.");
         });
 
         it("should throw error if default testProp for Date is not a string", () => {
@@ -168,7 +168,7 @@ describe.only("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"default\" must be a string.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a string.");
         });
 
         it("should throw error if default testProp for Date is not a valid date string", () => {
@@ -179,7 +179,7 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"default\" must be a valid date string.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a valid date string.");
         });        
       });
 
@@ -203,7 +203,7 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"min\" must be a number");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"min\" must be a number");
         });
 
         it("should throw an error if max is not a number", () => {
@@ -214,7 +214,7 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("et schema error for property testProp: value for property \"max\" must be a number.");
+          expect(() => vet(schema)).to.throw("et schema error for property testProp: value for constraint \"max\" must be a number.");
         });
 
         it("should throw an error if min > max", () => {
@@ -231,7 +231,7 @@ describe.only("vet", () => {
       });
 
       describe("type: String", () => {
-        it("should throw an error if toLowerCase is not a boolean.", () => {
+        it("should throw an error if toLowerCase is not a boolean", () => {
           const schema = {
             testProp: {
               type: String,
@@ -239,10 +239,10 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"toLowerCase\" must be either true or false");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"toLowerCase\" must be either true or false");
         });
 
-        it("should throw an error if toUpperCase is not a boolean.", () => {
+        it("should throw an error if toUpperCase is not a boolean", () => {
           const schema = {
             testProp: {
               type: String,
@@ -250,10 +250,10 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"toUpperCase\" must be either true or false");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"toUpperCase\" must be either true or false");
         });
 
-        it("should throw an error if both toLowerCase and toUpperCase are specified.", () => {
+        it("should throw an error if both toLowerCase and toUpperCase are specified", () => {
           const schema = {
             testProp: {
               type: String,
@@ -265,7 +265,7 @@ describe.only("vet", () => {
           expect(() => vet(schema)).to.throw("Vet schema error for property testProp: cannot have both toLowerCase and toUpperCase set to true.");
         });
 
-        it("should throw an error if trim is not a boolean.", () => {
+        it("should throw an error if trim is not a boolean", () => {
           const schema = {
             testProp: {
               type: String,
@@ -273,10 +273,10 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"trim\" must be either true or false");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"trim\" must be either true or false");
         });
 
-        it("should throw an error if minLength is not a number.", () => {
+        it("should throw an error if minLength is not a number", () => {
           const schema = {
             testProp: {
               type: String,
@@ -284,10 +284,10 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"minLength\" must be a number.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"minLength\" must be a number.");
         });
 
-        it("should throw an error if maxLength is not a number.", () => {
+        it("should throw an error if maxLength is not a number", () => {
           const schema = {
             testProp: {
               type: String,
@@ -295,10 +295,10 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"maxLength\" must be a number.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"maxLength\" must be a number.");
         });
 
-        it("should throw an error if minLength > maxLength.", () => {
+        it("should throw an error if minLength > maxLength", () => {
           const schema = {
             testProp: {
               type: String,
@@ -307,7 +307,40 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"minLength\" cannot be greater than \"maxLength\".");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"minLength\" cannot be greater than \"maxLength\".");
+        });
+
+        it("should throw an error if match property is not a regex (use number)", () => {
+          const schema = {
+            testProp: {
+              type: String,
+              match: 23
+            }
+          };
+
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: Value for constraint \"match\" must be a regular expression.");
+        });
+
+        it("should throw an error if match property is not a regex (use null)", () => {
+          const schema = {
+            testProp: {
+              type: String,
+              match: null
+            }
+          };
+
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: Value for constraint \"match\" must be a regular expression.");
+        });
+
+        it("should throw an error if match property is not a regex (use number)", () => {
+          const schema = {
+            testProp: {
+              type: String,
+              match: {}
+            }
+          };
+
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: Value for constraint \"match\" must be a regular expression.");
         });
       });
 
@@ -331,7 +364,7 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"values\" must be a number.");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"values\" must be a number.");
         });
       });
     });
@@ -1120,6 +1153,49 @@ describe.only("vet", () => {
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(0);
           expect(req.data.hasOwnProperty("test")).to.be.false;
+        });
+
+        it("should reject a string that does not match a regular expression", () => {
+          const schema = {
+            test: { 
+              type: String,
+              match: /^\d+$/
+            },
+          };
+
+          const body = {
+            test: "blarg",
+          };
+  
+          const req = buildState(schema, body);
+  
+          expect(req.errors.length).to.equal(1);
+          expect(req.errors[0]).to.equal("Value for property \"test\" is invalid.")
+
+          expect(req.data).to.be.ok;
+          expect(Object.keys(req.data).length).to.equal(0);
+          expect(req.data.hasOwnProperty("test")).to.be.false;
+        });
+
+        it("should accept a string that matches a regular expression", () => {
+          const schema = {
+            test: { 
+              type: String,
+              match: /^\d+$/
+            },
+          };
+
+          const body = {
+            test: "12345",
+          };
+  
+          const req = buildState(schema, body);
+  
+          expectZeroErrors(req.errors);
+  
+          expect(req.data).to.be.ok;
+          expect(Object.keys(req.data).length).to.equal(1);
+          expect(req.data.test).to.be.equal("12345");
         });
 
         it("should validate a string from an array of values", () => {

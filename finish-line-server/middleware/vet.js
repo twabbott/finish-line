@@ -5,9 +5,6 @@
       * n-dimensional arrays
       * Allow shorthand syntax of [{schema}], or [BasicType]
 
-    Strings:
-      * regex
-
     Dates:
       * Min and Max
 
@@ -18,6 +15,10 @@
 
 
 */
+
+const regularExpressions = {
+  email: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+}
 
 function internalError(key, msg) {
   throw new Error(`Vet internal error while processing key ${key}: ${msg}`);
@@ -238,6 +239,11 @@ function validateObjectProperties(obj, schema) {
           if (constraints.trim) {
             value = value.trim();
           }
+
+          if (constraints.match && !constraints.match.test(value)) {
+            errors.push(`Value for property "${key}" is invalid.`);
+            continue;
+          }
         }
         break;
 
@@ -253,7 +259,7 @@ function validateObjectProperties(obj, schema) {
         } else if (type === Array) {
           result = validateArray(key, value, constraints);
         } else {
-          schemaError(key, "unsupported value for property \"type\".");
+          schemaError(key, "unsupported value for constraint \"type\".");
         }
 
         if (result === undefined) {
@@ -308,12 +314,12 @@ function checkBasicType(type) {
 function checkTypeForValue(key, value, type, name) {
   const typeName = typeMap.get(type);
   if (typeof value !== typeName) {
-    schemaError(key, `value for property "${name}" must be a ${typeName}.`);
+    schemaError(key, `value for constraint "${name}" must be a ${typeName}.`);
   }
 
   if (type === Date) {
     if (typeof value !== "string" || typeof value === "string" && isNaN(Date.parse(value))) {
-      schemaError(key, `value for property "${name}" must be a valid date string.`);
+      schemaError(key, `value for constraint "${name}" must be a valid date string.`);
     }
   }
 }
@@ -412,7 +418,7 @@ function checkSchemaDefinition(schema, parentKey) {
       } else if(constraints.type === Array) {
         checkArray(key, constraints);
       } else {
-        schemaError(key, "constraints object has invalid/unsupported value for property \"type\".");
+        schemaError(key, "constraints object has invalid/unsupported value for constraint \"type\".");
       }
     }
 
@@ -438,11 +444,11 @@ function checkSchemaDefinition(schema, parentKey) {
       }
     } else if (constraints.type === String) {
       if (constraints.hasOwnProperty("toLowerCase") && typeof constraints.toLowerCase !== "boolean") {
-        schemaError(key, "value for property \"toLowerCase\" must be either true or false.");
+        schemaError(key, "value for constraint \"toLowerCase\" must be either true or false.");
       }
 
       if (constraints.hasOwnProperty("toUpperCase") && typeof constraints.toUpperCase !== "boolean") {
-        schemaError(key, "value for property \"toUpperCase\" must be either true or false.");
+        schemaError(key, "value for constraint \"toUpperCase\" must be either true or false.");
       }
 
       if (constraints.toLowerCase === true && constraints.toUpperCase === true) {
@@ -450,19 +456,23 @@ function checkSchemaDefinition(schema, parentKey) {
       }
 
       if (constraints.hasOwnProperty("trim") && typeof constraints.trim !== "boolean") {
-        schemaError(key, "value for property \"trim\" must be either true or false.");
+        schemaError(key, "value for constraint \"trim\" must be either true or false.");
       }
 
       if (constraints.hasOwnProperty("minLength") && typeof constraints.minLength !== "number") {
-        schemaError(key, "value for property \"minLength\" must be a number.");
+        schemaError(key, "value for constraint \"minLength\" must be a number.");
       }
 
       if (constraints.hasOwnProperty("maxLength") && typeof constraints.maxLength !== "number") {
-        schemaError(key, "value for property \"maxLength\" must be a number.");
+        schemaError(key, "value for constraint \"maxLength\" must be a number.");
       }
 
       if (constraints.hasOwnProperty("minLength") && constraints.hasOwnProperty("maxLength") && constraints.minLength > constraints.maxLength) {
-        schemaError(key, "value for property \"minLength\" cannot be greater than \"maxLength\".");
+        schemaError(key, "value for constraint \"minLength\" cannot be greater than \"maxLength\".");
+      }
+
+      if (constraints.hasOwnProperty("match") && !(constraints.match instanceof RegExp)) {
+        schemaError(key, "Value for constraint \"match\" must be a regular expression.")
       }
     }
 
