@@ -31,10 +31,11 @@ function successPayload(data, message) {
   };
 }
 
-function errorPayload(message) {
+function errorPayload(message, errors) {
   return {
     success: false,
-    message
+    message,
+    errors
   };
 }
 
@@ -126,15 +127,16 @@ function responses() {
     };
 
     // 4xx
-    res.errorResponse = function(status, message) {
+    res.errorResponse = function(status, message, errors) {
+      console.log("@@@ " + JSON.stringify(message) + " - " + JSON.stringify(errors))
       return res
         .status(status)
-        .json(errorPayload(message));
+        .json(errorPayload(message, errors));
     };
 
     // 400
-    res.badRequest = function(message) {
-      return res.errorResponse(400, message || messages.badRequest);
+    res.badRequest = function(message, errors) {
+      return res.errorResponse(400, message || messages.badRequest, errors);
     };
     
     // 401

@@ -1,30 +1,38 @@
-const responses = require("./responses");
+const jwt = require("jsonwebtoken");
+
+const vet = require("../middleware/vet");
 const users = require("../models/user.model");
 const passwords = require("../security/passwords");
 const config = require("../config");
-const jwt = require("jsonwebtoken");
 
-module.exports.signin = async function(req, res) {
+const validateSignin = vet({
+  email: {
+    type: String,
+    match: /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+    required: true,
+    maxLength: 50
+  },
+  password: {
+    type: String,
+    required: true,
+    maxLength: 50
+  }
+},
+{
+  autoRespond: true,
+  failMsg: "Invalid login info.",
+});
+
+async function signin (req, res) {
+  const { email, password } = req.data;
+
   try {
-    const body = req.body;
-    if (!body) {
-      return responses.badRequest(res, "You must provide a user.");
-    }
-
-    if (!body.email) {
-      return responses.badRequest(res, "Property \"email\" not specified.");
-    }
-
-    if (!body.password) {
-      return responses.badRequest(res, "Property \"password\" not specified.");
-    }
-  
-    const [user] = await users.userSchema.find({email: req.body.email});
+    const [user] = await users.userSchema.find({ email });
     if (!user) {
-      return responses.unauthorized(res);
+      return res.unauthorized(res);
     }
-    if (!await passwords.comparePasswords(user.hashedPassword, body.password)) {
-      return responses.unauthorized(res);
+    if (!await passwords.comparePasswords(user.hashedPassword, password)) {
+      return res.unauthorized(res);
     }
 
     // Ok, email/password checks out.  Make a token
@@ -46,8 +54,14 @@ module.exports.signin = async function(req, res) {
       tokenOptions
     );
 
-    return responses.ok(res, token, `User ${user.email} authenticated.`);
+    return res.ok(token, `User ${user.email} authenticated.`);
   } catch(err) {
-    return responses.internalServerError(res, err);
+    console.trace(err);
+    return res.internalServerError();
   }
 };
+
+module.exports = [
+  validateSignin,
+  signin
+]

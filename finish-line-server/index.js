@@ -5,11 +5,13 @@ const cors = require("cors");
 
 require("./db");
 const routes = require("./routes");
-const responses = require("./controllers/responses");
+const { responses } = require("./middleware/repartee");
 
 const app = express(express.json());
 
 app.set("port", config.port);
+
+app.use(responses());
 
 app.use(bodyParser.json());
 app.use ((error, req, res, next) => { // eslint-disable-line

@@ -145,6 +145,7 @@ function validateObjectProperties(obj, schema) {
   const errors = [];
 
   for (let key in schema) {
+//console.log("$$$ key=" + key)
     let type = schema[key];
     let constraints = null;
     if (typeof schema[key] === "object") {
@@ -290,9 +291,10 @@ function validateObjectProperties(obj, schema) {
       }
     }
 
+    //console.log("$$$ value=" + value)
     data[key] = value;
   }
-  
+  //console.log("$$$ final data: " + JSON.stringify(data));
   return { value: data, errors };
 }
 
@@ -496,21 +498,45 @@ function checkSchemaDefinition(schema, parentKey) {
   }
 }
 
-function vet(schema) {
-  checkSchemaDefinition(schema);
-
-  return function(req, res, next) {
+function vet(schema, options) {
+  function middleware(req, res, next) {
+    //console.log("$$$ vet middleware called")
     if (typeof req.body !== "object") {
       req.errors = ["Request payload must be a JSON object"];
     } else {
+      //console.log("$$$ " + JSON.stringify(req.body));
       const result = validateObjectProperties(req.body, schema);
-    
+      
       req.data = result.value;
       req.errors = result.errors;
+
+      //console.log("$$$ " + JSON.stringify(req.data));
+      //console.log("$$$ " + JSON.stringify(req.errors));
     }
 
     next();
   }
+
+  const failMsg = (options && options.message) || "Bad request";
+  function errorCheck(req, res, next) {
+    if (req.errors.length) {
+      res.badRequest(failMsg, req.errors);     
+    }
+
+    next();
+  }
+
+  checkSchemaDefinition(schema);
+
+  const stack = [
+    middleware
+  ];
+
+  if (options && options.autoRespond) {
+    stack.push(errorCheck);
+  }
+
+  return stack;
 }
 
 module.exports = vet;

@@ -5,7 +5,7 @@ const { expect } = require("chai");
 const { mockState } = require("../test-utils/express-shim");
 const vet = require("../../middleware/vet");
 
-describe.only("vet", () => {
+describe("vet", () => {
   function buildState(schema, body) {
     const mockReq = {
       body
