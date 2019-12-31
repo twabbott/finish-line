@@ -4,14 +4,6 @@
     Arrays:
       * n-dimensional arrays
       * Allow shorthand syntax of [{schema}], or [BasicType]
-
-    Dates:
-      * Min and Max
-
-    All:
-      * validate: a funciton that has its this-object bound to 
-        the current object, and receives the current value as its property
-      * message: a message to return if the current property is missing
 */
 
 function internalError(key, msg) {
@@ -50,15 +42,16 @@ function validatePrimitiveType(value, key, errors, expectedType) {
 function validateDateType(value, key, errors) {
   if (typeof value !== "string") {
     errors.push(`Property "${key}" must be a string containing a date.`);
-    return false;
+    return undefined;
   }
 
-  if (isNaN(Date.parse(value))) {
+  const date = Date.parse(value);
+  if (isNaN(date)) {
     errors.push(`Property "${key}" does not contain a valid date string.`);
-    return false;
+    return undefined;
   }
 
-  return true;
+  return date;
 }
 
 function ValidateSubDocument(key, value, constraints) {
@@ -242,8 +235,21 @@ function validateObjectProperties(obj, schema) {
         break;
 
       case Date:
-        if (!validateDateType(value, key, errors, constraints)) {
+        let date = validateDateType(value, key, errors, constraints);
+        if (!date) {
           continue;
+        }
+
+        if (constraints) {
+          if (date < constraints.minDate) {
+            errors.push(`Value for property "${key}" cannot have date earlier than \"${constraints.min}\".`);
+            continue;
+          }
+  
+          if (date > constraints.maxDate) {
+            errors.push(`Value for property "${key}" cannot have date later than \"${constraints.max}\".`);
+            continue;
+          }
         }
         break;
 
@@ -461,10 +467,12 @@ function checkSchemaDefinition(schema, parentKey) {
     } else if (constraints.type === Date) {
       if (constraints.hasOwnProperty("min")) {
         checkTypeForValue(key, constraints.min, constraints.type, "min");
+        constraints.minDate = Date.parse(constraints.min);
       }
 
       if (constraints.hasOwnProperty("max")) {
         checkTypeForValue(key, constraints.max, constraints.type, "max");
+        constraints.maxDate = Date.parse(constraints.max);
       }
 
       if (constraints.hasOwnProperty("min") && constraints.hasOwnProperty("max") && constraints.min > constraints.max) {

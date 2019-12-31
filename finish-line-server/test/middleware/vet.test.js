@@ -344,6 +344,42 @@ describe.only("vet", () => {
         });
       });
 
+      describe("type: Date", () => {
+        it("should throw an error if min is not a date string", () => {
+          const schema = {
+            testProp: {
+              type: Date,
+              min: "aga"
+            }
+          };
+
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"min\" must be a valid date string");
+        });
+
+        it("should throw an error if max is not a date string", () => {
+          const schema = {
+            testProp: {
+              type: Date,
+              max: "aerg"
+            }
+          };
+
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"max\" must be a valid date string.");
+        });
+
+        it("should throw an error if min > max", () => {
+          const schema = {
+            testProp: {
+              type: Date,
+              min: "2020-01-02T12:00:00",
+              max: "1975-01-01T12:00:00"
+            }
+          };
+
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: min constraint cannot be greater than max constraint.");
+        });
+      });
+
       describe("values array", () => {
         it("Should throw an error if values is not an array", () => {
           const schema = {
@@ -1313,6 +1349,74 @@ describe.only("vet", () => {
         expect(Object.keys(req.data).length).to.equal(0);
         expect(req.data.hasOwnProperty("startDate")).to.be.false;
         expect(req.data.hasOwnProperty("endDate")).to.be.false;
+      });
+
+      describe("With constraints", () => {
+        it("should give an error for a date occurring before the min constraint", () => {
+          const schema = {
+            test: { 
+              type: Date,
+              min: "1980-01-01T00:00:00"
+            }
+          };
+    
+          const body = {
+            test: "1977-01-01T12:00:00"
+          }
+    
+          const req = buildState(schema, body);
+    
+          expect(req.errors.length).to.equal(1);
+          expect(req.errors[0]).to.equal("Value for property \"test\" cannot have date earlier than \"1980-01-01T00:00:00\".")
+    
+          expect(req.data).to.be.ok;
+          expect(Object.keys(req.data).length).to.equal(0);
+          expect(req.data.hasOwnProperty("test")).to.be.false;
+        });
+
+        it("should give an error for a date occurring after max constraint", () => {
+          const schema = {
+            test: { 
+              type: Date,
+              max: "2100-01-01T00:00:00"
+            }
+          };
+    
+          const body = {
+            test: "2101-01-01T12:00:00"
+          }
+    
+          const req = buildState(schema, body);
+    
+          expect(req.errors.length).to.equal(1);
+          expect(req.errors[0]).to.equal("Value for property \"test\" cannot have date later than \"2100-01-01T00:00:00\".")
+    
+          expect(req.data).to.be.ok;
+          expect(Object.keys(req.data).length).to.equal(0);
+          expect(req.data.hasOwnProperty("test")).to.be.false;
+        });
+
+        it("should validate an date within the min and max values", () => {
+          const schema = {
+            test: { 
+              type: Date,
+              min: "1980-01-01T00:00:00",
+              max: "2100-01-01T00:00:00"
+            }
+          };
+    
+          const body = {
+            test: "2010-07-04T22:00:00"
+          }
+    
+          const req = buildState(schema, body);
+    
+          expectZeroErrors(req.errors);
+    
+          expect(req.data).to.be.ok;
+          expect(Object.keys(req.data).length).to.equal(1);
+          expect(req.data.test).to.be.equal("2010-07-04T22:00:00");
+        });
       });
     });
   
