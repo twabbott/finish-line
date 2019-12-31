@@ -367,6 +367,20 @@ describe.only("vet", () => {
           expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"values\" must be a number.");
         });
       });
+
+      describe("validation function", () => {
+        it("should fail validation if validate constraint is not a function", () => {
+          const schema = {
+            test: { 
+              type: Array,
+              ofType: Number,
+              validate: null
+            }
+          };
+
+          expect(() => vet(schema)).to.throw("Vet schema error for property test: value for constraint \"validate\" must be a function.");
+        });
+      });
     });
 
     describe("schema for sub-document", () => {
@@ -1793,6 +1807,126 @@ describe.only("vet", () => {
         expect(Object.keys(req.data).length).to.equal(1);
         expect(req.data.hasOwnProperty("primes")).to.be.true;
         expect(req.data.primes.length).to.equal(5);
+      });
+    });
+
+    describe("validation function", () => {
+      it("should call function to validate input", () => {
+        let called = false;
+        const schema = {
+          test: { 
+            type: Array,
+            ofType: Number,
+            validate: (data) => {
+              called = true;
+              data.forEach(d => {
+                if (d / 2 !== Math.trunc(d/2))
+                  throw new Error("All values must be even.");
+              });
+            }
+          }
+        };
+  
+        const body = {
+          test: [2, 4, 6, 8]
+        };
+  
+        const req = buildState(schema, body);
+
+        expectZeroErrors(req.errors);
+  
+        expect(called).to.be.true;
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(1);
+        expect(req.data.hasOwnProperty("test")).to.be.true;
+        expect(req.data.test.length).to.equal(4);
+      });
+
+      it("should catch an exception thrown by a validation fundtion and return it as an error", () => {
+        let called = false;
+        const schema = {
+          test: { 
+            type: Array,
+            ofType: Number,
+            validate: (data) => {
+              called = true;
+              data.forEach(d => {
+                if (d / 2 !== Math.trunc(d/2))
+                  throw new Error("All values must be even.");
+              });
+            }
+          }
+        };
+  
+        const body = {
+          test: [2, 4, 5, 8]
+        };
+  
+        const req = buildState(schema, body);
+
+        expect(req.errors.length).to.equal(1);
+        expect(req.errors[0]).to.equal("Property \"test\" has an invalid value. All values must be even.")
+
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(0);
+        expect(req.data.hasOwnProperty("test")).to.be.false;
+      });
+
+      it("Should allow validation function to return a mutated value", () => {
+        let called = false;
+        const schema = {
+          test: { 
+            type: String,
+            validate: (data) => {
+              called = true;
+              return data.toUpperCase();
+            }
+          }
+        };
+  
+        const body = {
+          test: "lowercase"
+        };
+  
+        const req = buildState(schema, body);
+
+        expectZeroErrors(req.errors);
+  
+        expect(called).to.be.true;
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(1);
+        expect(req.data.hasOwnProperty("test")).to.be.true;
+        expect(req.data.test).to.equal("LOWERCASE");
+      });
+
+      it("Should perform validation LAST, after all other validation", () => {
+        let called = false;
+        const schema = {
+          test: { 
+            type: String,
+            validate: (data) => {
+              called = true;
+              if (data !== data.toUpperCase()) {
+                throw new Error("value should be upper case.");
+              }
+            },
+            toUpperCase: true
+          }
+        };
+  
+        const body = {
+          test: "lowercase"
+        };
+  
+        const req = buildState(schema, body);
+
+        expectZeroErrors(req.errors);
+  
+        expect(called).to.be.true;
+        expect(req.data).to.be.ok;
+        expect(Object.keys(req.data).length).to.equal(1);
+        expect(req.data.hasOwnProperty("test")).to.be.true;
+        expect(req.data.test).to.equal("LOWERCASE");
       });
     });
 

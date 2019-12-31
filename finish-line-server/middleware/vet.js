@@ -12,13 +12,7 @@
       * validate: a funciton that has its this-object bound to 
         the current object, and receives the current value as its property
       * message: a message to return if the current property is missing
-
-
 */
-
-const regularExpressions = {
-  email: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-}
 
 function internalError(key, msg) {
   throw new Error(`Vet internal error while processing key ${key}: ${msg}`);
@@ -278,6 +272,18 @@ function validateObjectProperties(obj, schema) {
       continue;
     }
 
+    if (constraints && constraints.validate) {
+      try {
+        const newValue = constraints.validate(value);
+        if (newValue !== undefined) {
+          value = newValue;
+        }
+      } catch (err) {
+        errors.push(`Property "${key}" has an invalid value. ${err.message}`);
+        continue;
+      }
+    }
+
     data[key] = value;
   }
   
@@ -289,23 +295,6 @@ typeMap.set(Boolean, "boolean");
 typeMap.set(Number, "number");
 typeMap.set(String, "string");
 typeMap.set(Date, "string");
-
-function checkValidConstraints(type, constraints, ...knownProps) {
-  for (let key in constraints) {
-    let index = -1;
-
-    for (let i = 0; i < knownProps.length; i++) {
-      if (knownProps[i] === key) {
-        index = i;
-        break;
-      }
-    }
-
-    if (index < 0) {
-      schemaError(key, `constraint is invalid for type ${type}.`);
-    }
-  }
-}
 
 function checkBasicType(type) {
   return !!typeMap.get(type);
@@ -337,8 +326,6 @@ function checkObject(key, constraints) {
 }
 
 function checkArray(key, constraints) {
-  const validConstraints = ["type", "ofType", "required", "maxLength", "minLength"];
-
   if (!constraints.hasOwnProperty("ofType")) {
     schemaError(key, "when type is Array, property \"ofType\" is required.");
   }
@@ -373,12 +360,9 @@ function checkArray(key, constraints) {
         schemaError(key, "when type is Array and property \"ofType\" is Object, property \"schema\" is required.");
       }
   
-      validConstraints.push("schema");
       checkSchemaDefinition(constraints.schema, key);
     }
   }
-
-  checkValidConstraints("Array", constraints, ...validConstraints);
 }
 
 function checkSchemaDefinition(schema, parentKey) {
@@ -474,6 +458,18 @@ function checkSchemaDefinition(schema, parentKey) {
       if (constraints.hasOwnProperty("match") && !(constraints.match instanceof RegExp)) {
         schemaError(key, "Value for constraint \"match\" must be a regular expression.")
       }
+    } else if (constraints.type === Date) {
+      if (constraints.hasOwnProperty("min")) {
+        checkTypeForValue(key, constraints.min, constraints.type, "min");
+      }
+
+      if (constraints.hasOwnProperty("max")) {
+        checkTypeForValue(key, constraints.max, constraints.type, "max");
+      }
+
+      if (constraints.hasOwnProperty("min") && constraints.hasOwnProperty("max") && constraints.min > constraints.max) {
+        schemaError(key, "min constraint cannot be greater than max constraint.");
+      }
     }
 
     if (constraints.hasOwnProperty("values")) {
@@ -484,6 +480,10 @@ function checkSchemaDefinition(schema, parentKey) {
       for (let v of constraints.values) {
         checkTypeForValue(key, v, constraints.type, "values");
       }
+    }
+
+    if (constraints.hasOwnProperty("validate") && typeof constraints.validate !== "function") {
+      schemaError(key, "value for constraint \"validate\" must be a function.");
     }
   }
 }
