@@ -7,8 +7,6 @@
 
     Strings:
       * regex
-      * minLength
-      * maxLength
 
     Dates:
       * Min and Max
@@ -219,6 +217,16 @@ function validateObjectProperties(obj, schema) {
         };
 
         if (constraints) {
+          if (constraints.minLength >= 0 && value.length < constraints.minLength) {
+            errors.push(`Property "${key}" must be at least ${constraints.minLength} characters long.`);
+            continue;
+          }
+
+          if (constraints.maxLength >= 0 && value.length > constraints.maxLength) {
+            errors.push(`Property "${key}" must be no more than ${constraints.maxLength} characters long.`);
+            continue;
+          }
+
           if (constraints.toLowerCase) {
             value = value.toLowerCase();
           }
@@ -430,11 +438,11 @@ function checkSchemaDefinition(schema, parentKey) {
       }
     } else if (constraints.type === String) {
       if (constraints.hasOwnProperty("toLowerCase") && typeof constraints.toLowerCase !== "boolean") {
-        schemaError(key, "value must be either true or false.");
+        schemaError(key, "value for property \"toLowerCase\" must be either true or false.");
       }
 
       if (constraints.hasOwnProperty("toUpperCase") && typeof constraints.toUpperCase !== "boolean") {
-        schemaError(key, "value must be either true or false.");
+        schemaError(key, "value for property \"toUpperCase\" must be either true or false.");
       }
 
       if (constraints.toLowerCase === true && constraints.toUpperCase === true) {
@@ -442,7 +450,19 @@ function checkSchemaDefinition(schema, parentKey) {
       }
 
       if (constraints.hasOwnProperty("trim") && typeof constraints.trim !== "boolean") {
-        schemaError(key, "value must be either true or false.");
+        schemaError(key, "value for property \"trim\" must be either true or false.");
+      }
+
+      if (constraints.hasOwnProperty("minLength") && typeof constraints.minLength !== "number") {
+        schemaError(key, "value for property \"minLength\" must be a number.");
+      }
+
+      if (constraints.hasOwnProperty("maxLength") && typeof constraints.maxLength !== "number") {
+        schemaError(key, "value for property \"maxLength\" must be a number.");
+      }
+
+      if (constraints.hasOwnProperty("minLength") && constraints.hasOwnProperty("maxLength") && constraints.minLength > constraints.maxLength) {
+        schemaError(key, "value for property \"minLength\" cannot be greater than \"maxLength\".");
       }
     }
 

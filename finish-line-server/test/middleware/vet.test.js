@@ -239,7 +239,7 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value must be either true or false");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"toLowerCase\" must be either true or false");
         });
 
         it("should throw an error if toUpperCase is not a boolean.", () => {
@@ -250,7 +250,7 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value must be either true or false");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"toUpperCase\" must be either true or false");
         });
 
         it("should throw an error if both toLowerCase and toUpperCase are specified.", () => {
@@ -273,7 +273,41 @@ describe.only("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value must be either true or false");
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"trim\" must be either true or false");
+        });
+
+        it("should throw an error if minLength is not a number.", () => {
+          const schema = {
+            testProp: {
+              type: String,
+              minLength: "wurt?"
+            }
+          };
+
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"minLength\" must be a number.");
+        });
+
+        it("should throw an error if maxLength is not a number.", () => {
+          const schema = {
+            testProp: {
+              type: String,
+              maxLength: {}
+            }
+          };
+
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"maxLength\" must be a number.");
+        });
+
+        it("should throw an error if minLength > maxLength.", () => {
+          const schema = {
+            testProp: {
+              type: String,
+              minLength: 44,
+              maxLength: 43
+            }
+          };
+
+          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for property \"minLength\" cannot be greater than \"maxLength\".");
         });
       });
 
@@ -1042,6 +1076,50 @@ describe.only("vet", () => {
           expect(req.data.test1).to.be.equal("test");
           expect(req.data.test2).to.be.equal("\t test\r\n ");
           expect(req.data.test3).to.be.equal("\t test\r\n ");
+        });
+
+        it("should reject a string shorter than the minLength property", () => {
+          const schema = {
+            test: { 
+              type: String,
+              minLength: 10
+            },
+          };
+
+          const body = {
+            test: "Tom",
+          };
+  
+          const req = buildState(schema, body);
+  
+          expect(req.errors.length).to.equal(1);
+          expect(req.errors[0]).to.equal("Property \"test\" must be at least 10 characters long.")
+
+          expect(req.data).to.be.ok;
+          expect(Object.keys(req.data).length).to.equal(0);
+          expect(req.data.hasOwnProperty("test")).to.be.false;
+        });
+
+        it("should reject a string longer than the maxLength property", () => {
+          const schema = {
+            test: { 
+              type: String,
+              maxLength: 10
+            },
+          };
+
+          const body = {
+            test: "The quick brown fox jumps over the lazy dogs.",
+          };
+  
+          const req = buildState(schema, body);
+  
+          expect(req.errors.length).to.equal(1);
+          expect(req.errors[0]).to.equal("Property \"test\" must be no more than 10 characters long.")
+
+          expect(req.data).to.be.ok;
+          expect(Object.keys(req.data).length).to.equal(0);
+          expect(req.data.hasOwnProperty("test")).to.be.false;
         });
 
         it("should validate a string from an array of values", () => {
