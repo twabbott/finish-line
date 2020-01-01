@@ -113,9 +113,13 @@ function responses() {
 
     // 201
     res.created = function(data, id, message) {
-      var uri = `http://${req.headers["host"]}${req.url}/${id}`;
+      if (id) {
+        const uri = `${req.protocol}://${req.headers["host"]}${req.url}/${id}`;
+        res
+          .set("Location", uri)
+      }
+
       res
-        .set("Location", uri)
         .status(201)
         .json(successPayload(data, message || messages.created));
     };
@@ -128,7 +132,6 @@ function responses() {
 
     // 4xx
     res.errorResponse = function(status, message, errors) {
-      console.log("@@@ " + JSON.stringify(message) + " - " + JSON.stringify(errors))
       return res
         .status(status)
         .json(errorPayload(message, errors));

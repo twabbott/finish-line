@@ -29,7 +29,7 @@ router.use(express.static(path.join(__dirname, 'public')))
 
 // Generic not-found router
 router.use(function(req, res) {
-  responses.notFound(res, "Not found");
+  res.notFound();
 });  
 
 module.exports = router;

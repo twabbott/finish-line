@@ -5,7 +5,7 @@ const {
   makePut,
   makeDelete,
   autoMapper
-} = require("./controllerFactory");
+} = require("../middleware/restFactory");
 
 const projectsService = require("../services/project.service");
 

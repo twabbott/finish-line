@@ -19,7 +19,6 @@ const validateSignin = vet({
   }
 },
 {
-  autoRespond: true,
   failMsg: "Invalid login info.",
 });
 

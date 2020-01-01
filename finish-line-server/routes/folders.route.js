@@ -1,15 +1,15 @@
 var express = require('express')
 var router = express.Router()
 
-const { readAllFolders, readFolder, createFolder, updateFolder, deleteFolder } = require("../controllers/folders.ctrl");
+const { getAllFolders, getFolder, postFolder, putFolder, deleteFolder } = require("../controllers/folders.ctrl");
 
 // Get all folders:
 //   GET .../v1/folders
-router.get("/v1/folders", readAllFolders);
+router.get("/v1/folders", getAllFolders);
 
 // Get specific folder
 //   GET .../v1/folders/:id
-router.get("/v1/folders/:id", readFolder);
+router.get("/v1/folders/:id", getFolder);
 
 // Get contents for a folder
 //   GET .../v1/folders/:id/contents
@@ -18,12 +18,12 @@ router.get("/v1/folders/:id", readFolder);
 
 // Create a root folder:
 //   POST .../v1/folders
-router.post("/v1/folders", createFolder);
+router.post("/v1/folders", postFolder);
 
 // Modify (rename) a folder
 //   PUT .../v1/folders/:id
 //     * You can only change the folder's name.  No other props are recognized.
-router.put("/v1/folders/:id", updateFolder);
+router.put("/v1/folders/:id", putFolder);
 
 // Delete a folder 
 //   DELETE .../v1/folders/:id
