@@ -529,10 +529,13 @@ function vet(schema, options = {}) {
   ];
 
   if (autoRespond) {
-    stack.push(errorCheck);
+    return [
+      middleware,
+      errorCheck
+    ];
   }
 
-  return stack;
+  return middleware;
 }
 
 module.exports = vet;

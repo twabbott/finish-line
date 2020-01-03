@@ -46,6 +46,25 @@ function mockState(testReq, testRes, testNext) {
   ];
 }
 
+function arrayCrawl(state, midList, depth) {
+  if (depth > 5) {
+    throw new Error("executeMiddleware stack overflow detected.");
+  }
+
+  for (let m of midList) {
+    if (Array.isArray(m)) {
+      arrayCrawl(state, m, depth + 1);
+    } else {
+      m(...state);
+    }
+  }
+}
+
+function executeMiddleware(state, ...middleware) {
+  arrayCrawl(state, middleware, 1);
+}
+
 module.exports = {
-  mockState
+  mockState,
+  executeMiddleware
 };

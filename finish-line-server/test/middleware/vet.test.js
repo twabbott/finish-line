@@ -2,21 +2,36 @@
 const { expect } = require("chai");
 //const sinon = require("sinon");
 
-const { mockState } = require("../test-utils/express-shim");
+const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 const vet = require("../../middleware/vet");
+const repartee = require("../../middleware/repartee");
 
-describe("vet", () => {
+describe.only("vet", () => {
   function buildState(schema, body) {
     const mockReq = {
       body
     };
 
-    const [req, res, next] = mockState(mockReq);
+    const state = mockState(mockReq);
 
-    const middleware = vet(schema);
-    middleware(req, res, next);
+    const middleware = vet(schema, { autoRespond: false });
+    executeMiddleware(state, middleware);
 
-    return req;
+    return state[0];
+  }
+
+  function buildMountedMiddleware(schema, body, vetOptions) {
+    const mockReq = {
+      body
+    };
+
+    const reparteeMiddleware = repartee.responses();
+    const vetMiddleware = vet(schema, vetOptions);
+
+    const state = mockState(mockReq);
+    executeMiddleware(state, reparteeMiddleware, vetMiddleware);
+
+    return state;
   }
 
   function expectZeroErrors(errors) {
@@ -2084,5 +2099,99 @@ describe("vet", () => {
         expect(req.data.hasOwnProperty("isMale")).to.be.false;
       });
     });
+  });
+
+  describe("Vet options", () => {
+    it("should auto-respond with 400 if validation fails", () => {
+      const schema = {
+        isVeteran: Boolean,
+        isMale: Boolean
+      };
+
+      const body = {
+        isVeteran: "blarg",
+        isMale: 123
+      };
+
+      const [mockReq, mockRes] = buildMountedMiddleware(schema, body);
+    
+      expect(mockRes.finalResponse.status).to.equal(400);
+      expect(mockRes.finalResponse.body).to.not.be.undefined;
+      expect(mockRes.finalResponse.body.success).to.be.false;
+      expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.badRequest);
+      expect(mockRes.finalResponse.body.data).to.be.undefined;
+    });
+
+    it("should auto-respond with 400 options.autoRespond=true", () => {
+      const schema = {
+        isVeteran: Boolean,
+        isMale: Boolean
+      };
+
+      const body = {
+        isVeteran: "blarg",
+        isMale: 123
+      };
+
+      const options = {
+        autoRespond: true
+      };
+
+      const [mockReq, mockRes] = buildMountedMiddleware(schema, body, options);
+    
+      expect(mockRes.finalResponse.status).to.equal(400);
+      expect(mockRes.finalResponse.body).to.not.be.undefined;
+      expect(mockRes.finalResponse.body.success).to.be.false;
+      expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.badRequest);
+      expect(mockRes.finalResponse.body.data).to.be.undefined;
+    });
+
+    it("should set reason phrase if failMsg is set", () => {
+      const schema = {
+        isVeteran: Boolean,
+        isMale: Boolean
+      };
+
+      const body = {
+        isVeteran: "blarg",
+        isMale: 123
+      };
+
+      const options = {
+        failMsg: "There was a failure"
+      };
+
+      const [mockReq, mockRes] = buildMountedMiddleware(schema, body, options);
+    
+      expect(mockRes.finalResponse.status).to.equal(400);
+      expect(mockRes.finalResponse.body).to.not.be.undefined;
+      expect(mockRes.finalResponse.body.success).to.be.false;
+      expect(mockRes.finalResponse.body.message).to.be.equal("There was a failure");
+      expect(mockRes.finalResponse.body.data).to.be.undefined;
+    });
+
+    it("should not auto-respond if options.autoRespond=false", () => {
+      const schema = {
+        isVeteran: Boolean,
+        isMale: Boolean
+      };
+
+      const body = {
+        isVeteran: "blarg",
+        isMale: 123
+      };
+
+      const options = {
+        autoRespond: false
+      };
+
+      const [mockReq, mockRes] = buildMountedMiddleware(schema, body, options);
+    
+      expect(mockRes.finalResponse.status).to.be.undefined;
+      expect(mockRes.finalResponse.body).to.be.undefined;
+      expect(mockReq.errors.length).to.equal(2);
+      expect(mockReq.errors[0]).to.equal("Property \"isVeteran\" must be either true or false.")
+      expect(mockReq.errors[1]).to.equal("Property \"isMale\" must be either true or false.")
+  });
   });
 });
