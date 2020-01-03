@@ -117,5 +117,12 @@ module.exports = {
     deleteResponse,
     handleClientErrors,
     handleFatalError
-  ]
+  ],
+  middleware: {
+    generalResponse,
+    postResponse,
+    deleteResponse,
+    handleClientErrors,
+    handleFatalError
+  }
 };

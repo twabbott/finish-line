@@ -1,5 +1,6 @@
 function mockState(testReq, testRes, testNext) {
   const baseReq = {
+    protocol: "http",
     headers: {
       host: "blah.com",
     },
@@ -54,7 +55,7 @@ function arrayCrawl(state, midList, depth) {
   for (let m of midList) {
     if (Array.isArray(m)) {
       arrayCrawl(state, m, depth + 1);
-    } else {
+    } else if (typeof m === "function") {
       m(...state);
     }
   }

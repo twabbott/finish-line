@@ -6,7 +6,7 @@ const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 const vet = require("../../middleware/vet");
 const repartee = require("../../middleware/repartee");
 
-describe.only("vet", () => {
+describe("vet", () => {
   function buildState(schema, body) {
     const mockReq = {
       body
@@ -2192,6 +2192,6 @@ describe.only("vet", () => {
       expect(mockReq.errors.length).to.equal(2);
       expect(mockReq.errors[0]).to.equal("Property \"isVeteran\" must be either true or false.")
       expect(mockReq.errors[1]).to.equal("Property \"isMale\" must be either true or false.")
-  });
+    });
   });
 });
