@@ -13,8 +13,11 @@ function mockState(testReq, testRes, testNext) {
       message: undefined,
       body: undefined,
       headers: {},
-      isSent: false
+      isSent: false,
+      err: null
     },
+
+    locals: {},
 
     status(status) {
       this.finalResponse.status = status;
@@ -56,7 +59,25 @@ function arrayCrawl(state, midList, depth) {
     if (Array.isArray(m)) {
       arrayCrawl(state, m, depth + 1);
     } else if (typeof m === "function") {
-      m(...state);
+      const [req, res] = state;
+      if (res.finalResponse.isSent) {
+        continue;
+      } 
+      
+      if (res.finalResponse.err) {
+        if (m.length === 4) {
+          m(res.finalResponse.err, ...state);
+          res.finalResponse.err = null;
+        }
+
+        continue;
+      } 
+
+      try {
+        m(...state);
+      } catch (err) {
+        res.finalResponse.err = err;
+      }
     }
   }
 }

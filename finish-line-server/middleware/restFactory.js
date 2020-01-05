@@ -1,10 +1,29 @@
+
+
+/* Insert this middleware at the top of the pipeline, before you handle any of your API 
+ * requests.  This middle initializes the res.locals property by setting result to null
+ * and errors to an empty array.
+ */
+function init(req, res, next) {
+  res.locals.result = null;
+  res.locals.errors = [];
+}
+
+let handleError = (err) => {};
+
+function onError(err) {
+  handleError(err);
+}
+
 /* generalResponse()
  *   This middleware relies on the previous middleware in the chain performing the 
  *   following:
- *     - If the request yields results, it should set res.result
- *     - If the parameters for the request are invalid (400 bad request), set res.errors
+ *     - If the request yields results, it should set res.locals.result to 
+ *       something besides null.
+ *     - If the parameters for the request are invalid (400 bad request), set res.locals.errors
  *       to an array of one or more strings.
- *     - If the request is yields zero results (404 not found), set res.result to null
+ *     - If the request is yields zero results (404 not found), set res.locals.
+ *       result to null (or leave it unmodified, since its default value is null).
  *     - For any fatal errors, either throw an exception or call next(err), whichever you 
  *       like.
  * 
@@ -12,27 +31,21 @@
  *   and all params should be validated BEFORE this middleware is invoked. 
  */
 function generalResponse(req, res, next) {
-  if (res.result === null) {
+  if (res.locals.result === null) {
     res.notFound();
-    return;
+  } else {
+    res.ok(res.locals.result);
   }
-
-  if (res.result !== undefined) {
-    res.ok(res.result);
-    return;
-  } 
-
-  next();
 }
 
 /* postResponse()
  *   This middleware relies on the previous middleware in the chain performing the 
  *   following:
- *     - If the request yields results, it should set res.result
- *     - If the parameters for the request are invalid (400 bad request), set res.errors
+ *     - If the request yields results, it should set res.locals.result
+ *     - If the parameters for the request are invalid (400 bad request), set res.locals.errors
  *       to an array of one or more strings.
- *     - To auto-set a Location header, set res.locationId to any number or string.  If 
- *       you want to suppress generating the Location header, res.locationId as undefined.
+ *     - To auto-set a Location header, set res.locals.locationId to any number or string.  If 
+ *       you want to suppress generating the Location header, res.locals.locationId as undefined.
  *     - For any fatal errors, either throw an exception or call next(err), whichever you 
  *       like.
  * 
@@ -40,23 +53,20 @@ function generalResponse(req, res, next) {
  *   and all params should be validated BEFORE this middleware is invoked. 
  */
 function postResponse(req, res, next) {
-  if (res.result !== undefined && res.result !== null) {
-    if (typeof res.locationId !== "number" && typeof res.locationId !== "string") {
-      delete res.locationId;
-    }
-    res.created(res.result, res.locationId);
-    return;
+  if (typeof res.locals.locationId !== "number" && typeof res.locals.locationId !== "string") {
+    delete res.locals.locationId;
   }
 
-  next();
+  res.created(res.locals.result, res.locals.locationId);
 }
 
 /* deleteResponse()
  *   This middleware relies on the previous middleware in the chain performing the 
  *   following:
- *     - If the operation was successful, set res.result to the number of items deleted.
- *     - If no such item was found, set res.result to zero (404 not found).
- *     - If the parameters for the request are invalid (400 bad request), set res.errors
+ *     - If the operation was successful, set res.locals.result to the number of items deleted.
+ *     - If no such item was found, set res.locals.result to zero (404 not found), or leave it 
+ *       set to null (its default value).
+ *     - If the parameters for the request are invalid (400 bad request), set res.locals.errors
  *       to an array of one or more strings.
  *     - For any fatal errors, either throw an exception or call next(err), whichever you 
  *       like.
@@ -65,59 +75,57 @@ function postResponse(req, res, next) {
  *   and all params should be validated BEFORE this middleware is invoked. 
  */
 function deleteResponse(req, res, next) {
-  if (typeof res.result === "number") {
-    if (res.result === 0) {
-      res.notFound("Item not found.");
-      return;
-    } 
-    
-    if (res.result > 0)  {
-      res.ok(undefined, `Deleted ${res.result} item${res.result !== 1? "s": ""}.`);
-      return;
-    }
-  }
-
-  next();
-}
-
-function handleClientErrors(req, res, next) {
-  if (res.errors) {
-    if (!Array.isArray(res.errors)) {
-      res.errors = [ res.errors ];
-    }
+  if (typeof res.locals.result === "number" && res.locals.result > 0) {
+    res.ok(undefined, `Deleted ${res.locals.result} item${res.locals.result !== 1? "s": ""}.`);
   } else {
-    res.errors = ["Unable to process request from parameters provided."];
+    res.notFound();
   }
-
-  res.badRequest("Error in request", errors);
 }
 
+/* This middleware gets called first.  Its purpose is to look for errors.  If there are
+ * no errors, it will call next().
+ */
+function handleClientErrors(req, res, next) {
+  if (res.locals.errors && Array.isArray(res.locals.errors) && res.locals.errors.length > 0) {
+    res.badRequest(undefined, res.locals.errors);
+  }
+}
+
+/* This middleware gets called last.  Its purpose is to catch exceptions, and to return a 500.
+ */
 function handleFatalError(err, req, res, next) {
-  console.trace(err);
+  if (onError) {
+    onError(err);
+  }
+  
   res.internalServerError();
 }
 
+
+
 module.exports = {
+  init,
   get: [
-    generalResponse,
     handleClientErrors,
+    generalResponse,
     handleFatalError
   ],
   post: [
-    postResponse,
     handleClientErrors,
+    postResponse,
     handleFatalError
   ],
   put: [
-    generalResponse,
     handleClientErrors,
+    generalResponse,
     handleFatalError
   ],
   delete: [
-    deleteResponse,
     handleClientErrors,
+    deleteResponse,
     handleFatalError
   ],
+  onError,
   middleware: {
     generalResponse,
     postResponse,
