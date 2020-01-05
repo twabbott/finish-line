@@ -32,7 +32,7 @@ describe("auth", () => {
       headers: {
         authorization: "Bearer 12345"
       }
-    }
+    };
 
     const [req, res, next] = buildState(mockReq);
 
@@ -46,7 +46,7 @@ describe("auth", () => {
     const mockReq = {
       headers: {
       }
-    }
+    };
 
     const [req, res, next] = buildState(mockReq);
 
@@ -63,7 +63,7 @@ describe("auth", () => {
       headers: {
         authorization: "xxx 12345"
       }
-    }
+    };
 
     const [req, res, next] = buildState(mockReq);
 
@@ -80,7 +80,7 @@ describe("auth", () => {
       headers: {
         authorization: "Bearer 12345"
       }
-    }
+    };
 
     jwt.verify.restore(); // Get rid of old stub.
     sinon.stub(jwt, "verify").throws("Nope!");

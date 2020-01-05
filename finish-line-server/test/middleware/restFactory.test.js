@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // Test framework libraries
 const { expect } = require("chai");
 //const sinon = require("sinon");
@@ -6,7 +7,7 @@ const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 const restFactory = require("../../middleware/restFactory");
 const repartee = require("../../middleware/repartee");
 
-describe.only("restFactory", () => {
+describe("restFactory", () => {
   const service = {
     makeSuccessResult: (req, res, next) => {
       res.locals.result = { testProp: "success" };
@@ -40,7 +41,7 @@ describe.only("restFactory", () => {
     makeFatalResult: (req, res, next) => {
       throw new Error("Blarg!");
     },
-  }
+  };
 
   function buildMountedMiddleware(...middleware) {
     const mockReq = {
@@ -48,7 +49,7 @@ describe.only("restFactory", () => {
         host: "my-test.com",
       },
       url: "/foo",
-    }
+    };
 
     const reparteeMiddleware = repartee.responses();
 

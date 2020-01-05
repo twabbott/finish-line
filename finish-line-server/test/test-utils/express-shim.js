@@ -59,6 +59,7 @@ function arrayCrawl(state, midList, depth) {
     if (Array.isArray(m)) {
       arrayCrawl(state, m, depth + 1);
     } else if (typeof m === "function") {
+      // eslint-disable-next-line no-unused-vars
       const [req, res] = state;
       if (res.finalResponse.isSent) {
         continue;

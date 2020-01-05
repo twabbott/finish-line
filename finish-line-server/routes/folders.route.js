@@ -1,5 +1,5 @@
-var express = require('express')
-var router = express.Router()
+const express = require("express");
+const router = express.Router();
 
 const { getAllFolders, getFolder, postFolder, putFolder, deleteFolder } = require("../controllers/folders.ctrl");
 
@@ -32,4 +32,4 @@ router.put("/v1/folders/:id", putFolder);
 //     * This should manage de-coupling from the parent.
 router.delete("/v1/folders/:id", deleteFolder);
 
-module.exports = router
+module.exports = router;

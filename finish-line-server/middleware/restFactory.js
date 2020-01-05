@@ -4,12 +4,12 @@
  * requests.  This middle initializes the res.locals property by setting result to null
  * and errors to an empty array.
  */
-function init(req, res, next) {
+function init(req, res, next) { // eslint-disable-line
   res.locals.result = null;
   res.locals.errors = [];
 }
 
-let handleError = (err) => {};
+let handleError = (err) => {};  // eslint-disable-line
 
 function onError(err) {
   handleError(err);
@@ -30,7 +30,7 @@ function onError(err) {
  *   This middleware relies on validation happening earlier in the pipeline.  The body
  *   and all params should be validated BEFORE this middleware is invoked. 
  */
-function generalResponse(req, res, next) {
+function generalResponse(req, res, next) { // eslint-disable-line
   if (res.locals.result === null) {
     res.notFound();
   } else {
@@ -52,7 +52,7 @@ function generalResponse(req, res, next) {
  *   This middleware relies on validation happening earlier in the pipeline.  The body
  *   and all params should be validated BEFORE this middleware is invoked. 
  */
-function postResponse(req, res, next) {
+function postResponse(req, res, next) { // eslint-disable-line
   if (typeof res.locals.locationId !== "number" && typeof res.locals.locationId !== "string") {
     delete res.locals.locationId;
   }
@@ -74,7 +74,7 @@ function postResponse(req, res, next) {
  *   This middleware relies on validation happening earlier in the pipeline.  The body
  *   and all params should be validated BEFORE this middleware is invoked. 
  */
-function deleteResponse(req, res, next) {
+function deleteResponse(req, res, next) { // eslint-disable-line
   if (typeof res.locals.result === "number" && res.locals.result > 0) {
     res.ok(undefined, `Deleted ${res.locals.result} item${res.locals.result !== 1? "s": ""}.`);
   } else {
@@ -85,7 +85,7 @@ function deleteResponse(req, res, next) {
 /* This middleware gets called first.  Its purpose is to look for errors.  If there are
  * no errors, it will call next().
  */
-function handleClientErrors(req, res, next) {
+function handleClientErrors(req, res, next) { // eslint-disable-line
   if (res.locals.errors && Array.isArray(res.locals.errors) && res.locals.errors.length > 0) {
     res.badRequest(undefined, res.locals.errors);
   }
@@ -93,15 +93,13 @@ function handleClientErrors(req, res, next) {
 
 /* This middleware gets called last.  Its purpose is to catch exceptions, and to return a 500.
  */
-function handleFatalError(err, req, res, next) {
+function handleFatalError(err, req, res, next) { // eslint-disable-line
   if (onError) {
     onError(err);
   }
   
   res.internalServerError();
 }
-
-
 
 module.exports = {
   init,

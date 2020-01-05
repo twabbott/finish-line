@@ -8,7 +8,7 @@ const config = require("../config");
 const validateSignin = vet({
   email: {
     type: String,
-    match: /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+    match: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
     required: true,
     maxLength: 50
   },
@@ -58,9 +58,9 @@ async function signin (req, res) {
     console.trace(err);
     return res.internalServerError();
   }
-};
+}
 
 module.exports = [
   validateSignin,
   signin
-]
+];

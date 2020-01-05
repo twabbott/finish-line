@@ -55,7 +55,7 @@ describe("repartee", () => {
         expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.ok);
         expect(mockRes.finalResponse.body.data).to.deep.equal(testData);
       });
-    })
+    });
 
     //////////////////////////////////////////////////////////////////////////////
     describe("201 created()", () => {
@@ -65,7 +65,7 @@ describe("repartee", () => {
             host: "my-test.com",
           },
           url: "/foo",
-        }
+        };
         const mockRes = buildResponse(mockReq);
     
         mockRes.created(testData, 1234);
@@ -84,7 +84,7 @@ describe("repartee", () => {
             host: "my-test.com",
           },
           url: "/foo",
-        }
+        };
         const mockRes = buildResponse(mockReq);
         const testMsg = "Hello world";
 
@@ -166,10 +166,6 @@ describe("repartee", () => {
     
       it("should return 401 response with WWW-Authenticate challenge", () => {
         const mockRes = buildResponse();
-    
-        const mockChallenge = {
-          scheme: "Basic",
-        }
         mockRes.unauthorized(null, testMessage);
     
         expect(mockRes.finalResponse.status).to.equal(401);

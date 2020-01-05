@@ -12,7 +12,7 @@ function validateMap(map) {
   }
 
   for (let i = 0; i < map.length; i++) {
-    item = map[i];
+    const item = map[i];
 
     if (typeof item === "string") {
       continue;
@@ -53,7 +53,7 @@ function createMap(map) {
     res.result = outObj;
 
     next();
-  }
+  };
 }
 
 module.exports = {

@@ -6,7 +6,7 @@
   "scripts": {
     "test": "mocha test/**/*.test.js --timeout 60000 --exit",
     "test-watch": "nodemon --exec \"npm test\"",
-    "lint": "eslint **/*.js",
+    "lint": "eslint --fix **/*.js",
     "start": "nodemon index.js --exec \"npm run lint && node\""
   },
   "keywords": [],

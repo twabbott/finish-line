@@ -45,8 +45,8 @@ function wwwAuthenticateChallenge(challengeOptions) {
       throw new Error("challengeOptions parameter missing \"scheme\" property.");
     }
 
-    const scheme = challengeOptions.scheme.charAt(0).toUpperCase() + challengeOptions.scheme.slice(1)
-    const params = []
+    const scheme = challengeOptions.scheme.charAt(0).toUpperCase() + challengeOptions.scheme.slice(1);
+    const params = [];
     for (let prop in challengeOptions) {
       if (prop==="scheme") {
         continue;
@@ -54,17 +54,17 @@ function wwwAuthenticateChallenge(challengeOptions) {
 
       const value = challengeOptions[prop];
       switch (typeof value) {
-        case "string":
-            params.push(`${prop}="${value}"`);  
-          break;
+      case "string":
+        params.push(`${prop}="${value}"`);  
+        break;
 
-        case "number":
-        case "boolean":
-            params.push(`${prop}=${value}`);  
-          break;
+      case "number":
+      case "boolean":
+        params.push(`${prop}=${value}`);  
+        break;
 
-        default:
-          throw new Error(`Error processing field "${prop}" in challengeOptions.  Value must be string, number, or boolean.`);
+      default:
+        throw new Error(`Error processing field "${prop}" in challengeOptions.  Value must be string, number, or boolean.`);
       }
     }
 
@@ -98,7 +98,7 @@ const messages = {
 
   // 5xx
   internalServerError: "Internal server error"
-}
+};
 
 // Make this a funciton that returns a middleware.  This allows you to 
 // someday add config params
@@ -116,7 +116,7 @@ function responses() {
       if (id) {
         const uri = `${req.protocol}://${req.headers["host"]}${req.url}/${id}`;
         res
-          .set("Location", uri)
+          .set("Location", uri);
       }
 
       res
@@ -177,7 +177,7 @@ function responses() {
     };
 
     next();
-  }
+  };
 }
 
 module.exports = {

@@ -35,7 +35,7 @@ describe("vet", () => {
   }
 
   function expectZeroErrors(errors) {
-    for (err of errors) {
+    for (let err of errors) {
       console.log("Spurious error: " + err);
     }
 
@@ -53,7 +53,7 @@ describe("vet", () => {
         };
   
         expect(() => vet(schema)).to.not.throw();
-      })
+      });
   
       it("constraints object should allow all supported types", () => {
         const schema = {
@@ -64,7 +64,7 @@ describe("vet", () => {
         };
   
         expect(() => vet(schema)).to.not.throw();
-      })
+      });
   
       it("should throw error for undefined type", () => {
         const schema = {
@@ -88,7 +88,7 @@ describe("vet", () => {
         };
   
         expect(() => vet(schema)).to.throw("Vet schema error for property testProp: expected primitive type, or Date, or constraints object.");
-      })
+      });
     });
 
     describe("constraints object", () => {
@@ -619,7 +619,7 @@ describe("vet", () => {
         const body = {
           isVeteran: true,
           isMale: false
-        }
+        };
   
         const req = buildState(schema, body);
   
@@ -640,13 +640,13 @@ describe("vet", () => {
         const body = {
           isVeteran: 123,
           isMale: "Hello, world!"
-        }
+        };
   
         const req = buildState(schema, body);
   
         expect(req.errors.length).to.equal(2);
-        expect(req.errors[0]).to.equal("Property \"isVeteran\" must be either true or false.")
-        expect(req.errors[1]).to.equal("Property \"isMale\" must be either true or false.")
+        expect(req.errors[0]).to.equal("Property \"isVeteran\" must be either true or false.");
+        expect(req.errors[1]).to.equal("Property \"isMale\" must be either true or false.");
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
@@ -668,7 +668,7 @@ describe("vet", () => {
           const body = {
             isVeteran: true,
             isMale: false
-          }
+          };
     
           const req = buildState(schema, body);
     
@@ -693,7 +693,7 @@ describe("vet", () => {
           };
     
           const body = {
-          }
+          };
     
           const req = buildState(schema, body);
     
@@ -718,13 +718,13 @@ describe("vet", () => {
           };
     
           const body = {
-          }
+          };
     
           const req = buildState(schema, body);
     
           expect(req.errors.length).to.equal(2);
-          expect(req.errors[0]).to.equal("Property \"isVeteran\" is required.")
-          expect(req.errors[1]).to.equal("Property \"isMale\" is required.")
+          expect(req.errors[0]).to.equal("Property \"isVeteran\" is required.");
+          expect(req.errors[1]).to.equal("Property \"isMale\" is required.");
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(0);
@@ -744,7 +744,7 @@ describe("vet", () => {
         const body = {
           age: 25,
           weight: 123.45
-        }
+        };
   
         const req = buildState(schema, body);
   
@@ -765,13 +765,13 @@ describe("vet", () => {
         const body = {
           age: true,
           weight: "Hello, world!"
-        }
+        };
   
         const req = buildState(schema, body);
   
         expect(req.errors.length).to.equal(2);
-        expect(req.errors[0]).to.equal("Property \"age\" must be a number.")
-        expect(req.errors[1]).to.equal("Property \"weight\" must be a number.")
+        expect(req.errors[0]).to.equal("Property \"age\" must be a number.");
+        expect(req.errors[1]).to.equal("Property \"weight\" must be a number.");
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
@@ -793,7 +793,7 @@ describe("vet", () => {
           const body = {
             age: 25,
             weight: 123.45
-          }
+          };
     
           const req = buildState(schema, body);
     
@@ -818,7 +818,7 @@ describe("vet", () => {
           };
     
           const body = {
-          }
+          };
     
           const req = buildState(schema, body);
     
@@ -843,13 +843,13 @@ describe("vet", () => {
           };
     
           const body = {
-          }
+          };
     
           const req = buildState(schema, body);
     
           expect(req.errors.length).to.equal(2);
-          expect(req.errors[0]).to.equal("Property \"age\" is required.")
-          expect(req.errors[1]).to.equal("Property \"weight\" is required.")
+          expect(req.errors[0]).to.equal("Property \"age\" is required.");
+          expect(req.errors[1]).to.equal("Property \"weight\" is required.");
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(0);
@@ -904,13 +904,13 @@ describe("vet", () => {
           const body = {
             age: 14,
             weight: 100
-          }
+          };
     
           const req = buildState(schema, body);
     
           expect(req.errors.length).to.equal(2);
-          expect(req.errors[0]).to.equal("Property \"age\" is below the minimum value of 18.")
-          expect(req.errors[1]).to.equal("Property \"weight\" is below the minimum value of 160.")
+          expect(req.errors[0]).to.equal("Property \"age\" is below the minimum value of 18.");
+          expect(req.errors[1]).to.equal("Property \"weight\" is below the minimum value of 160.");
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(0);
@@ -933,13 +933,13 @@ describe("vet", () => {
           const body = {
             age: 25,
             weight: 300
-          }
+          };
     
           const req = buildState(schema, body);
     
           expect(req.errors.length).to.equal(2);
-          expect(req.errors[0]).to.equal("Property \"age\" is above the maximum value of 18.")
-          expect(req.errors[1]).to.equal("Property \"weight\" is above the maximum value of 290.")
+          expect(req.errors[0]).to.equal("Property \"age\" is above the maximum value of 18.");
+          expect(req.errors[1]).to.equal("Property \"weight\" is above the maximum value of 290.");
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(0);
@@ -964,7 +964,7 @@ describe("vet", () => {
           const body = {
             age: 25,
             weight: 123.45
-          }
+          };
     
           const req = buildState(schema, body);
     
@@ -991,13 +991,13 @@ describe("vet", () => {
           const body = {
             age: 25,
             weight: 300
-          }
+          };
     
           const req = buildState(schema, body);
     
           expect(req.errors.length).to.equal(2);
-          expect(req.errors[0]).to.equal("Property \"age\" has an invalid value of 25.")
-          expect(req.errors[1]).to.equal("Property \"weight\" has an invalid value of 300.")
+          expect(req.errors[0]).to.equal("Property \"age\" has an invalid value of 25.");
+          expect(req.errors[1]).to.equal("Property \"weight\" has an invalid value of 300.");
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(0);
@@ -1020,7 +1020,7 @@ describe("vet", () => {
           const body = {
             prime: 7,
             flag: 128
-          }
+          };
     
           const req = buildState(schema, body);
     
@@ -1070,8 +1070,8 @@ describe("vet", () => {
         const req = buildState(schema, body);
   
         expect(req.errors.length).to.equal(2);
-        expect(req.errors[0]).to.equal("Property \"firstName\" must be a string.")
-        expect(req.errors[1]).to.equal("Property \"lastName\" must be a string.")
+        expect(req.errors[0]).to.equal("Property \"firstName\" must be a string.");
+        expect(req.errors[1]).to.equal("Property \"lastName\" must be a string.");
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
@@ -1191,7 +1191,7 @@ describe("vet", () => {
           const req = buildState(schema, body);
   
           expect(req.errors.length).to.equal(1);
-          expect(req.errors[0]).to.equal("Property \"test\" must be at least 10 characters long.")
+          expect(req.errors[0]).to.equal("Property \"test\" must be at least 10 characters long.");
 
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(0);
@@ -1213,7 +1213,7 @@ describe("vet", () => {
           const req = buildState(schema, body);
   
           expect(req.errors.length).to.equal(1);
-          expect(req.errors[0]).to.equal("Property \"test\" must be no more than 10 characters long.")
+          expect(req.errors[0]).to.equal("Property \"test\" must be no more than 10 characters long.");
 
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(0);
@@ -1235,7 +1235,7 @@ describe("vet", () => {
           const req = buildState(schema, body);
   
           expect(req.errors.length).to.equal(1);
-          expect(req.errors[0]).to.equal("Value for property \"test\" is invalid.")
+          expect(req.errors[0]).to.equal("Value for property \"test\" is invalid.");
 
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(0);
@@ -1310,8 +1310,8 @@ describe("vet", () => {
           const req = buildState(schema, body);
     
           expect(req.errors.length).to.equal(2);
-          expect(req.errors[0]).to.equal("Property \"weekend\" has an invalid value of Monday.")
-          expect(req.errors[1]).to.equal("Property \"color\" has an invalid value of Black.")
+          expect(req.errors[0]).to.equal("Property \"weekend\" has an invalid value of Monday.");
+          expect(req.errors[1]).to.equal("Property \"color\" has an invalid value of Black.");
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(0);
@@ -1357,8 +1357,8 @@ describe("vet", () => {
         const req = buildState(schema, body);
 
         expect(req.errors.length).to.equal(2);
-        expect(req.errors[0]).to.equal("Property \"startDate\" must be a string containing a date.")
-        expect(req.errors[1]).to.equal("Property \"endDate\" does not contain a valid date string.")
+        expect(req.errors[0]).to.equal("Property \"startDate\" must be a string containing a date.");
+        expect(req.errors[1]).to.equal("Property \"endDate\" does not contain a valid date string.");
   
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
@@ -1377,12 +1377,12 @@ describe("vet", () => {
     
           const body = {
             test: "1977-01-01T12:00:00"
-          }
+          };
     
           const req = buildState(schema, body);
     
           expect(req.errors.length).to.equal(1);
-          expect(req.errors[0]).to.equal("Value for property \"test\" cannot have date earlier than \"1980-01-01T00:00:00\".")
+          expect(req.errors[0]).to.equal("Value for property \"test\" cannot have date earlier than \"1980-01-01T00:00:00\".");
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(0);
@@ -1399,12 +1399,12 @@ describe("vet", () => {
     
           const body = {
             test: "2101-01-01T12:00:00"
-          }
+          };
     
           const req = buildState(schema, body);
     
           expect(req.errors.length).to.equal(1);
-          expect(req.errors[0]).to.equal("Value for property \"test\" cannot have date later than \"2100-01-01T00:00:00\".")
+          expect(req.errors[0]).to.equal("Value for property \"test\" cannot have date later than \"2100-01-01T00:00:00\".");
     
           expect(req.data).to.be.ok;
           expect(Object.keys(req.data).length).to.equal(0);
@@ -1422,7 +1422,7 @@ describe("vet", () => {
     
           const body = {
             test: "2010-07-04T22:00:00"
-          }
+          };
     
           const req = buildState(schema, body);
     
@@ -1565,7 +1565,7 @@ describe("vet", () => {
         const req = buildState(schema, body);
 
         expect(req.errors.length).to.equal(1);
-        expect(req.errors[0]).to.equal("Property \"profile\" is required.")
+        expect(req.errors[0]).to.equal("Property \"profile\" is required.");
 
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
@@ -1592,7 +1592,7 @@ describe("vet", () => {
         const req = buildState(schema, body);
 
         expect(req.errors.length).to.equal(1);
-        expect(req.errors[0]).to.equal("Property \"profile\" is required and may not be null.")
+        expect(req.errors[0]).to.equal("Property \"profile\" is required and may not be null.");
 
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
@@ -1618,7 +1618,7 @@ describe("vet", () => {
         const req = buildState(schema, body);
 
         expect(req.errors.length).to.equal(1);
-        expect(req.errors[0]).to.equal("Property \"profile\" must contain a nested object.")
+        expect(req.errors[0]).to.equal("Property \"profile\" must contain a nested object.");
 
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
@@ -1677,7 +1677,6 @@ describe("vet", () => {
       });
 
       it("should ignore missing array if property is not required", () => {
-        const fibs = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89];
         const schema = {
           fibonacci: { 
             type: Array,
@@ -1734,7 +1733,7 @@ describe("vet", () => {
         const req = buildState(schema, body);
 
         expect(req.errors.length).to.equal(1);
-        expect(req.errors[0]).to.equal("Property \"fibonacci\" is required and may not be null.")
+        expect(req.errors[0]).to.equal("Property \"fibonacci\" is required and may not be null.");
 
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
@@ -1874,7 +1873,7 @@ describe("vet", () => {
         const req = buildState(schema, body);
 
         expect(req.errors.length).to.equal(1);
-        expect(req.errors[0]).to.equal("Property \"primes\" cannot have more than 3 elments in its array.")
+        expect(req.errors[0]).to.equal("Property \"primes\" cannot have more than 3 elments in its array.");
 
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
@@ -1897,7 +1896,7 @@ describe("vet", () => {
         const req = buildState(schema, body);
 
         expect(req.errors.length).to.equal(1);
-        expect(req.errors[0]).to.equal("Property \"primes\" must have at least 10 elments in its array.")
+        expect(req.errors[0]).to.equal("Property \"primes\" must have at least 10 elments in its array.");
 
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
@@ -1984,8 +1983,8 @@ describe("vet", () => {
         const req = buildState(schema, body);
 
         expect(req.errors.length).to.equal(1);
-        expect(req.errors[0]).to.equal("Property \"test\" has an invalid value. All values must be even.")
-
+        expect(req.errors[0]).to.equal("Property \"test\" has an invalid value. All values must be even.");
+        expect(called).to.be.true;
         expect(req.data).to.be.ok;
         expect(Object.keys(req.data).length).to.equal(0);
         expect(req.data.hasOwnProperty("test")).to.be.false;
@@ -2062,7 +2061,7 @@ describe("vet", () => {
           age: 25,
           isMale: false,
           birthDate: "1997-01-01T01-01-01"
-        }
+        };
   
         const req = buildState(schema, body);
   
@@ -2087,7 +2086,7 @@ describe("vet", () => {
           name: "Tom",
           age: 25,
           birthDate: "2019-12-25T05:35:18"
-        }
+        };
   
         const req = buildState(schema, body);
   
@@ -2113,7 +2112,7 @@ describe("vet", () => {
         isMale: 123
       };
 
-      const [mockReq, mockRes] = buildMountedMiddleware(schema, body);
+      const [mockReq, mockRes] = buildMountedMiddleware(schema, body); // eslint-disable-line
     
       expect(mockRes.finalResponse.status).to.equal(400);
       expect(mockRes.finalResponse.body).to.not.be.undefined;
@@ -2137,7 +2136,7 @@ describe("vet", () => {
         autoRespond: true
       };
 
-      const [mockReq, mockRes] = buildMountedMiddleware(schema, body, options);
+      const [mockReq, mockRes] = buildMountedMiddleware(schema, body, options); // eslint-disable-line
     
       expect(mockRes.finalResponse.status).to.equal(400);
       expect(mockRes.finalResponse.body).to.not.be.undefined;
@@ -2161,7 +2160,7 @@ describe("vet", () => {
         failMsg: "There was a failure"
       };
 
-      const [mockReq, mockRes] = buildMountedMiddleware(schema, body, options);
+      const [mockReq, mockRes] = buildMountedMiddleware(schema, body, options); // eslint-disable-line
     
       expect(mockRes.finalResponse.status).to.equal(400);
       expect(mockRes.finalResponse.body).to.not.be.undefined;
@@ -2190,8 +2189,8 @@ describe("vet", () => {
       expect(mockRes.finalResponse.status).to.be.undefined;
       expect(mockRes.finalResponse.body).to.be.undefined;
       expect(mockReq.errors.length).to.equal(2);
-      expect(mockReq.errors[0]).to.equal("Property \"isVeteran\" must be either true or false.")
-      expect(mockReq.errors[1]).to.equal("Property \"isMale\" must be either true or false.")
+      expect(mockReq.errors[0]).to.equal("Property \"isVeteran\" must be either true or false.");
+      expect(mockReq.errors[1]).to.equal("Property \"isMale\" must be either true or false.");
     });
   });
 });

@@ -16,7 +16,7 @@ module.exports.ok = function(res, data, message) {
 };
 
 module.exports.created = function(req, res, data, message) {
-  var uri = `http://${req.headers["host"]}${req.url}/${data._id}`;
+  const uri = `http://${req.headers["host"]}${req.url}/${data._id}`;
   res.set("Location", uri);
 
   return res

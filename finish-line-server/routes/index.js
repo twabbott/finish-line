@@ -1,12 +1,14 @@
-const logger = require('morgan');
-const path = require('path');
+const logger = require("morgan");
+const path = require("path");
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
+
+const restFactory = require("../middleware/restFactory");
 
 const authRouter = require("./auth.route");
 const foldersRouter = require("./folders.route");
-const projectsRouter = require("./projects.route");
+//const projectsRouter = require("./projects.route");
 const usersRouter = require("./users.route");
 
 const { validateToken } = require("../middleware/auth");
@@ -18,14 +20,15 @@ router.use(authRouter);
 router.use(
   "/api", 
   logger("dev"),
+  restFactory.init,
   validateToken, 
   foldersRouter, 
-  projectsRouter, 
+  //projectsRouter, 
   usersRouter
 );
 
 // All static routes
-router.use(express.static(path.join(__dirname, 'public')))
+router.use(express.static(path.join(__dirname, "public")));
 
 // Generic not-found router
 router.use(function(req, res) {

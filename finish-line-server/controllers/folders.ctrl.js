@@ -60,18 +60,18 @@ async function getAllFolders(req, res, next) {
     }
   }
 
-  res.result = rootFolders;
+  res.locals.result = rootFolders;
   next();
 }
 
 async function getOneFolder(req, res, next) {
-  res.result = await foldersService.readOne(req.params.id, req.user.userId);
+  res.locals.result = await foldersService.readOne(req.params.id, req.user.userId);
 
   next();
-};
+}
 
 async function createFolder(req, res, next) {
-  res.result = await foldersService.create(
+  res.locals.result = await foldersService.create(
     req.data.name, 
     req.user.userId,
     req.data.parentId,
@@ -79,10 +79,10 @@ async function createFolder(req, res, next) {
   );
 
   next();
-};
+}
 
 async function updateFolder(req, res, next) {
-  res.result = await foldersService.update(
+  res.locals.result = await foldersService.update(
     req.params.id,
     req.data.name,
     req.data.isActive,
@@ -94,7 +94,7 @@ async function updateFolder(req, res, next) {
 }
 
 async function deleteFolder(req, res, next) {  
-  res.result = await foldersService.delete(req.params.id, req.user.userId);
+  res.locals.result = await foldersService.delete(req.params.id, req.user.userId);
 
   next();
 }

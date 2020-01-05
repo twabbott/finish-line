@@ -2,7 +2,8 @@
     "env": {
         "commonjs": true,
         "es6": true,
-        "node": true
+        "node": true,
+        "mocha": true
     },
     "extends": "eslint:recommended",
     "globals": {
@@ -28,6 +29,8 @@
         "semi": [
             "error",
             "always"
-        ]
+        ],
+        "no-var": ["error"],
+        "no-prototype-builtins": "off"
     }
 }

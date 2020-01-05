@@ -1,5 +1,5 @@
-var express = require('express')
-var router = express.Router()
+const express = require("express");
+const router = express.Router();
 
 const { createUser, updateUser, deleteUser, getUserById, getUsers } = require("../controllers/users.ctrl");
 const { validateToken } = require("../middleware/auth");
