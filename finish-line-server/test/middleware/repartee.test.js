@@ -7,10 +7,10 @@ describe("repartee", () => {
   const testMessage = "This is the message.";
   const testData = { a: "some string", b: 6, c: true };
 
-  function buildResponse(mockReq, mockRes, mockNext) {
+  function buildResponse(mockReq, mockRes) {
     const middleware = repartee.responses();
 
-    const [req, res, next] = mockState(mockReq, mockRes, mockNext);
+    const [req, res, next] = mockState(mockReq, mockRes);
 
     middleware(req, res, next);
 

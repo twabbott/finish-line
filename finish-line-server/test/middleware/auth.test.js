@@ -18,8 +18,8 @@ describe("auth", () => {
 
   sinon.stub(jwt, "verify").returns(testUser);
 
-  function buildState(mockReq, mockRes, mockNext) {
-    const state = mockState(mockReq, mockRes, mockNext);
+  function buildState(mockReq, mockRes) {
+    const state = mockState(mockReq, mockRes);
 
     // Add repartee
     repartee.responses()(...state);

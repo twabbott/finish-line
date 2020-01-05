@@ -13,6 +13,10 @@ const usersRouter = require("./users.route");
 
 const { validateToken } = require("../middleware/auth");
 
+function onError(err) {
+  console.trace(err);
+}
+
 // Add all public routes
 router.use(authRouter);
 
@@ -20,7 +24,7 @@ router.use(authRouter);
 router.use(
   "/api", 
   logger("dev"),
-  restFactory.init,
+  restFactory.init({ onError, traceOn: true }),
   validateToken, 
   foldersRouter, 
   //projectsRouter, 

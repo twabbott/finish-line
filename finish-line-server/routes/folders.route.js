@@ -5,7 +5,10 @@ const { getAllFolders, getFolder, postFolder, putFolder, deleteFolder } = requir
 
 // Get all folders:
 //   GET .../v1/folders
-router.get("/v1/folders", getAllFolders);
+router.get("/v1/folders",
+  (req, res, next) => {
+    next();
+  }, getAllFolders);
 
 // Get specific folder
 //   GET .../v1/folders/:id

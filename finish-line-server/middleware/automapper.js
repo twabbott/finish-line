@@ -32,7 +32,11 @@ function createMap(map) {
   validateMap(map);
 
   return function (req, res, next) {
-    if (!res.hasOwnProperty("result") || typeof res.result !== "object") {
+    //console.log("autoMapper - start");
+
+    if (!res.locals || !res.locals.result || typeof res.locals.result !== "object") {
+      //console.log("autoMapper - nothing to do");
+      next();
       return;
     }
 
@@ -45,13 +49,13 @@ function createMap(map) {
         outKey = prop[1];
       }
 
-      if (typeof res.result[key] !== undefined) {
-        outObj[outKey] = res.result[key];
+      if (typeof res.locals.result[key] !== undefined) {
+        outObj[outKey] = res.locals.result[key];
       }
     } 
 
-    res.result = outObj;
-
+    res.locals.result = outObj;
+    //console.log("autoMapper = done");
     next();
   };
 }

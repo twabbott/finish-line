@@ -4,15 +4,32 @@
  * requests.  This middle initializes the res.locals property by setting result to null
  * and errors to an empty array.
  */
-function init(req, res, next) { // eslint-disable-line
-  res.locals.result = null;
-  res.locals.errors = [];
+function init({onError, traceOn}) {
+  if (onError) {
+    handleError = onError;
+  }
+
+  tracing = traceOn;
+
+  return (req, res, next) => { // eslint-disable-line
+    res.locals.result = null;
+    res.locals.errors = [];
+  
+    next();
+  };
 }
 
-let handleError = (err) => {};  // eslint-disable-line
+let handleError = err => {};  // eslint-disable-line
 
 function onError(err) {
   handleError(err);
+}
+
+let tracing = false;
+function trace(message) {
+  if (tracing) {
+    console.log("restFactory: " + message);
+  }
 }
 
 /* generalResponse()
@@ -32,8 +49,10 @@ function onError(err) {
  */
 function generalResponse(req, res, next) { // eslint-disable-line
   if (res.locals.result === null) {
+    trace("generalResponse - 404");
     res.notFound();
   } else {
+    trace("generalResponse - 200");
     res.ok(res.locals.result);
   }
 }
@@ -57,6 +76,12 @@ function postResponse(req, res, next) { // eslint-disable-line
     delete res.locals.locationId;
   }
 
+  if (res.locals.locationId) {
+    trace("postResponse - 201, with locationId");
+  } else {
+    trace("postResponse - 201");
+  }
+
   res.created(res.locals.result, res.locals.locationId);
 }
 
@@ -76,8 +101,10 @@ function postResponse(req, res, next) { // eslint-disable-line
  */
 function deleteResponse(req, res, next) { // eslint-disable-line
   if (typeof res.locals.result === "number" && res.locals.result > 0) {
+    trace("deleteResponse = 200");
     res.ok(undefined, `Deleted ${res.locals.result} item${res.locals.result !== 1? "s": ""}.`);
   } else {
+    trace("deleteResponse = 404");
     res.notFound();
   }
 }
@@ -87,8 +114,12 @@ function deleteResponse(req, res, next) { // eslint-disable-line
  */
 function handleClientErrors(req, res, next) { // eslint-disable-line
   if (res.locals.errors && Array.isArray(res.locals.errors) && res.locals.errors.length > 0) {
+    trace("handleClientErrors - 400");
     res.badRequest(undefined, res.locals.errors);
   }
+
+  trace("handleClientErrors - (no erros)");
+  next();
 }
 
 /* This middleware gets called last.  Its purpose is to catch exceptions, and to return a 500.
@@ -98,6 +129,7 @@ function handleFatalError(err, req, res, next) { // eslint-disable-line
     onError(err);
   }
   
+  trace("handleFatalError");
   res.internalServerError();
 }
 
