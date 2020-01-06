@@ -7,7 +7,7 @@ const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 const restFactory = require("../../middleware/restFactory");
 const repartee = require("../../middleware/repartee");
 
-describe.only("restFactory", () => {
+describe("restFactory", () => {
   const service = {
     makeSuccessResult: (req, res, next) => {
       res.locals.result = { testProp: "success" };
