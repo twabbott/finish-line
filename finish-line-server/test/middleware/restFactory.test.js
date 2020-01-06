@@ -7,7 +7,7 @@ const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 const restFactory = require("../../middleware/restFactory");
 const repartee = require("../../middleware/repartee");
 
-describe("restFactory", () => {
+describe.only("restFactory", () => {
   const service = {
     makeSuccessResult: (req, res, next) => {
       res.locals.result = { testProp: "success" };
@@ -54,7 +54,7 @@ describe("restFactory", () => {
     const reparteeMiddleware = repartee.responses();
 
     const state = mockState(mockReq);
-    executeMiddleware(state, restFactory.init, reparteeMiddleware, ...middleware);
+    executeMiddleware(state, restFactory.init(), reparteeMiddleware, ...middleware);
 
     return state;
   }
@@ -65,7 +65,7 @@ describe("restFactory", () => {
         locals: {}
       };
 
-      restFactory.init({}, res, () => {});
+      restFactory.init()({}, res, () => {});
 
       expect(res.locals.hasOwnProperty("result")).to.be.true;
       expect(res.locals.result).to.be.null;

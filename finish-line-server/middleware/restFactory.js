@@ -4,7 +4,7 @@
  * requests.  This middle initializes the res.locals property by setting result to null
  * and errors to an empty array.
  */
-function init({onError, traceOn}) {
+function init({onError, traceOn} = {}) {
   if (onError) {
     handleError = onError;
   }
