@@ -50,10 +50,10 @@ function trace(message) {
 function generalResponse(req, res, next) { // eslint-disable-line
   if (res.locals.result === null) {
     trace("generalResponse - 404");
-    res.notFound();
+    return res.notFound();
   } else {
     trace("generalResponse - 200");
-    res.ok(res.locals.result);
+    return res.ok(res.locals.result);
   }
 }
 
@@ -82,7 +82,7 @@ function postResponse(req, res, next) { // eslint-disable-line
     trace("postResponse - 201");
   }
 
-  res.created(res.locals.result, res.locals.locationId);
+  return res.created(res.locals.result, res.locals.locationId);
 }
 
 /* deleteResponse()
@@ -102,10 +102,10 @@ function postResponse(req, res, next) { // eslint-disable-line
 function deleteResponse(req, res, next) { // eslint-disable-line
   if (typeof res.locals.result === "number" && res.locals.result > 0) {
     trace("deleteResponse = 200");
-    res.ok(undefined, `Deleted ${res.locals.result} item${res.locals.result !== 1? "s": ""}.`);
+    return res.ok(undefined, `Deleted ${res.locals.result} item${res.locals.result !== 1? "s": ""}.`);
   } else {
     trace("deleteResponse = 404");
-    res.notFound();
+    return res.notFound();
   }
 }
 
@@ -115,7 +115,7 @@ function deleteResponse(req, res, next) { // eslint-disable-line
 function handleClientErrors(req, res, next) { // eslint-disable-line
   if (res.locals.errors && Array.isArray(res.locals.errors) && res.locals.errors.length > 0) {
     trace("handleClientErrors - 400");
-    res.badRequest(undefined, res.locals.errors);
+    return res.badRequest(undefined, res.locals.errors);
   }
 
   trace("handleClientErrors - (no erros)");
@@ -130,11 +130,46 @@ function handleFatalError(err, req, res, next) { // eslint-disable-line
   }
   
   trace("handleFatalError");
-  res.internalServerError();
+  return res.internalServerError();
+}
+
+class AppError extends Error {
+  constructor(...errorArgs) {
+    super(...errorArgs);
+    Error.captureStackTrace(this, AppError);
+
+    this.isAppError = true;
+  }
+}
+
+function serviceWrapper(service) {
+  return async function (req, res, next) {
+    const state = {};
+    try {
+      const result = await service(req, state);
+
+      Object.assign(res.locals, state);
+
+      if (result !== null && result !== undefined) {
+        res.locals.result = result;
+      }
+    } catch (err) {
+      if (err instanceof AppError) {
+        res.locals.errors.push(err.message);
+        return next();
+      }
+
+      return next(err);
+    }
+
+    next();
+  };
 }
 
 module.exports = {
   init,
+  serviceWrapper,
+  AppError,
   get: [
     handleClientErrors,
     generalResponse,

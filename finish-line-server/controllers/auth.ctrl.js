@@ -4,11 +4,12 @@ const vet = require("../middleware/vet");
 const users = require("../models/user.model");
 const passwords = require("../security/passwords");
 const config = require("../config");
+const regex = require("../shared/regex");
 
 const validateSignin = vet({
   email: {
     type: String,
-    match: /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+    match: regex.email,
     required: true,
     maxLength: 50
   },

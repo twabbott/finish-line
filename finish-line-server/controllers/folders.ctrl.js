@@ -106,21 +106,21 @@ module.exports = {
   
   getFolder: [
     getOneFolder,
-    mapAll,
+    mapAll.mapScalar,
     restFactory.get
   ],
     
   postFolder: [
     validateFolderInfo,
     createFolder,
-    mapAll,
+    mapAll.mapScalar,
     restFactory.post
   ],
 
   putFolder: [
     validateFolderInfo,
     updateFolder,
-    mapAll,
+    mapAll.mapScalar,
     restFactory.put
   ],
 

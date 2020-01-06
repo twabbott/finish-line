@@ -1,157 +1,82 @@
-const responses = require("./responses");
-const users = require("../models/user.model");
-const passwords = require("../security/passwords");
+const vet = require("../middleware/vet");
+const restFactory = require("../middleware/restFactory");
+const { createMap } = require("../middleware/automapper");
+const regex = require("../shared/regex");
+const { handleMongoError } = require("../middleware/errorHandlers");
 
-const getUsers = async function(req, res) {
-  try {
-    const items = await users.userSchema.find();
-    return responses.ok(res, items);
-  } catch(err) {
-    return responses.internalServerError(res, err);
+const usersService = require("../services/users.service");
+
+const validateUserInfo = vet({
+  name: { 
+    type: String, 
+    required: true 
+  },
+  email: {
+    type: String,
+    match: regex.email,
+    required: true,
+    maxLength: 50
+  },
+  password: {
+    type: String,
+    required: true,
+    maxLength: 50
+  },
+  newPassword: {
+    type: String,
+    default: null,
+    maxLength: 50
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  isActive: {
+    type: Boolean,
+    required: true
   }
-};
+});
 
-const getUserById = async function(req, res) {
-  try {
-    let item = null;
-    
-    try {
-      item = await users.userSchema.findById(req.params.id);
-    } catch (err) {
-      console.log(err);
-    }
-    if (!item) {
-      return responses.notFound(res, `User _id=${req.params.id} not found.`);
-    }
-
-    return responses.ok(res, item);
-  } catch (err) {
-    return responses.internalServerError(res, err);
-  }
-};
-
-const createUser = async function(req, res) {
-  const body = req.body;
-  if (!body) {
-    return responses.badRequest(res, "You must provide a user.");
-  }
-
-  try {    
-    let newItem;
-    try {
-      newItem = new users.userSchema({
-        name: body.name,
-        email: body.email,
-        hashedPassword: await passwords.createEncryptedPassword(body.password),
-        isAdmin: body.isAdmin
-      });
-      
-      await newItem.save();
-    } catch (err) {
-      return responses.badRequest(res, err.message);
-    }
-
-    return responses.created(req, res, newItem);
-  } catch (err) {
-    return responses.internalServerError(res, err);
-  }
-};
-
-const updateUser = async function(req, res) {
-  const body = req.body;
-
-  if (!body) {
-    return responses.badRequest(res, "You must provide a user.");
-  }
-  let item = null;
-    
-  try {
-    item = await users.userSchema.findById(req.params.id);
-  } catch (err) {
-    console.log(err);
-  }
-  if (!item) {
-    return responses.notFound(res, `User _id=${req.params.id} not found.`);
-  }
-
-  try {
-    item.name = body.name;
-    item.email = body.email;
-    if (body.newPassword) {
-      if (!await passwords.comparePasswords(item.hashedPassword, body.password)) {
-        throw new Error("Property \"password\" does not match current password.");
-      }
-
-      item.hashedPassword = await passwords.createEncryptedPassword(body.newPassword);
-    }
-    item.isAdmin = body.isAdmin;
-
-    await item.save();
-
-    return responses.ok(res, item);
-  } catch (err) {
-    return responses.badRequest(res, err.message);
-  }
-};
-
-// const patchUser = async function(req, res) {
-//   const body = req.body;
-
-//   if (!body) {
-//     return responses.badRequest(res, "You must provide a user.");
-//   }
-
-//   let item = null;
-    
-//   try {
-//     item = await users.userSchema.findById(req.params.id);
-//   } catch (err) {
-//     console.log(err);
-//   }
-//   if (!item) {
-//     return responses.notFound(res, `User _id=${req.params.id} not found.`);
-//   }
-
-//   try {
-//     item.name = body.hasOwnProperty("name") ? body.name: item.name;
-//     item.email = body.hasOwnProperty("email") ? body.email: item.email;
-//     if (body.hasOwnProperty("newPassword") && await passwords.comparePasswords(item.hashedPassword, body.password)) {
-//       item.hashedPassword = await passwords.createEncryptedPassword(body.newPassword);
-//     }
-//     item.isAdmin = body.hasOwnProperty("isAdmin") ? body.isAdmin: item.isAdmin;
-
-//     await item.save();
-
-//     return responses.ok(res, item);
-//   } catch (err) {
-//     return responses.badRequest(res, err.message);
-//   }
-// };
-
-const deleteUser = async function(req, res) {
-  try {
-    let found = false;
-    try {
-      const result = await users.userSchema.deleteOne({ _id: req.params.id });
-      found = result && result.deletedCount > 0;
-    } catch (err) {
-      console.log(err);
-    }
-    if (!found) {
-      return responses.notFound(res, `User _id=${req.params.id} not found.`);
-    }
-
-    return responses.noContent(res);
-  } catch (err) {
-    return responses.internalServerError(res, err);
-  }
-};
+const mapAll = createMap([
+  ["_id", "id"],
+  "name",
+  "email",
+  "isAdmin",
+  "isActive",
+  "createdAt",
+  "updatedAt"
+]);
 
 module.exports = {
-  getUsers,
-  getUserById,
-  createUser,
-  updateUser,
-  //patchUser,
-  deleteUser
+  getAllUsers: [
+    restFactory.serviceWrapper(usersService.readAll),
+    handleMongoError,
+    mapAll.mapArray,
+    restFactory.get
+  ],
+  getOneUser: [
+    restFactory.serviceWrapper(usersService.readOne),
+    handleMongoError,
+    mapAll.mapScalar,
+    restFactory.get
+  ],
+  createUser: [
+    validateUserInfo,
+    restFactory.serviceWrapper(usersService.create),
+    handleMongoError,
+    mapAll.mapScalar,
+    restFactory.post
+  ],
+  putUser: [
+    validateUserInfo,
+    restFactory.serviceWrapper(usersService.update),
+    handleMongoError,
+    mapAll.mapScalar,
+    restFactory.put
+  ],
+  deleteUser: [
+    restFactory.serviceWrapper(usersService.deleteOne),
+    handleMongoError,
+    restFactory.delete
+  ]
 };

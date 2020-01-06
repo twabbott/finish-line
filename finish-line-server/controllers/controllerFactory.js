@@ -138,17 +138,17 @@ function autoMapper(props) {
       const inKey = props[key];
 
       switch(typeof inKey) {
-      case "string":
-        outObject[key] = inObject[inKey];
-        break;
+        case "string":
+          outObject[key] = inObject[inKey];
+          break;
 
-      case "function":
-        outObject[key] = inKey(inObject);
-        break;
+        case "function":
+          outObject[key] = inKey(inObject);
+          break;
 
-      default:
-        outObject[key] = inObject[key];
-        break;
+        default:
+          outObject[key] = inObject[key];
+          break;
       }
     }
 

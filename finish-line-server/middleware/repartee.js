@@ -54,17 +54,17 @@ function wwwAuthenticateChallenge(challengeOptions) {
 
       const value = challengeOptions[prop];
       switch (typeof value) {
-      case "string":
-        params.push(`${prop}="${value}"`);  
-        break;
+        case "string":
+          params.push(`${prop}="${value}"`);  
+          break;
 
-      case "number":
-      case "boolean":
-        params.push(`${prop}=${value}`);  
-        break;
+        case "number":
+        case "boolean":
+          params.push(`${prop}=${value}`);  
+          break;
 
-      default:
-        throw new Error(`Error processing field "${prop}" in challengeOptions.  Value must be string, number, or boolean.`);
+        default:
+          throw new Error(`Error processing field "${prop}" in challengeOptions.  Value must be string, number, or boolean.`);
       }
     }
 

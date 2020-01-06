@@ -31,15 +31,7 @@ function validateMap(map) {
 function createMap(map) {
   validateMap(map);
 
-  return function (req, res, next) {
-    //console.log("autoMapper - start");
-
-    if (!res.locals || !res.locals.result || typeof res.locals.result !== "object") {
-      //console.log("autoMapper - nothing to do");
-      next();
-      return;
-    }
-
+  function mapObject(inObj) {
     const outObj = {};
     for (let prop of map) {
       let key = prop;
@@ -49,14 +41,47 @@ function createMap(map) {
         outKey = prop[1];
       }
 
-      if (typeof res.locals.result[key] !== undefined) {
-        outObj[outKey] = res.locals.result[key];
+      if (typeof inObj[key] !== undefined) {
+        outObj[outKey] = inObj[key];
       }
     } 
 
-    res.locals.result = outObj;
+    return outObj;
+  }
+
+  function mapScalar(req, res, next) {
+    //console.log("autoMapper - start");
+
+    if (!res.locals || !res.locals.result || typeof res.locals.result !== "object") {
+      //console.log("autoMapper - nothing to do");
+      next();
+      return;
+    }
+
+    res.locals.result = mapObject(res.locals.result);
     //console.log("autoMapper = done");
     next();
+  }
+
+  function mapArray(req, res, next) {
+    if (!res.locals || !res.locals.result || typeof res.locals.result !== "object") {
+      //console.log("autoMapper - nothing to do");
+      next();
+      return;
+    }
+
+    const outArray = [];
+    for (let item of res.locals.result) {
+      outArray.push(mapObject(item));
+    }
+    res.locals.result = outArray;
+    //console.log("autoMapper = done");
+    next();
+  }
+
+  return {
+    mapScalar,
+    mapArray
   };
 }
 

@@ -33,8 +33,13 @@ const usersSchema = new mongoose.Schema(
       maxlength: 256
     },
     isAdmin: {
-      type: Boolean
-    }
+      type: Boolean,
+      required: true
+    },
+    isActive: { 
+      type: Boolean, 
+      required: true 
+    },
   },
   { 
     timestamps: true 

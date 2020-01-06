@@ -171,106 +171,106 @@ function validateObjectProperties(obj, schema) {
     let value = obj[key];
     let result, date;
     switch(type) {
-    case Boolean:
-      if (!validatePrimitiveType(value, key, errors, "boolean")) {
-        continue;
-      }
-      break;
-
-    case Number:
-      if (!validatePrimitiveType(value, key, errors, "number")) {
-        continue;
-      }
-
-      if (constraints) {
-        if (constraints.trunc) {
-          value = Math.trunc(value);
-        }
-
-        if (constraints.min && value < constraints.min) {
-          errors.push(`Property "${key}" is below the minimum value of ${constraints.min}.`);
+      case Boolean:
+        if (!validatePrimitiveType(value, key, errors, "boolean")) {
           continue;
         }
-  
-        if (constraints.max && value > constraints.max) {
-          errors.push(`Property "${key}" is above the maximum value of ${constraints.max}.`);
-          continue;
-        }
-      }
-      break;
+        break;
 
-    case String:
-      if (!validatePrimitiveType(value, key, errors, "string")) {
-        continue;
-      }
-
-      if (constraints) {
-        if (constraints.minLength >= 0 && value.length < constraints.minLength) {
-          errors.push(`Property "${key}" must be at least ${constraints.minLength} characters long.`);
+      case Number:
+        if (!validatePrimitiveType(value, key, errors, "number")) {
           continue;
         }
 
-        if (constraints.maxLength >= 0 && value.length > constraints.maxLength) {
-          errors.push(`Property "${key}" must be no more than ${constraints.maxLength} characters long.`);
+        if (constraints) {
+          if (constraints.trunc) {
+            value = Math.trunc(value);
+          }
+
+          if (constraints.min && value < constraints.min) {
+            errors.push(`Property "${key}" is below the minimum value of ${constraints.min}.`);
+            continue;
+          }
+    
+          if (constraints.max && value > constraints.max) {
+            errors.push(`Property "${key}" is above the maximum value of ${constraints.max}.`);
+            continue;
+          }
+        }
+        break;
+
+      case String:
+        if (!validatePrimitiveType(value, key, errors, "string")) {
           continue;
         }
 
-        if (constraints.toLowerCase) {
-          value = value.toLowerCase();
-        }
+        if (constraints) {
+          if (constraints.minLength >= 0 && value.length < constraints.minLength) {
+            errors.push(`Property "${key}" must be at least ${constraints.minLength} characters long.`);
+            continue;
+          }
 
-        if (constraints.toUpperCase) {
-          value = value.toUpperCase();
-        }
+          if (constraints.maxLength >= 0 && value.length > constraints.maxLength) {
+            errors.push(`Property "${key}" must be no more than ${constraints.maxLength} characters long.`);
+            continue;
+          }
 
-        if (constraints.trim) {
-          value = value.trim();
-        }
+          if (constraints.toLowerCase) {
+            value = value.toLowerCase();
+          }
 
-        if (constraints.match && !constraints.match.test(value)) {
-          errors.push(`Value for property "${key}" is invalid.`);
+          if (constraints.toUpperCase) {
+            value = value.toUpperCase();
+          }
+
+          if (constraints.trim) {
+            value = value.trim();
+          }
+
+          if (constraints.match && !constraints.match.test(value)) {
+            errors.push(`Value for property "${key}" is invalid.`);
+            continue;
+          }
+        }
+        break;
+
+      case Date:
+        date = validateDateType(value, key, errors, constraints);
+        if (!date) {
           continue;
         }
-      }
-      break;
 
-    case Date:
-      date = validateDateType(value, key, errors, constraints);
-      if (!date) {
-        continue;
-      }
-
-      if (constraints) {
-        if (date < constraints.minDate) {
-          errors.push(`Value for property "${key}" cannot have date earlier than "${constraints.min}".`);
-          continue;
+        if (constraints) {
+          if (date < constraints.minDate) {
+            errors.push(`Value for property "${key}" cannot have date earlier than "${constraints.min}".`);
+            continue;
+          }
+    
+          if (date > constraints.maxDate) {
+            errors.push(`Value for property "${key}" cannot have date later than "${constraints.max}".`);
+            continue;
+          }
         }
-  
-        if (date > constraints.maxDate) {
-          errors.push(`Value for property "${key}" cannot have date later than "${constraints.max}".`);
-          continue;
+        break;
+
+      default:
+        if (type === Object) {
+          result = ValidateSubDocument(key, value, constraints);
+        } else if (type === Array) {
+          result = validateArray(key, value, constraints);
+        } else {
+          schemaError(key, "unsupported value for constraint \"type\".");
         }
-      }
-      break;
 
-    default:
-      if (type === Object) {
-        result = ValidateSubDocument(key, value, constraints);
-      } else if (type === Array) {
-        result = validateArray(key, value, constraints);
-      } else {
-        schemaError(key, "unsupported value for constraint \"type\".");
-      }
-
-      if (result === undefined) {
-        continue;
-      } else if (result.errors.length > 0) {
-        errors.push(...result.errors);
-        continue;
-      } else {
-        value = result.value;
-      }
-      break;
+        if (result === undefined) {
+          continue;
+        } else if (result.errors.length > 0) {
+          errors.push(...result.errors);
+          continue;
+        } else {
+          value = result.value;
+        }
+        break;
     }
 
     if (constraints && constraints.values && constraints.values.indexOf(value) < 0) {
