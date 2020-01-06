@@ -6,36 +6,44 @@ const { handleMongoError } = require("../middleware/errorHandlers");
 
 const usersService = require("../services/users.service");
 
-const validateUserInfo = vet({
-  name: { 
-    type: String, 
-    required: true 
-  },
-  email: {
-    type: String,
-    match: regex.email,
-    required: true,
-    maxLength: 50
-  },
-  password: {
-    type: String,
-    required: true,
-    maxLength: 50
-  },
-  newPassword: {
-    type: String,
-    default: null,
-    maxLength: 50
-  },
-  isAdmin: {
-    type: Boolean,
-    default: false
-  },
-  isActive: {
-    type: Boolean,
-    required: true
+const validateUserInfo = [vet({
+    name: { 
+      type: String, 
+      required: true 
+    },
+    email: {
+      type: String,
+      match: regex.email,
+      required: true,
+      maxLength: 50
+    },
+    password: {
+      type: String,
+      required: true,
+      maxLength: 50
+    },
+    newPassword: {
+      type: String,
+      default: null,
+      maxLength: 50
+    },
+    isAdmin: {
+      type: Boolean,
+      default: false
+    },
+    isActive: {
+      type: Boolean,
+      required: true
+    }
+  }),
+  (req, res, next) => {
+    if (res.locals.errors) {
+      return res.badRequest("Invalid user info.", res.locals.errors);
+    }
+
+    next();
   }
-});
+];
 
 const mapAll = createMap([
   ["_id", "id"],

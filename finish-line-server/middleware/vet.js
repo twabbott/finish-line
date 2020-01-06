@@ -1,4 +1,53 @@
 /*
+    // Step #1: Import vet
+    const vet = require("../middleware/vet");
+
+    // Step #2: define a schema middleware
+    const validateBody = vet(const validateUserInfo = vet({
+      name: { 
+        type: String, 
+        required: true 
+      },
+      email: {
+        type: String,
+        match: regex.email,
+        required: true,
+        maxLength: 50
+      },
+      password: {
+        type: String,
+        required: true,
+        maxLength: 50
+      }
+    });
+
+    // Step #3: (optional) Define an error response middleware
+    function handleErrors((req, res, next) => {
+      if (res.locals.errors) {
+        res
+          .status(400)
+          .json({
+            success: false,
+            "Bad Request",
+            errors: res.locals.errors
+          });
+        
+        return;
+      }
+
+      next();
+    });
+
+    // Step #4: Add validation to the top when composing your pipeline
+    const createUser = [
+      validateBody, // vet
+      handleErrors, // error handler
+      createUserController, // your controller
+      // etc, etc...
+    ];
+
+    app.post("/api/users", createUser);
+
     TODO:
     ===========================
     Arrays:
@@ -292,6 +341,24 @@ function validateObjectProperties(obj, schema) {
 
     data[key] = value;
   }
+
+  for (let key in obj) {
+    if (!schema.hasOwnProperty(key)) {
+      let msg = `Unknown property "${key}", check spelling.`;
+      for (let schemaKey in schema) {
+        if (key.toLowerCase() === schemaKey.toLowerCase()) {
+          msg += `  Did you mean to specify "${schemaKey}"?`;
+        }
+      }
+      
+      errors.push(msg);
+    }
+  }
+
+  if (errors.length === 0) {
+    Object.assign(obj, data);
+  }
+
   return { value: data, errors };
 }
 
@@ -495,41 +562,24 @@ function checkSchemaDefinition(schema, parentKey) {
   }
 }
 
-function vet(schema, options = {}) {
-  const { 
-    autoRespond = true,
-    failMsg = "Bad request"
-  } = options;
-
+function vet(schema) {
   function middleware(req, res, next) {
     if (typeof req.body !== "object") {
       req.errors = ["Request payload must be a JSON object"];
     } else {
       const result = validateObjectProperties(req.body, schema);
       
-      req.data = result.value;
-      req.errors = result.errors;
-    }
-
-    next();
-  }
-
-  function errorCheck(req, res, next) {
-    if (req.errors.length) {
-      res.badRequest(failMsg, req.errors);     
+      if (result.errors.length === 0) {
+        Object.assign(req.body, result.value);
+      } else {
+        res.locals.errors = result.errors;
+      }
     }
 
     next();
   }
 
   checkSchemaDefinition(schema);
-
-  if (autoRespond) {
-    return [
-      middleware,
-      errorCheck
-    ];
-  }
 
   return middleware;
 }

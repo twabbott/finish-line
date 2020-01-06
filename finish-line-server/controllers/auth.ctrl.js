@@ -6,22 +6,27 @@ const passwords = require("../security/passwords");
 const config = require("../config");
 const regex = require("../shared/regex");
 
-const validateSignin = vet({
-  email: {
-    type: String,
-    match: regex.email,
-    required: true,
-    maxLength: 50
-  },
-  password: {
-    type: String,
-    required: true,
-    maxLength: 50
+const validateSignin = [vet({
+    email: {
+      type: String,
+      match: regex.email,
+      required: true,
+      maxLength: 50
+    },
+    password: {
+      type: String,
+      required: true,
+      maxLength: 50
+    }
+  }),
+  (req, res, next) => {
+    if (res.locals.errors) {
+      return res.badRequest("Invalid login info.", res.locals.errors);
+    }
+
+    next();
   }
-},
-{
-  failMsg: "Invalid login info.",
-});
+];
 
 async function signin (req, res) {
   const { email, password } = req.data;

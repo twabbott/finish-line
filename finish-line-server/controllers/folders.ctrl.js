@@ -18,13 +18,21 @@ const mapAll = createMap([
   "updatedBy", 
 ]);
 
-const validateFolderInfo = vet({
-  name: { type: String, required: true },
-  parentId: { type: String, required: false, default: null },
-  childrenIds: { type: Array, ofType: String, required: false },
-  projectIds: {type: Array, ofType: String, required: false },
-  isActive: { type: Boolean, default: false },
-});
+const validateFolderInfo = [vet({
+    name: { type: String, required: true },
+    parentId: { type: String, required: false, default: null },
+    childrenIds: { type: Array, ofType: String, required: false },
+    projectIds: {type: Array, ofType: String, required: false },
+    isActive: { type: Boolean, default: false },
+  }),
+  (req, res, next) => {
+    if (res.locals.errors) {
+      return res.badRequest("Invalid folder info.", res.locals.errors);
+    }
+
+    next();
+  }
+];
 
 async function getAllFolders(req, res, next) {
   const folders = await foldersService.readMany(req.user.userId);
