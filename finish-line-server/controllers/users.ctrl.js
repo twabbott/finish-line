@@ -4,7 +4,7 @@ const { createMap } = require("../middleware/automapper");
 const regex = require("../shared/regex");
 const { handleMongoErrors, handleValidationErrors } = require("../middleware/errorHandlers");
 
-const { createUser, readAllUsers, readOneUser, updateUser, deleteUser } = require("../services/users.service");
+const { createUser, readAllUsers, readOneUser, updateUser, deleteUser, errorMessages } = require("../services/users.service");
 
 const validateUserInfo = [
   vet({
@@ -53,33 +53,33 @@ const mapAll = createMap([
 module.exports = {
   getAllUsers: [
     asyncServiceWrapper(readAllUsers),
-    handleMongoErrors("Unable to read users."),
+    handleMongoErrors(errorMessages.read),
     mapAll.mapArray,
     getResponse
   ],
   getOneUser: [
     asyncServiceWrapper(readOneUser),
-    handleMongoErrors("Unable to read user."),
+    handleMongoErrors(errorMessages.read),
     mapAll.mapScalar,
     getResponse
   ],
   createUser: [
     validateUserInfo,
     asyncServiceWrapper(createUser),
-    handleMongoErrors("Error creating new user."),
+    handleMongoErrors(errorMessages.create),
     mapAll.mapScalar,
     postResponse
   ],
   putUser: [
     validateUserInfo,
     asyncServiceWrapper(updateUser),
-    handleMongoErrors("Error updating user."),
+    handleMongoErrors(errorMessages.update),
     mapAll.mapScalar,
     putResponse
   ],
   deleteUser: [
     asyncServiceWrapper(deleteUser),
-    handleMongoErrors("Error deleting user"),
+    handleMongoErrors(errorMessages.delete),
     deleteResponse
   ]
 };

@@ -1,0 +1,37 @@
+
+
+users
+  * You should be able to create a new user without credentials
+      * Move signin to POST /accounts/signin
+      * Move new user to /accounts/users
+  
+  * Sign in with a user that is not an admin
+      * GET .../users - this should return a list of just them
+      * GET .../users/{random-id} - should return a 403
+      * GET .../users/{their-user-id} - should return their info
+      * POST .../users - should return a 405 MethodNotAllowed
+      * PUT .../users/{random-id} - should return a 403
+      * PUT .../users/{their-user-id} - should update their info
+      * DELETE .../users/{random-id} - should return a 403
+      * DELETE .../users/{their-user-id} - should return a 400 with an error stating
+          that you can't delete the account that you're currently logged in as.
+      * Make sure all resources owned by the user also get deleted
+          * Sign in as the user
+          * Create some folders
+          * sign in as an admin user
+          * delete the user
+          * check MongoDB Compass and verify that there are no folders for that user.
+      * on delete, also delete all
+          * folders
+          * Projects
+          * worknotes
+
+  * Projects
+      * Projects are responsible for updating the parents that they are a list of.
+          * On creation and update
+              * the list of parents must be > 0
+              * Projects are responsible for adding or removing themselves from 
+                parent folders.
+
+
+501: Not Implemented

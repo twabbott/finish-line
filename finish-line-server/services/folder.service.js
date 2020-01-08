@@ -1,7 +1,7 @@
 const mongodb = require("mongodb");
 
 const { folderSchema } = require("../models");
-const { AppError } = require("../middleware/restFactory");
+const { BadRequestError } = require("../middleware/restFactory");
 
 const errorMessages = {
   create: "Error creating folder",
@@ -20,7 +20,7 @@ async function createFolder(req) {
   if (parentId) {
     parentFolder =  await _findFolder(parentId, userId);
     if (!parentFolder) {
-      throw new AppError(errorMessages.create, `Folder with parentId=${parentId} not found.`);
+      throw new BadRequestError(errorMessages.create, `Folder with parentId=${parentId} not found.`);
     }
   }
 
@@ -53,7 +53,7 @@ async function createFolder(req) {
       }
     }
 
-    throw new AppError(errorMessages.create, `Error creating new folder ${name}: ${err.message}`);
+    throw new BadRequestError(errorMessages.create, `Error creating new folder ${name}: ${err.message}`);
   }
 
   return folder;
@@ -117,12 +117,12 @@ async function updateFolder(req) {
   if ((parentId && parentId.toString()) !== (folder.parentId && folder.parentId.toString())) {
     if (parentId) {
       if (parentId.toString() === folder._id.toString()) {
-        throw new AppError(errorMessages.update, "Cannot make a folder be its own parent.");
+        throw new BadRequestError(errorMessages.update, "Cannot make a folder be its own parent.");
       }
 
       newParentFolder =  await _findFolder(parentId, userId);
       if (!newParentFolder) {
-        throw new AppError(errorMessages.update, `Folder with parentId=${parentId} not found.`);
+        throw new BadRequestError(errorMessages.update, `Folder with parentId=${parentId} not found.`);
       }
     }
 
@@ -151,7 +151,7 @@ async function deleteFolder(req) {
 
   // Can't delete an active folder.
   if (folder.isActive) {
-    throw new AppError(errorMessages.delete, "Cannot delete a folder unless it is marked as inactive");
+    throw new BadRequestError(errorMessages.delete, "Cannot delete a folder unless it is marked as inactive");
   }
 
   // Unlink from parent
@@ -171,7 +171,7 @@ async function deleteFolder(req) {
   try {
     result = await folderSchema.deleteMany({ userId, _id: { $in: idList }});
   } catch(err) {
-    throw new AppError(errorMessages.delete, `Error deleting folder _id=${folderId} name=${folder.name}: ${err.message}`);
+    throw new BadRequestError(errorMessages.delete, `Error deleting folder _id=${folderId} name=${folder.name}: ${err.message}`);
   }
 
   return (result && result.deletedCount) || 0;
@@ -220,7 +220,7 @@ async function _unlinkFromParent(folder, userId) {
     await parentFolder.save();
     //console.log(`UNLINK: children after ${JSON.stringify(parentFolder.childrenIds)}`);
   } catch (err) {
-    throw new AppError(errorMessages.general, `Error unlinking from parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
+    throw new BadRequestError(errorMessages.general, `Error unlinking from parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
   }
 }
 
@@ -238,9 +238,24 @@ async function _linkToParent(childFolder, parentFolder, userId) {
     parentFolder.updatedBy = userId;
     await parentFolder.save();
   } catch (err) {
-    throw new AppError(errorMessages.general, `Error linking to parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
+    throw new BadRequestError(errorMessages.general, `Error linking to parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
   } 
 }
+
+async function _bulkDeleteAll(userId) {
+  let result;
+  try {
+    result = await folderSchema.deleteMany({ userId });
+  } catch(err) {
+    throw new BadRequestError("Error bulk deleting all folders for user", err.message);
+  }
+
+  return (result && result.deletedCount) || 0;
+}
+
+const utilities = {
+  deleteAll: _bulkDeleteAll
+};
 
 module.exports = {
   createFolder,
@@ -249,5 +264,6 @@ module.exports = {
   readOneFolder,
   updateFolder,
   deleteFolder,
-  errorMessages
+  errorMessages,
+  utilities
 };

@@ -22,7 +22,7 @@ function trace(message) {
  *         optionally result.message or result.id).
  *       - If an item is not found, throw a NotFoundError
  *       - If there is an error in the data and the request cannot be processed, 
- *         throw an AppError.
+ *         throw an BadRequestError.
  *       - If there is a permissions problem, throw a ForbiddenError.
  *       - Do not catch any unexpected exceptions.  Let restFactory handle them.
  */
@@ -120,29 +120,18 @@ function handleNoContent(req, res, next) { // eslint-disable-line
   }
 }
 
-class AppError extends Error {
+class BadRequestError extends Error {
   constructor(message, description, fileName, lineNumber) {
     super(message, fileName, lineNumber);    
-    Error.captureStackTrace(this, AppError);
+    Error.captureStackTrace(this, BadRequestError);
 
     this.description = description;
   }
 }
 
-class ForbiddenError extends Error {
-  constructor(...errorArgs) {
-    super(...errorArgs);
-    Error.captureStackTrace(this, ForbiddenError);
-  }
-}
-
-class NotFoundError extends Error {
-  constructor(...errorArgs) {
-    super(...errorArgs);
-    Error.captureStackTrace(this, NotFoundError);
-  }
-}
-
+/** Causes a 401 Not Authorized to be sent to the client
+ * @param {string} message - Any details you want to provide (usually not needed).
+ */
 class UnauthorizedError extends Error {
   constructor(message, challenge, ...errorArgs) {
     super(message, ...errorArgs);
@@ -152,11 +141,34 @@ class UnauthorizedError extends Error {
   }
 }
 
-/* This middleware gets called first.  Its purpose is to look for errors.  If there are
- * no errors, it will call next().
+/** Causes a 403 Forbidden to be sent to the client
+ * @param {string} message - Provide any explanation you think they ought to know
+ */
+class ForbiddenError extends Error {
+  constructor(...errorArgs) {
+    super(...errorArgs);
+    Error.captureStackTrace(this, ForbiddenError);
+  }
+}
+
+
+/** Causes a 403 Forbidden to be sent to the client
+ * @param {string} message - Provide any explanation you think they ought to know
+ */
+class NotFoundError extends Error {
+  constructor(...errorArgs) {
+    super(...errorArgs);
+    Error.captureStackTrace(this, NotFoundError);
+  }
+}
+
+/** This middleware gets called at the end of your request pipeline.  Its purpose 
+ * is to catch any errors that get thrown.  If it catches one of the response errors
+ * (BadRequestError, NotFoundError, etc) it will respond with a 4xx.  Otherwise, it will
+ * log an exception stack trace and return a 500.
  */
 function handleErrors(err, req, res, next) { // eslint-disable-line
-  if (err instanceof AppError) {
+  if (err instanceof BadRequestError) {
     trace("handleErrors - 400");
     return res.badRequest(err.message, err.description);
   }
@@ -184,7 +196,7 @@ function handleErrors(err, req, res, next) { // eslint-disable-line
 module.exports = {
   init,
   asyncServiceWrapper,
-  AppError,
+  BadRequestError,
   UnauthorizedError,
   ForbiddenError,
   NotFoundError,
