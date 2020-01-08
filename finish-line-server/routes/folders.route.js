@@ -1,18 +1,15 @@
 const express = require("express");
 const router = express.Router();
 
-const { getAllFolders, getFolder, postFolder, putFolder, deleteFolder } = require("../controllers/folders.ctrl");
+const { getAllFolders, getOneFolder, postFolder, putFolder, deleteFolder } = require("../controllers/folders.ctrl");
 
 // Get all folders:
 //   GET .../v1/folders
-router.get("/v1/folders",
-  (req, res, next) => {
-    next();
-  }, getAllFolders);
+router.get("/v1/folders", getAllFolders);
 
 // Get specific folder
 //   GET .../v1/folders/:id
-router.get("/v1/folders/:id", getFolder);
+router.get("/v1/folders/:id", getOneFolder);
 
 // Get contents for a folder
 //   GET .../v1/folders/:id/contents

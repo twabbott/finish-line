@@ -1,10 +1,11 @@
+/* eslint-disable no-unused-vars */
+
 // Test framework libraries
 const { expect } = require("chai");
 //const sinon = require("sinon");
 
 const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 const vet = require("../../middleware/vet");
-const repartee = require("../../middleware/repartee");
 
 describe("vet", () => {
   function buildState(schema, body) {

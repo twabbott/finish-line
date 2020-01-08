@@ -132,6 +132,10 @@ function responses() {
 
     // 4xx
     res.errorResponse = function(status, message, errors) {
+      if (errors && !Array.isArray(errors)) {
+        errors = [errors];
+      }
+      
       return res
         .status(status)
         .json(errorPayload(message, errors));

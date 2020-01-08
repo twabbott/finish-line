@@ -1,12 +1,13 @@
 const vet = require("../middleware/vet");
-const restFactory = require("../middleware/restFactory");
+const { serviceWrapper, getResponse, postResponse, putResponse, deleteResponse } = require("../middleware/restFactory");
 const { createMap } = require("../middleware/automapper");
 const regex = require("../shared/regex");
-const { handleMongoError } = require("../middleware/errorHandlers");
+const { handleMongoErrors, handleValidationErrors } = require("../middleware/errorHandlers");
 
 const usersService = require("../services/users.service");
 
-const validateUserInfo = [vet({
+const validateUserInfo = [
+  vet({
     name: { 
       type: String, 
       required: true 
@@ -36,13 +37,7 @@ const validateUserInfo = [vet({
       required: true
     }
   }),
-  (req, res, next) => {
-    if (res.locals.errors) {
-      return res.badRequest("Invalid user info.", res.locals.errors);
-    }
-
-    next();
-  }
+  handleValidationErrors("Invalid user info")
 ];
 
 const mapAll = createMap([
@@ -57,34 +52,34 @@ const mapAll = createMap([
 
 module.exports = {
   getAllUsers: [
-    restFactory.serviceWrapper(usersService.readAll),
-    handleMongoError,
+    serviceWrapper(usersService.readAll),
+    handleMongoErrors("Unable to read users."),
     mapAll.mapArray,
-    restFactory.get
+    getResponse
   ],
   getOneUser: [
-    restFactory.serviceWrapper(usersService.readOne),
-    handleMongoError,
+    serviceWrapper(usersService.readOne),
+    handleMongoErrors("Unable to read user."),
     mapAll.mapScalar,
-    restFactory.get
+    getResponse
   ],
   createUser: [
     validateUserInfo,
-    restFactory.serviceWrapper(usersService.create),
-    handleMongoError,
+    serviceWrapper(usersService.create),
+    handleMongoErrors("Error creating new user."),
     mapAll.mapScalar,
-    restFactory.post
+    postResponse
   ],
   putUser: [
     validateUserInfo,
-    restFactory.serviceWrapper(usersService.update),
-    handleMongoError,
+    serviceWrapper(usersService.update),
+    handleMongoErrors("Error updating user."),
     mapAll.mapScalar,
-    restFactory.put
+    putResponse
   ],
   deleteUser: [
-    restFactory.serviceWrapper(usersService.deleteOne),
-    handleMongoError,
-    restFactory.delete
+    serviceWrapper(usersService.deleteOne),
+    handleMongoErrors("Error deleting user"),
+    deleteResponse
   ]
 };

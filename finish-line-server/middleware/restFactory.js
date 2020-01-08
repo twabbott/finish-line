@@ -1,41 +1,51 @@
 
 
-/* Insert this middleware at the top of the pipeline, before you handle any of your API 
- * requests.  This middle initializes the res.locals property by setting result to null
- * and errors to an empty array.
- */
-function init({onError, traceOn} = {}) {
-  if (onError) {
-    handleError = onError;
-  }
-
-  tracing = traceOn;
-
-  return (req, res, next) => { // eslint-disable-line
-    res.locals.result = null;
-    res.locals.errors = [];
-  
-    next();
-  };
-}
-
-let handleError = err => {};  // eslint-disable-line
-
-function onError(err) {
-  handleError(err);
-}
-
+let logError = err => {};  // eslint-disable-line
 let tracing = false;
+
+/* Call this function to configure global options for restFactory.
+ */
+function init({ errorLogger = undefined, traceOn = false } = {}) {
+  logError = errorLogger || logError;
+  tracing = traceOn;
+}
+
 function trace(message) {
   if (tracing) {
     console.log("restFactory: " + message);
   }
 }
 
-/* generalResponse()
- *   This middleware relies on the previous middleware in the chain performing the 
- *   following:
- *     - If the request yields results, it should set res.locals.result to 
+/* serviceWrapper()
+ *     Use this function to wrap an async call to a service and generate a middleware.
+ *       - If your service is successful, it shouild set result.data (and  
+ *         optionally result.message or result.id).
+ *       - If an item is not found, throw a NotFoundError
+ *       - If there is an error in the data and the request cannot be processed, 
+ *         throw an AppError.
+ *       - If there is a permissions problem, throw a ForbiddenError.
+ *       - Do not catch any unexpected exceptions.  Let restFactory handle them.
+ */
+function serviceWrapper(service) {
+  return async function (req, res, next) {
+    const state = {};
+
+    const data = await service(req, state);
+
+    Object.assign(res.locals, state);
+
+    if (data !== null && data !== undefined) {
+      res.locals.data = data;
+    }
+
+    next();
+  };
+}
+
+/* handleOK()
+ *     This middleware relies on the previous middleware in the chain performing the 
+ *     following:
+ *     - If the request yields results, it should set res.locals.data to 
  *       something besides null.
  *     - If the parameters for the request are invalid (400 bad request), set res.locals.errors
  *       to an array of one or more strings.
@@ -47,155 +57,149 @@ function trace(message) {
  *   This middleware relies on validation happening earlier in the pipeline.  The body
  *   and all params should be validated BEFORE this middleware is invoked. 
  */
-function generalResponse(req, res, next) { // eslint-disable-line
-  if (res.locals.result === null) {
-    trace("generalResponse - 404");
-    return res.notFound();
-  } else {
-    trace("generalResponse - 200");
-    return res.ok(res.locals.result);
-  }
+function handleOK(req, res, next) { // eslint-disable-line
+  trace("handleOK - 200");
+  return res.ok(res.locals.data, res.locals.message);
 }
 
-/* postResponse()
+/* handleCreated()
  *   This middleware relies on the previous middleware in the chain performing the 
  *   following:
- *     - If the request yields results, it should set res.locals.result
+ *     - If the request yields results, it should set res.locals.data
  *     - If the parameters for the request are invalid (400 bad request), set res.locals.errors
  *       to an array of one or more strings.
- *     - To auto-set a Location header, set res.locals.locationId to any number or string.  If 
- *       you want to suppress generating the Location header, res.locals.locationId as undefined.
+ *     - To auto-set a Location header, set res.locals.id to any number or string.  If 
+ *       you want to suppress generating the Location header, res.locals.id as undefined.
  *     - For any fatal errors, either throw an exception or call next(err), whichever you 
  *       like.
  * 
  *   This middleware relies on validation happening earlier in the pipeline.  The body
  *   and all params should be validated BEFORE this middleware is invoked. 
  */
-function postResponse(req, res, next) { // eslint-disable-line
-  if (typeof res.locals.locationId !== "number" && typeof res.locals.locationId !== "string") {
-    delete res.locals.locationId;
+function handleCreated(req, res, next) { // eslint-disable-line
+  if (typeof res.locals.id !== "number" && typeof res.locals.id !== "string") {
+    delete res.locals.id;
   }
 
-  if (res.locals.locationId) {
-    trace("postResponse - 201, with locationId");
+  if (res.locals.id) {
+    trace("handleCreated - 201, with locationId");
   } else {
-    trace("postResponse - 201");
+    trace("handleCreated - 201");
   }
 
-  return res.created(res.locals.result, res.locals.locationId);
+  return res.created(res.locals.data, res.locals.id, res.locals.message);
 }
 
-/* deleteResponse()
+/* handleNoContent()
  *   This middleware relies on the previous middleware in the chain performing the 
  *   following:
- *     - If the operation was successful, set res.locals.result to the number of items deleted.
- *     - If no such item was found, set res.locals.result to zero (404 not found), or leave it 
- *       set to null (its default value).
- *     - If the parameters for the request are invalid (400 bad request), set res.locals.errors
- *       to an array of one or more strings.
+ *     - If the operation was successful, set res.locals.data to the number of 
+ *       items deleted.  This number must be greater than zero.
+ *     - If no such item was found, you can
+ *         - set res.locals.data to zero
+ *         - Leave res.locals.data to its default value of undefined.
+ *         - Throw a NotFoundError
+ *     - If the parameters for the request are invalid (400 bad request), throw a
+ *       NotFoundError
  *     - For any fatal errors, either throw an exception or call next(err), whichever you 
  *       like.
  * 
  *   This middleware relies on validation happening earlier in the pipeline.  The body
  *   and all params should be validated BEFORE this middleware is invoked. 
  */
-function deleteResponse(req, res, next) { // eslint-disable-line
-  if (typeof res.locals.result === "number" && res.locals.result > 0) {
-    trace("deleteResponse = 200");
-    return res.ok(undefined, `Deleted ${res.locals.result} item${res.locals.result !== 1? "s": ""}.`);
+function handleNoContent(req, res, next) { // eslint-disable-line
+  if (typeof res.locals.data === "number" && res.locals.data > 0) {
+    trace("handleNoContent = 200");
+    return res.ok(undefined, `Deleted ${res.locals.data} item${res.locals.data !== 1? "s": ""}.`);
   } else {
-    trace("deleteResponse = 404");
+    trace("handleNoContent = 404");
     return res.notFound();
+  }
+}
+
+class AppError extends Error {
+  constructor(message, description, fileName, lineNumber) {
+    super(message, fileName, lineNumber);    
+    Error.captureStackTrace(this, AppError);
+
+    this.description = description;
+  }
+}
+
+class ForbiddenError extends Error {
+  constructor(...errorArgs) {
+    super(...errorArgs);
+    Error.captureStackTrace(this, ForbiddenError);
+  }
+}
+
+class NotFoundError extends Error {
+  constructor(...errorArgs) {
+    super(...errorArgs);
+    Error.captureStackTrace(this, NotFoundError);
+  }
+}
+
+class UnauthorizedError extends Error {
+  constructor(message, challenge, ...errorArgs) {
+    super(message, ...errorArgs);
+    Error.captureStackTrace(this, UnauthorizedError);
+
+    this.challengeOptions = challenge;
   }
 }
 
 /* This middleware gets called first.  Its purpose is to look for errors.  If there are
  * no errors, it will call next().
  */
-function handleClientErrors(req, res, next) { // eslint-disable-line
-  if (res.locals.errors && Array.isArray(res.locals.errors) && res.locals.errors.length > 0) {
-    trace("handleClientErrors - 400");
-    return res.badRequest(undefined, res.locals.errors);
+function handleErrors(err, req, res, next) { // eslint-disable-line
+  if (err instanceof AppError) {
+    trace("handleErrors - 400");
+    return res.badRequest(err.message, err.description);
   }
 
-  trace("handleClientErrors - (no erros)");
-  next();
-}
-
-/* This middleware gets called last.  Its purpose is to catch exceptions, and to return a 500.
- */
-function handleFatalError(err, req, res, next) { // eslint-disable-line
-  if (onError) {
-    onError(err);
+  if (err instanceof UnauthorizedError) {
+    trace("handleErrors - 401");
+    return res.unauthorized(err.challengeOptions, err.message);
   }
-  
-  trace("handleFatalError");
+
+  if (err instanceof ForbiddenError) {
+    trace("handleErrors - 403");
+    return res.forbidden(err.message);
+  }
+
+  if (err instanceof NotFoundError) {
+    trace("handleErrors - 404");
+    return res.notFound(undefined, err.message);
+  }
+
+  trace("handleErrors - 500");
+  logError(err);
   return res.internalServerError();
-}
-
-class AppError extends Error {
-  constructor(...errorArgs) {
-    super(...errorArgs);
-    Error.captureStackTrace(this, AppError);
-
-    this.isAppError = true;
-  }
-}
-
-function serviceWrapper(service) {
-  return async function (req, res, next) {
-    const state = {};
-    try {
-      const result = await service(req, state);
-
-      Object.assign(res.locals, state);
-
-      if (result !== null && result !== undefined) {
-        res.locals.result = result;
-      }
-    } catch (err) {
-      if (err instanceof AppError) {
-        res.locals.errors.push(err.message);
-        return next();
-      }
-
-      return next(err);
-    }
-
-    next();
-  };
 }
 
 module.exports = {
   init,
   serviceWrapper,
   AppError,
-  get: [
-    handleClientErrors,
-    generalResponse,
-    handleFatalError
+  UnauthorizedError,
+  ForbiddenError,
+  NotFoundError,
+  getResponse: [    
+    handleOK,
+    handleErrors
   ],
-  post: [
-    handleClientErrors,
-    postResponse,
-    handleFatalError
+  postResponse: [
+    handleCreated,
+    handleErrors
   ],
-  put: [
-    handleClientErrors,
-    generalResponse,
-    handleFatalError
+  putResponse: [    
+    handleOK,
+    handleErrors
   ],
-  delete: [
-    handleClientErrors,
-    deleteResponse,
-    handleFatalError
+  deleteResponse: [    
+    handleNoContent,
+    handleErrors
   ],
-  onError,
-  middleware: {
-    generalResponse,
-    postResponse,
-    deleteResponse,
-    handleClientErrors,
-    handleFatalError
-  }
+  handleErrors
 };

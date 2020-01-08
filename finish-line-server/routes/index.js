@@ -4,8 +4,6 @@ const path = require("path");
 const express = require("express");
 const router = express.Router();
 
-const restFactory = require("../middleware/restFactory");
-
 const authRouter = require("./auth.route");
 const foldersRouter = require("./folders.route");
 //const projectsRouter = require("./projects.route");
@@ -13,9 +11,8 @@ const usersRouter = require("./users.route");
 
 const { validateToken } = require("../middleware/auth");
 
-function onError(err) {
-  console.trace(err);
-}
+const { responses } = require("../middleware/repartee");
+router.use(responses());
 
 // Add all public routes
 router.use(authRouter);
@@ -24,7 +21,6 @@ router.use(authRouter);
 router.use(
   "/api", 
   logger("dev"),
-  restFactory.init({ onError, traceOn: true }),
   validateToken, 
   foldersRouter, 
   //projectsRouter, 

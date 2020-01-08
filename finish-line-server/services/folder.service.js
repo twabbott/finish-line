@@ -1,12 +1,26 @@
-const { folderSchema } = require("../models");
-const { AppError } = require("../shared");
+const mongodb = require("mongodb");
 
-async function create(name, userId, parentId, createdBy) {
+const { folderSchema } = require("../models");
+const { AppError } = require("../middleware/restFactory");
+
+const errorMessages = {
+  create: "Error creating folder",
+  read: "Error reading folder(s)",
+  update: "Error updating folder",
+  delete: "Error deleting folder",
+  general: "General error"
+};
+
+async function createFolder(req) {
+  const name = req.body.name;
+  const userId = req.user.userId;
+  const parentId = req.body.parentId;
+
   let parentFolder = null; 
   if (parentId) {
-    parentFolder =  await readOne(parentId, userId);
+    parentFolder =  await readOneFolder(parentId, userId);
     if (!parentFolder) {
-      throw new AppError(`Folder with parentId=${parentId} not found.`);
+      throw new AppError(errorMessages.create, `Folder with parentId=${parentId} not found.`);
     }
   }
 
@@ -20,9 +34,8 @@ async function create(name, userId, parentId, createdBy) {
     folder.childrenIds = [];
     folder.projectIds = [];
     folder.isActive = true;
-    folder.createdBy = createdBy;
-    folder.updatedBy = createdBy;
-    folder.foobar = "Yeeet!";
+    folder.createdBy = userId;
+    folder.updatedBy = userId;
   
     await folder.save();
     created = true;
@@ -40,94 +53,119 @@ async function create(name, userId, parentId, createdBy) {
       }
     }
 
-    throw new AppError(`Error creating new folder ${name}: ${err.message}`);
+    throw new AppError(errorMessages.create, `Error creating new folder ${name}: ${err.message}`);
   }
 
   return folder;
 }
 
-async function readMany(userId) {
-  let list;
-
-  try {
-    list = await folderSchema.find({ userId });
-  } catch(err) {
-    throw new AppError(`Error reading folders for userId ${userId}: ${err.message}`);
+async function readFolderTree(req) {
+  const folders = await readAllFolders(req);
+  if (!folders || folders.length < 1) {
+    return;
   }
 
-  return list;
+  const map = {};
+  const rootFolders = [];
+
+  folders.forEach(folder => {
+    const copy = {
+      id: folder._id,
+      name: folder.name,
+      parentId: folder.parentId,
+      childrenIds: folder.childrenIds,
+      projectIds: folder.projectIds,
+      isActive: folder.isActive
+    };
+    
+    map[folder._id] = copy;
+  });
+
+  for (let k in map) {
+    const folder = map[k];
+    folder.children = [];
+    folder.childrenIds.forEach(childId => folder.children.push(map[childId]));
+    delete folder.childrenIds;
+    if (!folder.parentId) {
+      rootFolders.push(folder);
+    }
+  }
+
+  return rootFolders;
 }
 
-async function readOne(folderId, userId) {
-  if (!folderId) {
+async function readAllFolders(req) {
+  const { userId } = req.user;
+  return await folderSchema.find({ userId });
+}
+
+async function readOneFolder(req) {
+  const folderId = req.params.id;
+  const userId = req.user.userId;
+
+  if (!mongodb.ObjectID.isValid(folderId)) {
     return null;
   }
 
-  let folder;
-  try {
-    folder = await folderSchema.findOne({ _id: folderId, userId: userId });
-  } catch(err) {
-    throw new AppError(`Cannot find folder with _id=${folderId}: ${err.message}`);
-  }
-
-  return folder; 
+  return await folderSchema.findOne({ _id: folderId, userId: userId });
 }
 
-async function update(folderId, name, isActive, parentId, userId) {
-  let folder;
-  
-  try {
-    folder = await readOne(folderId, userId);
-    if (!folder) {
-      return null;
-    }
+async function updateFolder(req) {
+  const folderId = req.params.id;
+  const { name, isActive, parentId } = req.body;
+  const { userId } = req.user;
 
-    let newParentFolder = null; 
-    if ((parentId && parentId.toString()) !== (folder.parentId && folder.parentId.toString())) {
-      if (parentId) {
-        if (parentId.toString() === folder._id.toString()) {
-          throw new AppError("Cannot make a folder be its own parent.");
-        }
-  
-        newParentFolder =  await readOne(parentId, userId);
-        if (!newParentFolder) {
-          throw new AppError(`Folder with parentId=${parentId} not found.`);
-        }
+  const folder = await readOneFolder(folderId, userId);
+  if (!folder) {
+    return;
+  }
+
+  let newParentFolder = null; 
+  if ((parentId && parentId.toString()) !== (folder.parentId && folder.parentId.toString())) {
+    if (parentId) {
+      if (parentId.toString() === folder._id.toString()) {
+        throw new AppError(errorMessages.update, "Cannot make a folder be its own parent.");
       }
 
-      await _unlinkFromParent(folder, userId);
-      await _linkToParent(folder, newParentFolder, userId);
-    }  
+      newParentFolder =  await readOneFolder(parentId, userId);
+      if (!newParentFolder) {
+        throw new AppError(errorMessages.update, `Folder with parentId=${parentId} not found.`);
+      }
+    }
 
-    folder.name = name;
-    folder.isActive = isActive;
-    folder.parentId = parentId;
-    folder.updatedBy = userId;
+    await _unlinkFromParent(folder, userId);
+    await _linkToParent(folder, newParentFolder, userId);
+  }  
 
-    await folder.save();
-  } catch(err) {
-    throw new AppError(`Cannot update folder _id=${folderId}: ${err.message}`);
-  }
+  folder.name = name;
+  folder.isActive = isActive;
+  folder.parentId = parentId;
+  folder.updatedBy = userId;
+
+  await folder.save();
 
   return folder;
 }
 
-async function $delete(folderId, userId) {
-  const folder = await readOne(folderId, userId);
+async function deleteFolder(req) {
+  const folderId = req.params.id;
+  const { userId } = req.user;
+
+  const folder = await readOneFolder(folderId, userId);
   if (!folder) {
     return 0;
   }
 
   // Can't delete an active folder.
   if (folder.isActive) {
-    throw new AppError("Cannot delete a folder unless it is marked as inactive");
+    throw new AppError(errorMessages.delete, "Cannot delete a folder unless it is marked as inactive");
   }
 
   // Unlink from parent
   await _unlinkFromParent(folder, userId);
 
   // Find _id for all that need to be deleted
-  const allFolders = await readMany(userId);
+  const allFolders = await readAllFolders(userId);
   const folderMap = _makeFolderMap(allFolders);
 
   const idList = [];
@@ -140,7 +178,7 @@ async function $delete(folderId, userId) {
   try {
     result = await folderSchema.deleteMany({ userId, _id: { $in: idList }});
   } catch(err) {
-    throw new AppError(`Error deleting folder _id=${folderId} name=${folder.name}: ${err.message}`);
+    throw new AppError(errorMessages.delete, `Error deleting folder _id=${folderId} name=${folder.name}: ${err.message}`);
   }
 
   return (result && result.deletedCount) || 0;
@@ -169,7 +207,7 @@ async function _unlinkFromParent(folder, userId) {
     return;
   }
 
-  const parentFolder = await readOne(folder.parentId, userId);
+  const parentFolder = await readOneFolder(folder.parentId, userId);
   if (!parentFolder) {
     //console.log(`UNLINK: cannot find parent of folder "${folder.name}".  parentId=${folder.parentId}`);
     return;
@@ -181,7 +219,7 @@ async function _unlinkFromParent(folder, userId) {
     await parentFolder.save();
     //console.log(`UNLINK: children after ${JSON.stringify(parentFolder.childrenIds)}`);
   } catch (err) {
-    throw new AppError(`Error unlinking from parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
+    throw new AppError(errorMessages.general, `Error unlinking from parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
   }
 }
 
@@ -199,14 +237,16 @@ async function _linkToParent(childFolder, parentFolder, userId) {
     parentFolder.updatedBy = userId;
     await parentFolder.save();
   } catch (err) {
-    throw new AppError(`Error linking to parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
+    throw new AppError(errorMessages.general, `Error linking to parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
   } 
 }
 
 module.exports = {
-  create,
-  readMany,
-  readOne,
-  update,
-  delete: $delete
+  createFolder,
+  readFolderTree,
+  readAllFolders,
+  readOneFolder,
+  updateFolder,
+  deleteFolder,
+  errorMessages
 };

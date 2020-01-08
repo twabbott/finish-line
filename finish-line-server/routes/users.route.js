@@ -2,10 +2,6 @@ const express = require("express");
 const router = express.Router();
 
 const { getAllUsers, getOneUser, createUser, putUser, deleteUser } = require("../controllers/users.ctrl");
-const { validateToken } = require("../middleware/auth");
-
-// Require authorization
-router.use(validateToken);
 
 router.get("/v1/users", getAllUsers);
 router.get("/v1/users/:id", getOneUser);

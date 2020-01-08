@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
 const config = require("../config");
 
+const { UnauthorizedError, handleErrors } = require("../middleware/restFactory");
+
 const challengeOptions = {
   scheme: "Bearer",
   realm: "Finish line"
@@ -12,14 +14,12 @@ function validateToken(req, res, next) {
 
   // if no token found, return response (without going to the next middelware)
   if (!token) {
-    res.unauthorized(challengeOptions, "User not authenticated.");
-    return;
+    throw new UnauthorizedError("User not authenticated.", challengeOptions);
   }
 
   // Remove "Bearer" from string
   if (!token.startsWith("Bearer ")) {
-    res.unauthorized(challengeOptions, "Bearer token expected.");
-    return;
+    throw new UnauthorizedError("Bearer token expected.", challengeOptions);
   }
 
   try {
@@ -27,16 +27,17 @@ function validateToken(req, res, next) {
     token = token.slice(7, token.length);
     const decoded = jwt.verify(token, config.jwtSecret);
     req.user = decoded;
-    next();
   } catch (ex) {
     // if invalid token
-    res.unauthorized(challengeOptions, "Invalid token.");
+    throw new UnauthorizedError("Invalid token.", challengeOptions);
   }
+
+  next();
 }
 
 module.exports = {
-  validateToken
+  validateToken: [
+    validateToken,
+    handleErrors
+  ]
 };
-
-
-
