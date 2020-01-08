@@ -2,7 +2,7 @@ const vet = require("../middleware/vet");
 
 const { readFolderTree, createFolder, readOneFolder, updateFolder, deleteFolder, errorMessages } = require("../services/folder.service");
 const { createMap } = require("../middleware/automapper");
-const { serviceWrapper, getResponse, postResponse, putResponse, deleteResponse } = require("../middleware/restFactory");
+const { asyncServiceWrapper, getResponse, postResponse, putResponse, deleteResponse } = require("../middleware/restFactory");
 const { handleValidationErrors, handleMongoErrors } = require("../middleware/errorHandlers");
 
 const cleanup = createMap([
@@ -32,13 +32,13 @@ const validateFolderInfo = [
 
 module.exports = {
   getAllFolders: [
-    serviceWrapper(readFolderTree),
+    asyncServiceWrapper(readFolderTree),
     handleMongoErrors(errorMessages.read),
     getResponse
   ],
   
   getOneFolder: [
-    serviceWrapper(readOneFolder),
+    asyncServiceWrapper(readOneFolder),
     handleMongoErrors(errorMessages.read),
     cleanup.mapScalar,
     getResponse
@@ -46,7 +46,7 @@ module.exports = {
     
   postFolder: [
     validateFolderInfo,
-    serviceWrapper(createFolder),
+    asyncServiceWrapper(createFolder),
     handleMongoErrors(errorMessages.post),
     cleanup.mapScalar,
     postResponse
@@ -54,14 +54,14 @@ module.exports = {
 
   putFolder: [
     validateFolderInfo,
-    serviceWrapper(updateFolder),
+    asyncServiceWrapper(updateFolder),
     handleMongoErrors(errorMessages.update),
     cleanup.mapScalar,
     putResponse
   ],
 
   deleteFolder: [
-    serviceWrapper(deleteFolder),
+    asyncServiceWrapper(deleteFolder),
     handleMongoErrors(errorMessages.delete),
     deleteResponse
   ]

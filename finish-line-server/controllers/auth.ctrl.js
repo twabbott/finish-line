@@ -1,6 +1,6 @@
 const vet = require("../middleware/vet");
 const { handleMongoErrors, handleValidationErrors } = require("../middleware/errorHandlers");
-const { serviceWrapper, postResponse } = require("../middleware/restFactory");
+const { asyncServiceWrapper, postResponse } = require("../middleware/restFactory");
 const regex = require("../shared/regex");
 const { signinService } = require("../services/auth.service");
 
@@ -24,7 +24,7 @@ const validateSignin = [
 module.exports = {
   signin: [
     validateSignin,
-    serviceWrapper(signinService),
+    asyncServiceWrapper(signinService),
     handleMongoErrors("Error logging in"),
     postResponse
   ]

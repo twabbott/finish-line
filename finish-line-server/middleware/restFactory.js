@@ -16,7 +16,7 @@ function trace(message) {
   }
 }
 
-/* serviceWrapper()
+/* asyncServiceWrapper()
  *     Use this function to wrap an async call to a service and generate a middleware.
  *       - If your service is successful, it shouild set result.data (and  
  *         optionally result.message or result.id).
@@ -26,19 +26,22 @@ function trace(message) {
  *       - If there is a permissions problem, throw a ForbiddenError.
  *       - Do not catch any unexpected exceptions.  Let restFactory handle them.
  */
-function serviceWrapper(service) {
-  return async function (req, res, next) {
+function asyncServiceWrapper(service) {
+  return function (req, res, next) {
     const state = {};
 
-    const data = await service(req, state);
+    service(req, state)
+      .then(data => {
+        Object.assign(res.locals, state);
 
-    Object.assign(res.locals, state);
-
-    if (data !== null && data !== undefined) {
-      res.locals.data = data;
-    }
-
-    next();
+        if (data !== null && data !== undefined) {
+          res.locals.data = data;
+          next();
+        } else {
+          next(new NotFoundError());
+        }
+      })
+      .catch(err => next(err));
   };
 }
 
@@ -180,7 +183,7 @@ function handleErrors(err, req, res, next) { // eslint-disable-line
 
 module.exports = {
   init,
-  serviceWrapper,
+  asyncServiceWrapper,
   AppError,
   UnauthorizedError,
   ForbiddenError,

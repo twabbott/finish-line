@@ -11,8 +11,16 @@ const usersRouter = require("./users.route");
 
 const { validateToken } = require("../middleware/auth");
 
+// Repartee config
 const { responses } = require("../middleware/repartee");
 router.use(responses());
+
+// restFactory config
+const restFactory = require("../middleware/restFactory");
+restFactory.init({
+  errorLogger: err => console.trace(err),
+  traceOn: true
+});
 
 // Add all public routes
 router.use(authRouter);
@@ -30,9 +38,12 @@ router.use(
 // All static routes
 router.use(express.static(path.join(__dirname, "public")));
 
-// Generic not-found router
-router.use(function(req, res) {
-  res.notFound();
-});  
+// Catch-all error handlers
+router.use(
+  function(req, res) {
+    res.notFound();
+  },
+  restFactory.handleErrors
+);  
 
 module.exports = router;

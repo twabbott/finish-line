@@ -26,7 +26,7 @@ function handleMongoErrors(message = "Unable to process request") {
     if (err instanceof mongoose.Error) {
       switch (err.name) {
         case "CastError":
-          description = `Value "${err.stringValue}" must be a valid "${err.kind}".`;
+          description = `Value ${err.stringValue} must be a valid ${err.kind}.`;
           break;
 
         default:

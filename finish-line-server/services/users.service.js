@@ -4,8 +4,8 @@ const passwords = require("../security/passwords");
 const { AppError } = require("../middleware/restFactory");
 
 
-async function create(props, locals) {
-  const { name, email, password, isAdmin, isActive } = props.data;
+async function createUser(req, locals) {
+  const { name, email, password, isAdmin, isActive } = req.body;
 
   let newItem = new userSchema({
     name,
@@ -22,12 +22,12 @@ async function create(props, locals) {
   return newItem;
 }
 
-async function readAll() {
+async function readAllUsers() {
   return await userSchema.find();
 }
 
-async function readOne(props) {
-  const { id } = props.params;
+async function readOneUser(req) {
+  const { id } = req.params;
   if (!mongodb.ObjectID.isValid(id)) {
     return null;
   }
@@ -35,13 +35,15 @@ async function readOne(props) {
   return await userSchema.findById(id);
 }
 
-async function update(props) {
-  const item = await readOne(props);
+async function updateUser(req) {
+  console.log("Update user = begin");
+  const item = await readOneUser(req);
   if (!item) {
+    console.log("Update user = not found");
     return null;
   }
 
-  const { name, email, password, newPassword, isAdmin, isActive } = props.data;
+  const { name, email, password, newPassword, isAdmin, isActive } = req.data;
   item.name = name;
   item.email = email;
   if (newPassword) {
@@ -55,11 +57,12 @@ async function update(props) {
   item.isActive = isActive;
 
   await item.save();
+  console.log("Update user = done");
   return item;
 }
 
-async function deleteOne(props, state) {
-  const { id } = props.params;
+async function deleteUser(req, state) {
+  const { id } = req.params;
 
   if (!mongodb.ObjectID.isValid(id)) {
     return null;
@@ -76,9 +79,9 @@ async function deleteOne(props, state) {
 }
 
 module.exports = {
-  create,
-  readOne,
-  readAll,
-  update,
-  deleteOne
+  createUser,
+  readOneUser,
+  readAllUsers,
+  updateUser,
+  deleteUser
 };
