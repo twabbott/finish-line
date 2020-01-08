@@ -21,11 +21,18 @@ const cleanup = createMap([
 
 const validateFolderInfo = [
   vet({
-    name: { type: String, required: true },
-    parentId: { type: String, required: false, default: null },
-    childrenIds: { type: Array, ofType: String, required: false },
-    projectIds: {type: Array, ofType: String, required: false },
-    isActive: { type: Boolean, default: false },
+    name: { 
+      type: String, 
+      required: true 
+    },
+    parentId: { 
+      type: String, 
+      default: null
+    },
+    isActive: { 
+      type: Boolean, 
+      default: true 
+    },
   }),
   handleValidationErrors("Invalid folder info.")
 ];

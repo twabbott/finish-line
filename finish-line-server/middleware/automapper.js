@@ -52,29 +52,29 @@ function createMap(map) {
   function mapScalar(req, res, next) {
     //console.log("autoMapper - start");
 
-    if (!res.locals || !res.locals.result || typeof res.locals.result !== "object") {
+    if (!res.locals || !res.locals.data || typeof res.locals.data !== "object") {
       //console.log("autoMapper - nothing to do");
       next();
       return;
     }
 
-    res.locals.result = mapObject(res.locals.result);
+    res.locals.data = mapObject(res.locals.data);
     //console.log("autoMapper = done");
     next();
   }
 
   function mapArray(req, res, next) {
-    if (!res.locals || !res.locals.result || typeof res.locals.result !== "object") {
+    if (!res.locals || !res.locals.data || typeof res.locals.data !== "object") {
       //console.log("autoMapper - nothing to do");
       next();
       return;
     }
 
     const outArray = [];
-    for (let item of res.locals.result) {
+    for (let item of res.locals.data) {
       outArray.push(mapObject(item));
     }
-    res.locals.result = outArray;
+    res.locals.data = outArray;
     //console.log("autoMapper = done");
     next();
   }

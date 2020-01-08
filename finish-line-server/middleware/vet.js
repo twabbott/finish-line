@@ -80,7 +80,7 @@ const defaultMessages = {
 };
 
 function validatePrimitiveType(value, key, errors, expectedType) {
-  if (typeof value !== expectedType) {
+  if (typeof value !== expectedType && value !== null) {
     errors.push(defaultMessages[expectedType](key));
     return false;
   }

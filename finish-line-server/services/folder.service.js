@@ -18,7 +18,7 @@ async function createFolder(req) {
 
   let parentFolder = null; 
   if (parentId) {
-    parentFolder =  await readOneFolder(parentId, userId);
+    parentFolder =  await _findFolder(parentId, userId);
     if (!parentFolder) {
       throw new AppError(errorMessages.create, `Folder with parentId=${parentId} not found.`);
     }
@@ -100,14 +100,7 @@ async function readAllFolders(req) {
 }
 
 async function readOneFolder(req) {
-  const folderId = req.params.id;
-  const userId = req.user.userId;
-
-  if (!mongodb.ObjectID.isValid(folderId)) {
-    return null;
-  }
-
-  return await folderSchema.findOne({ _id: folderId, userId: userId });
+  await _findFolder(req.params.id, req.user.userId);
 }
 
 async function updateFolder(req) {
@@ -115,7 +108,7 @@ async function updateFolder(req) {
   const { name, isActive, parentId } = req.body;
   const { userId } = req.user;
 
-  const folder = await readOneFolder(folderId, userId);
+  const folder = await _findFolder(folderId, userId);
   if (!folder) {
     return;
   }
@@ -127,7 +120,7 @@ async function updateFolder(req) {
         throw new AppError(errorMessages.update, "Cannot make a folder be its own parent.");
       }
 
-      newParentFolder =  await readOneFolder(parentId, userId);
+      newParentFolder =  await _findFolder(parentId, userId);
       if (!newParentFolder) {
         throw new AppError(errorMessages.update, `Folder with parentId=${parentId} not found.`);
       }
@@ -151,7 +144,7 @@ async function deleteFolder(req) {
   const folderId = req.params.id;
   const { userId } = req.user;
 
-  const folder = await readOneFolder(folderId, userId);
+  const folder = await _findFolder(folderId, userId);
   if (!folder) {
     return 0;
   }
@@ -165,7 +158,7 @@ async function deleteFolder(req) {
   await _unlinkFromParent(folder, userId);
 
   // Find _id for all that need to be deleted
-  const allFolders = await readAllFolders(userId);
+  const allFolders = await readAllFolders(req);
   const folderMap = _makeFolderMap(allFolders);
 
   const idList = [];
@@ -182,6 +175,14 @@ async function deleteFolder(req) {
   }
 
   return (result && result.deletedCount) || 0;
+}
+
+async function _findFolder(folderId, userId) {
+  if (!mongodb.ObjectID.isValid(folderId)) {
+    return null;
+  }
+
+  return await folderSchema.findOne({ _id: folderId, userId: userId });
 }
 
 function _makeFolderMap(allFolders) {  
@@ -207,7 +208,7 @@ async function _unlinkFromParent(folder, userId) {
     return;
   }
 
-  const parentFolder = await readOneFolder(folder.parentId, userId);
+  const parentFolder = await _findFolder(folder.parentId, userId);
   if (!parentFolder) {
     //console.log(`UNLINK: cannot find parent of folder "${folder.name}".  parentId=${folder.parentId}`);
     return;
