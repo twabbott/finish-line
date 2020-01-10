@@ -7,7 +7,7 @@ const { expect } = require("chai");
 const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 const vet = require("../../middleware/vet");
 
-describe("vet", () => {
+describe.only("vet", () => {
   function buildState(schema, body) {
     const mockReq = {
       body
@@ -34,6 +34,8 @@ describe("vet", () => {
   }
 
   describe("schema error checking", () => {
+    const { checkSchemaDefinition } = vet.utilities;
+
     describe("Basic checks", () => {
       it("should allow all supported types", () => {
         const schema = {
@@ -43,7 +45,7 @@ describe("vet", () => {
           date: Date
         };
   
-        expect(() => vet(schema)).to.not.throw();
+        expect(() => checkSchemaDefinition(schema)).to.not.throw();
       });
   
       it("constraints object should allow all supported types", () => {
@@ -54,7 +56,7 @@ describe("vet", () => {
           date: { type: Date }
         };
   
-        expect(() => vet(schema)).to.not.throw();
+        expect(() => checkSchemaDefinition(schema)).to.not.throw();
       });
   
       it("should throw error for undefined type", () => {
@@ -62,7 +64,7 @@ describe("vet", () => {
           testProp: undefined
         };
   
-        expect(() => vet(schema)).to.throw("Vet schema error for property testProp: constraints object expected.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: constraints object expected.");
       });
   
       it("should throw error for null type", () => {
@@ -70,7 +72,7 @@ describe("vet", () => {
           testProp: null
         };
   
-        expect(() => vet(schema)).to.throw("Vet schema error for property testProp: constraints object expected.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: constraints object expected.");
       });
   
       it("should throw error for unsupported types", () => {
@@ -78,7 +80,7 @@ describe("vet", () => {
           testProp: Symbol
         };
   
-        expect(() => vet(schema)).to.throw("Vet schema error for property testProp: expected primitive type, or Date, or constraints object.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: expected primitive type, or Date, or constraints object.");
       });
     });
 
@@ -89,7 +91,7 @@ describe("vet", () => {
             testProp: {}
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: constraints object must have property \"type\".");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: constraints object must have property \"type\".");
         });
         
         it("should throw error if type property is null", () => {
@@ -97,7 +99,7 @@ describe("vet", () => {
             testProp: { type: null }
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: constraints object has invalid/unsupported value for constraint \"type\".");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: constraints object has invalid/unsupported value for constraint \"type\".");
         });
         
         it("should throw error if value for type property is invalid", () => {
@@ -105,7 +107,7 @@ describe("vet", () => {
             testProp: { type: 4 }
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: constraints object has invalid/unsupported value for constraint \"type\".");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: constraints object has invalid/unsupported value for constraint \"type\".");
         });
       });
 
@@ -130,7 +132,7 @@ describe("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.not.throw();
+          expect(() => checkSchemaDefinition(schema)).to.not.throw();
         });
 
         it("should throw error if default testProp for Boolean is invalid type", () => {
@@ -141,7 +143,7 @@ describe("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a boolean.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a boolean.");
         });
 
         it("should throw error if default testProp for Number is invalid type", () => {
@@ -152,7 +154,7 @@ describe("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a number.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a number.");
         });
 
         it("should throw error if default testProp for String is invalid type", () => {
@@ -163,7 +165,7 @@ describe("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a string.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a string.");
         });
 
         it("should throw error if default testProp for Date is not a string", () => {
@@ -174,7 +176,7 @@ describe("vet", () => {
             }
           };
     
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a string.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a string.");
         });
 
         it("should throw error if default testProp for Date is not a valid date string", () => {
@@ -185,7 +187,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a valid date string.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"default\" must be a valid date string.");
         });        
       });
 
@@ -198,7 +200,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value must be either true or false");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value must be either true or false");
         });
 
         it("should throw an error if min is not a number", () => {
@@ -209,7 +211,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"min\" must be a number");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"min\" must be a number");
         });
 
         it("should throw an error if max is not a number", () => {
@@ -220,7 +222,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("et schema error for property testProp: value for constraint \"max\" must be a number.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("et schema error for property testProp: value for constraint \"max\" must be a number.");
         });
 
         it("should throw an error if min > max", () => {
@@ -232,7 +234,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: min constraint cannot be greater than max constraint.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: min constraint cannot be greater than max constraint.");
         });
       });
 
@@ -245,7 +247,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"toLowerCase\" must be either true or false");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"toLowerCase\" must be either true or false");
         });
 
         it("should throw an error if toUpperCase is not a boolean", () => {
@@ -256,7 +258,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"toUpperCase\" must be either true or false");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"toUpperCase\" must be either true or false");
         });
 
         it("should throw an error if both toLowerCase and toUpperCase are specified", () => {
@@ -268,7 +270,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: cannot have both toLowerCase and toUpperCase set to true.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: cannot have both toLowerCase and toUpperCase set to true.");
         });
 
         it("should throw an error if trim is not a boolean", () => {
@@ -279,7 +281,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"trim\" must be either true or false");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"trim\" must be either true or false");
         });
 
         it("should throw an error if minLength is not a number", () => {
@@ -290,7 +292,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"minLength\" must be a number.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"minLength\" must be a number.");
         });
 
         it("should throw an error if maxLength is not a number", () => {
@@ -301,7 +303,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"maxLength\" must be a number.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"maxLength\" must be a number.");
         });
 
         it("should throw an error if minLength > maxLength", () => {
@@ -313,7 +315,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"minLength\" cannot be greater than \"maxLength\".");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"minLength\" cannot be greater than \"maxLength\".");
         });
 
         it("should throw an error if match property is not a regex (use number)", () => {
@@ -324,7 +326,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: Value for constraint \"match\" must be a regular expression.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: Value for constraint \"match\" must be a regular expression.");
         });
 
         it("should throw an error if match property is not a regex (use null)", () => {
@@ -335,7 +337,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: Value for constraint \"match\" must be a regular expression.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: Value for constraint \"match\" must be a regular expression.");
         });
 
         it("should throw an error if match property is not a regex (use number)", () => {
@@ -346,7 +348,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: Value for constraint \"match\" must be a regular expression.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: Value for constraint \"match\" must be a regular expression.");
         });
       });
 
@@ -359,7 +361,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"min\" must be a valid date string");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"min\" must be a valid date string");
         });
 
         it("should throw an error if max is not a date string", () => {
@@ -370,7 +372,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"max\" must be a valid date string.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"max\" must be a valid date string.");
         });
 
         it("should throw an error if min > max", () => {
@@ -382,7 +384,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: min constraint cannot be greater than max constraint.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: min constraint cannot be greater than max constraint.");
         });
       });
 
@@ -395,7 +397,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: property \"values\" must be an array.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: property \"values\" must be an array.");
         });
 
         it("Should throw an error if values do not match type", () => {
@@ -406,7 +408,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property testProp: value for constraint \"values\" must be a number.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property testProp: value for constraint \"values\" must be a number.");
         });
       });
 
@@ -420,7 +422,7 @@ describe("vet", () => {
             }
           };
 
-          expect(() => vet(schema)).to.throw("Vet schema error for property test: value for constraint \"validate\" must be a function.");
+          expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property test: value for constraint \"validate\" must be a function.");
         });
       });
     });
@@ -433,7 +435,7 @@ describe("vet", () => {
           }
         };
 
-        expect(() => vet(schema)).to.throw("Vet schema error for property profile: when type is Object, property \"schema\" is required.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property profile: when type is Object, property \"schema\" is required.");
       });
 
       it("should throw an error if schema property is null", () => {
@@ -444,7 +446,7 @@ describe("vet", () => {
           }
         };
 
-        expect(() => vet(schema)).to.throw("Vet schema error for property profile: Invalid schema definition, schema must be an object.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property profile: Invalid schema definition, schema must be an object.");
       });
 
       it("should throw an error if schema property is an array", () => {
@@ -455,7 +457,7 @@ describe("vet", () => {
           }
         };
 
-        expect(() => vet(schema)).to.throw("Vet schema error for property profile: Invalid schema definition, schema must be an object.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property profile: Invalid schema definition, schema must be an object.");
       });
 
       it("should throw an error if schema property is a string", () => {
@@ -466,7 +468,7 @@ describe("vet", () => {
           }
         };
 
-        expect(() => vet(schema)).to.throw("Vet schema error for property profile: Invalid schema definition, schema must be an object.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property profile: Invalid schema definition, schema must be an object.");
       });
 
       it("should throw an error if default constraint is not null (default can only be null)", () => {
@@ -482,7 +484,7 @@ describe("vet", () => {
           }
         };
 
-        expect(() => vet(schema)).to.throw("Vet schema error for property profile: when type is Object, property \"default\" may only have a value of null.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property profile: when type is Object, property \"default\" may only have a value of null.");
       });
     });
 
@@ -507,7 +509,7 @@ describe("vet", () => {
           }
         };
 
-        expect(() => vet(schema)).to.not.throw();
+        expect(() => checkSchemaDefinition(schema)).to.not.throw();
       });
 
       it("should throw an error if ofType property is missing", () => {
@@ -517,7 +519,7 @@ describe("vet", () => {
           }
         };
 
-        expect(() => vet(schema)).to.throw("Vet schema error for property fibonacci: when type is Array, property \"ofType\" is required.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property fibonacci: when type is Array, property \"ofType\" is required.");
       });
 
       it ("should allow ofType: Object, with a schema property", () => {
@@ -533,7 +535,7 @@ describe("vet", () => {
           }
         };
   
-        expect(() => vet(schema)).to.not.throw();
+        expect(() => checkSchemaDefinition(schema)).to.not.throw();
       });
 
       it ("should reject maxLength property if type is not number", () => {
@@ -545,7 +547,7 @@ describe("vet", () => {
           }
         };
   
-        expect(() => vet(schema)).to.throw("Vet schema error for property primes: property \"maxLength\" must be a number.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property primes: property \"maxLength\" must be a number.");
       });
 
       it ("should reject maxLength property if value < 0", () => {
@@ -557,7 +559,7 @@ describe("vet", () => {
           }
         };
   
-        expect(() => vet(schema)).to.throw("Vet schema error for property primes: property \"maxLength\" cannot be less than zero.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property primes: property \"maxLength\" cannot be less than zero.");
       });
 
       it ("should reject minLength property if type is not number", () => {
@@ -569,7 +571,7 @@ describe("vet", () => {
           }
         };
   
-        expect(() => vet(schema)).to.throw("Vet schema error for property primes: property \"minLength\" must be a number.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property primes: property \"minLength\" must be a number.");
       });
 
       it ("should reject minLength property if value < 0", () => {
@@ -581,7 +583,7 @@ describe("vet", () => {
           }
         };
   
-        expect(() => vet(schema)).to.throw("Vet schema error for property primes: property \"minLength\" cannot be less than zero.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property primes: property \"minLength\" cannot be less than zero.");
       });
 
       it ("should reject minLength if value > maxLength", () => {
@@ -594,12 +596,13 @@ describe("vet", () => {
           }
         };
   
-        expect(() => vet(schema)).to.throw("Vet schema error for property primes: property \"minLength\" cannot be greater than maxLength.");
+        expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property primes: property \"minLength\" cannot be greater than maxLength.");
       });
     });
   });
 
   describe("validation for individual props", () => {
+    const { validateObjectProperties } = vet.utilities;
     describe("boolean", () => {
       it("should validate value of either true or false", () => {
         const schema = {
@@ -612,14 +615,14 @@ describe("vet", () => {
           isMale: false
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
   
-        expect(req.body).to.be.ok;
-        expect(Object.keys(req.body).length).to.equal(2);
-        expect(req.body.isVeteran).to.be.true;
-        expect(req.body.isMale).to.be.false;
+        expect(value).to.be.ok;
+        expect(Object.keys(value).length).to.equal(2);
+        expect(value.isVeteran).to.be.true;
+        expect(value.isMale).to.be.false;
       });
 
       it("should reject any value not a Boolean", () => {
@@ -633,11 +636,11 @@ describe("vet", () => {
           isMale: "Hello, world!"
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expect(res.locals.errors.length).to.equal(2);
-        expect(res.locals.errors[0]).to.equal("Property \"isVeteran\" must be either true or false.");
-        expect(res.locals.errors[1]).to.equal("Property \"isMale\" must be either true or false.");
+        expect(errors.length).to.equal(2);
+        expect(errors[0]).to.equal("Property \"isVeteran\" must be either true or false.");
+        expect(errors[1]).to.equal("Property \"isMale\" must be either true or false.");
       });
 
       describe("with constraints", () => {
@@ -656,13 +659,13 @@ describe("vet", () => {
             isMale: false
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
     
-          expect(Object.keys(req.body).length).to.equal(2);
-          expect(req.body.isVeteran).to.be.true;
-          expect(req.body.isMale).to.be.false;
+          expect(Object.keys(value).length).to.equal(2);
+          expect(value.isVeteran).to.be.true;
+          expect(value.isMale).to.be.false;
         });
 
         it("should give a default value when property is missing", () => {
@@ -680,13 +683,13 @@ describe("vet", () => {
           const body = {
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
     
-          expect(Object.keys(req.body).length).to.equal(2);
-          expect(req.body.isVeteran).to.be.true;
-          expect(req.body.isMale).to.be.false;
+          expect(Object.keys(value).length).to.equal(2);
+          expect(value.isVeteran).to.be.true;
+          expect(value.isMale).to.be.false;
         });
 
         it("should give an error for a required property", () => {
@@ -704,11 +707,11 @@ describe("vet", () => {
           const body = {
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expect(res.locals.errors.length).to.equal(2);
-          expect(res.locals.errors[0]).to.equal("Property \"isVeteran\" is required.");
-          expect(res.locals.errors[1]).to.equal("Property \"isMale\" is required.");
+          expect(errors.length).to.equal(2);
+          expect(errors[0]).to.equal("Property \"isVeteran\" is required.");
+          expect(errors[1]).to.equal("Property \"isMale\" is required.");
         });
       });
     });
@@ -725,13 +728,13 @@ describe("vet", () => {
           weight: 123.45
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
   
-        expect(Object.keys(req.body).length).to.equal(2);
-        expect(req.body.age).to.be.equal(25);
-        expect(req.body.weight).to.be.equal(123.45);
+        expect(Object.keys(value).length).to.equal(2);
+        expect(value.age).to.be.equal(25);
+        expect(value.weight).to.be.equal(123.45);
       });
 
       it("should reject any value not a Number", () => {
@@ -745,11 +748,11 @@ describe("vet", () => {
           weight: "Hello, world!"
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expect(res.locals.errors.length).to.equal(2);
-        expect(res.locals.errors[0]).to.equal("Property \"age\" must be a number.");
-        expect(res.locals.errors[1]).to.equal("Property \"weight\" must be a number.");
+        expect(errors.length).to.equal(2);
+        expect(errors[0]).to.equal("Property \"age\" must be a number.");
+        expect(errors[1]).to.equal("Property \"weight\" must be a number.");
       });
 
       describe("with constraints", () => {
@@ -768,13 +771,13 @@ describe("vet", () => {
             weight: 123.45
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
     
-          expect(Object.keys(req.body).length).to.equal(2);
-          expect(req.body.age).to.be.equal(25);
-          expect(req.body.weight).to.be.equal(123.45);
+          expect(Object.keys(value).length).to.equal(2);
+          expect(value.age).to.be.equal(25);
+          expect(value.weight).to.be.equal(123.45);
         });
 
         it("should give a default value when property is missing", () => {
@@ -792,13 +795,13 @@ describe("vet", () => {
           const body = {
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
     
-          expect(Object.keys(req.body).length).to.equal(2);
-          expect(req.body.age).to.be.equal(25);
-          expect(req.body.weight).to.be.equal(123.45);
+          expect(Object.keys(value).length).to.equal(2);
+          expect(value.age).to.be.equal(25);
+          expect(value.weight).to.be.equal(123.45);
         });
 
         it("should give an error for a required property", () => {
@@ -816,11 +819,11 @@ describe("vet", () => {
           const body = {
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expect(res.locals.errors.length).to.equal(2);
-          expect(res.locals.errors[0]).to.equal("Property \"age\" is required.");
-          expect(res.locals.errors[1]).to.equal("Property \"weight\" is required.");
+          expect(errors.length).to.equal(2);
+          expect(errors[0]).to.equal("Property \"age\" is required.");
+          expect(errors[1]).to.equal("Property \"weight\" is required.");
         });
 
         it("should truncate a real number to an integer", () => {
@@ -844,14 +847,14 @@ describe("vet", () => {
             untouchedVal: 3.14159
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
     
-          expect(Object.keys(req.body).length).to.equal(3);
-          expect(req.body.intVal).to.be.equal(3.0);
-          expect(req.body.floatVal).to.be.equal(3.14159);
-          expect(req.body.untouchedVal).to.be.equal(3.14159);
+          expect(Object.keys(value).length).to.equal(3);
+          expect(value.intVal).to.be.equal(3.0);
+          expect(value.floatVal).to.be.equal(3.14159);
+          expect(value.untouchedVal).to.be.equal(3.14159);
         });
 
         it("should give an error for a value below min constraint", () => {
@@ -871,11 +874,11 @@ describe("vet", () => {
             weight: 100
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expect(res.locals.errors.length).to.equal(2);
-          expect(res.locals.errors[0]).to.equal("Property \"age\" is below the minimum value of 18.");
-          expect(res.locals.errors[1]).to.equal("Property \"weight\" is below the minimum value of 160.");
+          expect(errors.length).to.equal(2);
+          expect(errors[0]).to.equal("Property \"age\" is below the minimum value of 18.");
+          expect(errors[1]).to.equal("Property \"weight\" is below the minimum value of 160.");
         });
 
         it("should give an error for a value above max constraint", () => {
@@ -895,11 +898,11 @@ describe("vet", () => {
             weight: 300
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expect(res.locals.errors.length).to.equal(2);
-          expect(res.locals.errors[0]).to.equal("Property \"age\" is above the maximum value of 18.");
-          expect(res.locals.errors[1]).to.equal("Property \"weight\" is above the maximum value of 290.");
+          expect(errors.length).to.equal(2);
+          expect(errors[0]).to.equal("Property \"age\" is above the maximum value of 18.");
+          expect(errors[1]).to.equal("Property \"weight\" is above the maximum value of 290.");
         });
 
         it("should validate an integer within the min and max values", () => {
@@ -921,13 +924,13 @@ describe("vet", () => {
             weight: 123.45
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
     
-          expect(Object.keys(req.body).length).to.equal(2);
-          expect(req.body.age).to.be.equal(25);
-          expect(req.body.weight).to.be.equal(123.45);
+          expect(Object.keys(value).length).to.equal(2);
+          expect(value.age).to.be.equal(25);
+          expect(value.weight).to.be.equal(123.45);
         });
   
         it("should give an error for a value not in the array of acceptable values", () => {
@@ -947,11 +950,11 @@ describe("vet", () => {
             weight: 300
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expect(res.locals.errors.length).to.equal(2);
-          expect(res.locals.errors[0]).to.equal("Property \"age\" has an invalid value of 25.");
-          expect(res.locals.errors[1]).to.equal("Property \"weight\" has an invalid value of 300.");
+          expect(errors.length).to.equal(2);
+          expect(errors[0]).to.equal("Property \"age\" has an invalid value of 25.");
+          expect(errors[1]).to.equal("Property \"weight\" has an invalid value of 300.");
         });
 
         it("should validate an integer within a set of values", () => {
@@ -971,13 +974,13 @@ describe("vet", () => {
             flag: 128
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
     
-          expect(Object.keys(req.body).length).to.equal(2);
-          expect(req.body.prime).to.be.equal(7);
-          expect(req.body.flag).to.be.equal(128);
+          expect(Object.keys(value).length).to.equal(2);
+          expect(value.prime).to.be.equal(7);
+          expect(value.flag).to.be.equal(128);
         });
       });
     });
@@ -994,13 +997,13 @@ describe("vet", () => {
           lastName: "Jenkins"
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
 
-        expect(Object.keys(req.body).length).to.equal(2);
-        expect(req.body.firstName).to.be.equal("Leroy");
-        expect(req.body.lastName).to.be.equal("Jenkins");
+        expect(Object.keys(value).length).to.equal(2);
+        expect(value.firstName).to.be.equal("Leroy");
+        expect(value.lastName).to.be.equal("Jenkins");
       });
 
       it("should reject any value not a Number", () => {
@@ -1014,11 +1017,11 @@ describe("vet", () => {
           lastName: true
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expect(res.locals.errors.length).to.equal(2);
-        expect(res.locals.errors[0]).to.equal("Property \"firstName\" must be a string.");
-        expect(res.locals.errors[1]).to.equal("Property \"lastName\" must be a string.");
+        expect(errors.length).to.equal(2);
+        expect(errors[0]).to.equal("Property \"firstName\" must be a string.");
+        expect(errors[1]).to.equal("Property \"lastName\" must be a string.");
       });
 
       describe("with constraints", () => {
@@ -1043,14 +1046,14 @@ describe("vet", () => {
             test3: "AaBbCcDd"
           };
   
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
   
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
   
-          expect(Object.keys(req.body).length).to.equal(3);
-          expect(req.body.test1).to.be.equal("aabbccdd");
-          expect(req.body.test2).to.be.equal("AaBbCcDd");
-          expect(req.body.test3).to.be.equal("AaBbCcDd");
+          expect(Object.keys(value).length).to.equal(3);
+          expect(value.test1).to.be.equal("aabbccdd");
+          expect(value.test2).to.be.equal("AaBbCcDd");
+          expect(value.test3).to.be.equal("AaBbCcDd");
         });
 
         it("should handle the toUpperCase property", () => {
@@ -1074,14 +1077,14 @@ describe("vet", () => {
             test3: "AaBbCcDd"
           };
   
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
   
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
   
-          expect(Object.keys(req.body).length).to.equal(3);
-          expect(req.body.test1).to.be.equal("AABBCCDD");
-          expect(req.body.test2).to.be.equal("AaBbCcDd");
-          expect(req.body.test3).to.be.equal("AaBbCcDd");
+          expect(Object.keys(value).length).to.equal(3);
+          expect(value.test1).to.be.equal("AABBCCDD");
+          expect(value.test2).to.be.equal("AaBbCcDd");
+          expect(value.test3).to.be.equal("AaBbCcDd");
         });
 
         it("should handle the trim property", () => {
@@ -1105,14 +1108,14 @@ describe("vet", () => {
             test3: "\t test\r\n ",
           };
   
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
   
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
   
-          expect(Object.keys(req.body).length).to.equal(3);
-          expect(req.body.test1).to.be.equal("test");
-          expect(req.body.test2).to.be.equal("\t test\r\n ");
-          expect(req.body.test3).to.be.equal("\t test\r\n ");
+          expect(Object.keys(value).length).to.equal(3);
+          expect(value.test1).to.be.equal("test");
+          expect(value.test2).to.be.equal("\t test\r\n ");
+          expect(value.test3).to.be.equal("\t test\r\n ");
         });
 
         it("should reject a string shorter than the minLength property", () => {
@@ -1127,10 +1130,10 @@ describe("vet", () => {
             test: "Tom",
           };
   
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
   
-          expect(res.locals.errors.length).to.equal(1);
-          expect(res.locals.errors[0]).to.equal("Property \"test\" must be at least 10 characters long.");
+          expect(errors.length).to.equal(1);
+          expect(errors[0]).to.equal("Property \"test\" must be at least 10 characters long.");
         });
 
         it("should reject a string longer than the maxLength property", () => {
@@ -1145,10 +1148,10 @@ describe("vet", () => {
             test: "The quick brown fox jumps over the lazy dogs.",
           };
   
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
   
-          expect(res.locals.errors.length).to.equal(1);
-          expect(res.locals.errors[0]).to.equal("Property \"test\" must be no more than 10 characters long.");
+          expect(errors.length).to.equal(1);
+          expect(errors[0]).to.equal("Property \"test\" must be no more than 10 characters long.");
         });
 
         it("should reject a string that does not match a regular expression", () => {
@@ -1163,10 +1166,10 @@ describe("vet", () => {
             test: "blarg",
           };
   
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
   
-          expect(res.locals.errors.length).to.equal(1);
-          expect(res.locals.errors[0]).to.equal("Value for property \"test\" is invalid.");
+          expect(errors.length).to.equal(1);
+          expect(errors[0]).to.equal("Value for property \"test\" is invalid.");
         });
 
         it("should accept a string that matches a regular expression", () => {
@@ -1181,12 +1184,12 @@ describe("vet", () => {
             test: "12345",
           };
   
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
   
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
   
-          expect(Object.keys(req.body).length).to.equal(1);
-          expect(req.body.test).to.be.equal("12345");
+          expect(Object.keys(value).length).to.equal(1);
+          expect(value.test).to.be.equal("12345");
         });
 
         it("should validate a string from an array of values", () => {
@@ -1206,13 +1209,13 @@ describe("vet", () => {
             color: "Red"
           };
   
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
   
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
   
-          expect(Object.keys(req.body).length).to.equal(2);
-          expect(req.body.weekend).to.be.equal("Sunday");
-          expect(req.body.color).to.be.equal("Red");
+          expect(Object.keys(value).length).to.equal(2);
+          expect(value.weekend).to.be.equal("Sunday");
+          expect(value.color).to.be.equal("Red");
         });
 
         it("should give an error for a value not in the array of acceptable values", () => {
@@ -1232,11 +1235,11 @@ describe("vet", () => {
             color: "Black"
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expect(res.locals.errors.length).to.equal(2);
-          expect(res.locals.errors[0]).to.equal("Property \"weekend\" has an invalid value of Monday.");
-          expect(res.locals.errors[1]).to.equal("Property \"color\" has an invalid value of Black.");
+          expect(errors.length).to.equal(2);
+          expect(errors[0]).to.equal("Property \"weekend\" has an invalid value of Monday.");
+          expect(errors[1]).to.equal("Property \"color\" has an invalid value of Black.");
         });
       });
     });
@@ -1253,13 +1256,13 @@ describe("vet", () => {
           endDate: "2010-06-30T00:00:00"
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
     
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
   
-        expect(Object.keys(req.body).length).to.equal(2);
-        expect(req.body.startDate).to.be.equal("1990-03-20T12:00:00");
-        expect(req.body.endDate).to.be.equal("2010-06-30T00:00:00");
+        expect(Object.keys(value).length).to.equal(2);
+        expect(value.startDate).to.be.equal("1990-03-20T12:00:00");
+        expect(value.endDate).to.be.equal("2010-06-30T00:00:00");
       });
 
       it("should reject any value not a Date string", () => {
@@ -1273,11 +1276,11 @@ describe("vet", () => {
           endDate: "Blarg!!!"
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expect(res.locals.errors.length).to.equal(2);
-        expect(res.locals.errors[0]).to.equal("Property \"startDate\" must be a string containing a date.");
-        expect(res.locals.errors[1]).to.equal("Property \"endDate\" does not contain a valid date string.");
+        expect(errors.length).to.equal(2);
+        expect(errors[0]).to.equal("Property \"startDate\" must be a string containing a date.");
+        expect(errors[1]).to.equal("Property \"endDate\" does not contain a valid date string.");
       });
 
       describe("With constraints", () => {
@@ -1293,10 +1296,10 @@ describe("vet", () => {
             test: "1977-01-01T12:00:00"
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expect(res.locals.errors.length).to.equal(1);
-          expect(res.locals.errors[0]).to.equal("Value for property \"test\" cannot have date earlier than \"1980-01-01T00:00:00\".");
+          expect(errors.length).to.equal(1);
+          expect(errors[0]).to.equal("Value for property \"test\" cannot have date earlier than \"1980-01-01T00:00:00\".");
         });
 
         it("should give an error for a date occurring after max constraint", () => {
@@ -1311,13 +1314,13 @@ describe("vet", () => {
             test: "2101-01-01T12:00:00"
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expect(res.locals.errors.length).to.equal(1);
-          expect(res.locals.errors[0]).to.equal("Value for property \"test\" cannot have date later than \"2100-01-01T00:00:00\".");
+          expect(errors.length).to.equal(1);
+          expect(errors[0]).to.equal("Value for property \"test\" cannot have date later than \"2100-01-01T00:00:00\".");
         });
 
-        it("should validate an date within the min and max values", () => {
+        it("should accept a date within the min and max values", () => {
           const schema = {
             test: { 
               type: Date,
@@ -1330,12 +1333,66 @@ describe("vet", () => {
             test: "2010-07-04T22:00:00"
           };
     
-          const [req, res] = buildState(schema, body);
+          const { value, errors } = validateObjectProperties(schema, body);
     
-          expectZeroErrors(res.locals.errors);
+          expectZeroErrors(errors);
     
-          expect(Object.keys(req.body).length).to.equal(1);
-          expect(req.body.test).to.be.equal("2010-07-04T22:00:00");
+          expect(Object.keys(value).length).to.equal(1);
+          expect(value.test).to.be.equal("2010-07-04T22:00:00");
+        });
+
+        it("should accept a date if no min/max constraints are given", () => {
+          const schema = {
+            test: { 
+              type: Date
+            }
+          };
+    
+          const body = {
+            test: "2010-07-04T22:00:00"
+          };
+    
+          const { value, errors } = validateObjectProperties(schema, body);
+    
+          expectZeroErrors(errors);
+    
+          expect(Object.keys(value).length).to.equal(1);
+          expect(value.test).to.be.equal("2010-07-04T22:00:00");
+        });
+
+        it("should ignore an optional date property, if not given", () => {
+          const schema = {
+            test: { 
+              type: Date
+            }
+          };
+    
+          const body = {
+          };
+    
+          const { value, errors } = validateObjectProperties(schema, body);
+    
+          expectZeroErrors(errors);
+          expect(Object.keys(value).length).to.equal(0);
+        });
+
+        it("should allow a value of null, if not required", () => {
+          const schema = {
+            test: { 
+              type: Date
+            }
+          };
+    
+          const body = {
+            test: null
+          };
+    
+          const { value, errors } = validateObjectProperties(schema, body);
+
+          expectZeroErrors(errors);
+    
+          expect(Object.keys(value).length).to.equal(1);
+          expect(value.test).to.be.null;
         });
       });
     });
@@ -1362,15 +1419,15 @@ describe("vet", () => {
           }
         };
   
-        const [req, res] = buildState(schema, body);
-        expectZeroErrors(res.locals.errors);
+        const { value, errors } = validateObjectProperties(schema, body);
+        expectZeroErrors(errors);
   
-        expect(Object.keys(req.body).length).to.equal(1);
-        expect(req.body.profile).to.be.ok;
-        expect(req.body.hasOwnProperty("profile")).to.be.true;
-        expect(req.body.profile.name).to.be.equal("Billy Bob");
-        expect(req.body.profile.age).to.be.equal(22);
-        expect(req.body.profile.isVeteran).to.be.equal(false);
+        expect(Object.keys(value).length).to.equal(1);
+        expect(value.profile).to.be.ok;
+        expect(value.hasOwnProperty("profile")).to.be.true;
+        expect(value.profile.name).to.be.equal("Billy Bob");
+        expect(value.profile.age).to.be.equal(22);
+        expect(value.profile.isVeteran).to.be.equal(false);
       });
 
       it("should ignore missing nested document if property is not required", () => {
@@ -1389,9 +1446,9 @@ describe("vet", () => {
         const body = {
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
       });
 
       it("should use null if { default: null } was specified", () => {
@@ -1410,13 +1467,13 @@ describe("vet", () => {
         const body = {
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
   
-        expect(Object.keys(req.body).length).to.equal(1);
-        expect(req.body.hasOwnProperty("profile")).to.be.true;
-        expect(req.body.profile).to.be.null;
+        expect(Object.keys(value).length).to.equal(1);
+        expect(value.hasOwnProperty("profile")).to.be.true;
+        expect(value.profile).to.be.null;
       });
 
       it("should allow null for nested document", () => {
@@ -1435,13 +1492,13 @@ describe("vet", () => {
           profile: null
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
   
-        expect(Object.keys(req.body).length).to.equal(1);
-        expect(req.body.hasOwnProperty("profile")).to.be.true;
-        expect(req.body.profile).to.be.null;
+        expect(Object.keys(value).length).to.equal(1);
+        expect(value.hasOwnProperty("profile")).to.be.true;
+        expect(value.profile).to.be.null;
       });
 
       it("should fail validation if required constraint is true", () => {
@@ -1460,10 +1517,10 @@ describe("vet", () => {
         const body = {
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expect(res.locals.errors.length).to.equal(1);
-        expect(res.locals.errors[0]).to.equal("Property \"profile\" is required.");
+        expect(errors.length).to.equal(1);
+        expect(errors[0]).to.equal("Property \"profile\" is required.");
       });
 
       it("should fail validation if required constraint is true, but null is given", () => {
@@ -1483,10 +1540,10 @@ describe("vet", () => {
           profile: null
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expect(res.locals.errors.length).to.equal(1);
-        expect(res.locals.errors[0]).to.equal("Property \"profile\" is required and may not be null.");
+        expect(errors.length).to.equal(1);
+        expect(errors[0]).to.equal("Property \"profile\" is required and may not be null.");
       });
 
       it("should fail validation if nested document is not an object", () => {
@@ -1505,10 +1562,10 @@ describe("vet", () => {
           profile: "wuuuut??"
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expect(res.locals.errors.length).to.equal(1);
-        expect(res.locals.errors[0]).to.equal("Property \"profile\" must contain a nested object.");
+        expect(errors.length).to.equal(1);
+        expect(errors[0]).to.equal("Property \"profile\" must contain a nested object.");
       });
     });
   
@@ -1526,15 +1583,15 @@ describe("vet", () => {
           fibonacci: [...fibs]
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
   
-        expect(Object.keys(req.body).length).to.equal(1);
-        expect(req.body.fibonacci).to.be.ok;
-        expect(req.body.hasOwnProperty("fibonacci")).to.be.true;
-        for (let i in req.body.fibonacci) {
-          expect(req.body.fibonacci[i]).to.equal(fibs[i]);
+        expect(Object.keys(value).length).to.equal(1);
+        expect(value.fibonacci).to.be.ok;
+        expect(value.hasOwnProperty("fibonacci")).to.be.true;
+        for (let i in value.fibonacci) {
+          expect(value.fibonacci[i]).to.equal(fibs[i]);
         }
       });
 
@@ -1550,10 +1607,10 @@ describe("vet", () => {
           fibonacci: [1, 2, 3, "whaaaat??"]
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expect(res.locals.errors.length).to.equal(1);
-        expect(res.locals.errors[0]).to.equal("Property \"fibonacci\" must have all elements of type number. See item at index 3.");
+        expect(errors.length).to.equal(1);
+        expect(errors[0]).to.equal("Property \"fibonacci\" must have all elements of type number. See item at index 3.");
       });
 
       it("should ignore missing array if property is not required", () => {
@@ -1567,8 +1624,8 @@ describe("vet", () => {
         const body = {
         };
   
-        const [req, res] = buildState(schema, body);
-        expectZeroErrors(res.locals.errors);
+        const { value, errors } = validateObjectProperties(schema, body);
+        expectZeroErrors(errors);
       });
 
       it("should fail validation if property value is not an array", () => {
@@ -1583,10 +1640,10 @@ describe("vet", () => {
           fibonacci: "whaaaat??"
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expect(res.locals.errors.length).to.equal(1);
-        expect(res.locals.errors[0]).to.equal("Property \"fibonacci\" must contain an array.");
+        expect(errors.length).to.equal(1);
+        expect(errors[0]).to.equal("Property \"fibonacci\" must contain an array.");
       });
 
       it("should fail validation if required constraint is true, but null is given", () => {
@@ -1602,10 +1659,10 @@ describe("vet", () => {
           fibonacci: null
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expect(res.locals.errors.length).to.equal(1);
-        expect(res.locals.errors[0]).to.equal("Property \"fibonacci\" is required and may not be null.");
+        expect(errors.length).to.equal(1);
+        expect(errors[0]).to.equal("Property \"fibonacci\" is required and may not be null.");
       });
 
       it("should allow null for array if no required constraint given", () => {
@@ -1620,13 +1677,13 @@ describe("vet", () => {
           fibonacci: null
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
   
-        expect(Object.keys(req.body).length).to.equal(1);
-        expect(req.body.hasOwnProperty("fibonacci")).to.be.true;
-        expect(req.body.fibonacci).to.be.null;
+        expect(Object.keys(value).length).to.equal(1);
+        expect(value.hasOwnProperty("fibonacci")).to.be.true;
+        expect(value.fibonacci).to.be.null;
       });
 
       it("should validate a property that contains an array of objects", () => {
@@ -1647,19 +1704,19 @@ describe("vet", () => {
           colors: [...colors]
         };
 
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
   
-        expect(Object.keys(req.body).length).to.equal(1);
-        expect(req.body.hasOwnProperty("colors")).to.be.true;
-        expect(req.body.colors).to.be.ok;
-        expect(Array.isArray(req.body.colors)).to.be.true;
-        expect(req.body.colors.length).to.equal(colors.length);
-        for (let i = 0; i < req.body.colors.length; i++) {
-          expect(req.body.colors[i].r).to.equal(colors[i].r);
-          expect(req.body.colors[i].g).to.equal(colors[i].g);
-          expect(req.body.colors[i].b).to.equal(colors[i].b);
+        expect(Object.keys(value).length).to.equal(1);
+        expect(value.hasOwnProperty("colors")).to.be.true;
+        expect(value.colors).to.be.ok;
+        expect(Array.isArray(value.colors)).to.be.true;
+        expect(value.colors.length).to.equal(colors.length);
+        for (let i = 0; i < value.colors.length; i++) {
+          expect(value.colors[i].r).to.equal(colors[i].r);
+          expect(value.colors[i].g).to.equal(colors[i].g);
+          expect(value.colors[i].b).to.equal(colors[i].b);
         }
       });
 
@@ -1702,21 +1759,21 @@ describe("vet", () => {
       //     cube: [...cubeData]
       //   };
 
-      //   const [req, res] = buildState(schema, body);
+      //   const { value, errors } = validateObjectProperties(schema, body);
 
-      //   expectZeroErrors(res.locals.errors);
+      //   expectZeroErrors(errors);
   
-      //   expect(Object.keys(req.body).length).to.equal(1);
-      //   expect(req.body.hasOwnProperty("cube")).to.be.true;
-      //   expect(req.body.cube).to.be.ok;
-      //   expect(Array.isArray(req.body.cube)).to.be.true;
-      //   expect(req.body.cube.length).to.equal(cube.length);
-      //   for (let i = 0; i < req.body.cube.length; i++) {
-      //     expect(req.body.cube[i].length).to.equal(cubeData[i].length);
-      //     for (let j = 0; j < req.body.cube[i].length; j++) {
-      //       expect(req.body.cube[i][j].length).to.equal(cubeData[i][j].length);
-      //       for (let k = 0; k < req.body.cube[i][j].length; k++) {
-      //         expect(req.body.cube[i][j][k]).to.equal(cubeData[i][j][k]);
+      //   expect(Object.keys(value).length).to.equal(1);
+      //   expect(value.hasOwnProperty("cube")).to.be.true;
+      //   expect(value.cube).to.be.ok;
+      //   expect(Array.isArray(value.cube)).to.be.true;
+      //   expect(value.cube.length).to.equal(cube.length);
+      //   for (let i = 0; i < value.cube.length; i++) {
+      //     expect(value.cube[i].length).to.equal(cubeData[i].length);
+      //     for (let j = 0; j < value.cube[i].length; j++) {
+      //       expect(value.cube[i][j].length).to.equal(cubeData[i][j].length);
+      //       for (let k = 0; k < value.cube[i][j].length; k++) {
+      //         expect(value.cube[i][j][k]).to.equal(cubeData[i][j][k]);
       //       }
       //     }
       //   }
@@ -1735,10 +1792,10 @@ describe("vet", () => {
           primes: [2, 3, 5, 7, 11]
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expect(res.locals.errors.length).to.equal(1);
-        expect(res.locals.errors[0]).to.equal("Property \"primes\" cannot have more than 3 elments in its array.");
+        expect(errors.length).to.equal(1);
+        expect(errors[0]).to.equal("Property \"primes\" cannot have more than 3 elments in its array.");
       });
 
       it("should fail validation if array shorter than minLength is given", () => {
@@ -1754,10 +1811,10 @@ describe("vet", () => {
           primes: [2, 3, 5, 7, 11]
         };
 
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expect(res.locals.errors.length).to.equal(1);
-        expect(res.locals.errors[0]).to.equal("Property \"primes\" must have at least 10 elments in its array.");
+        expect(errors.length).to.equal(1);
+        expect(errors[0]).to.equal("Property \"primes\" must have at least 10 elments in its array.");
       });
 
       it("should allow array size between minLength and maxLength", () => {
@@ -1774,13 +1831,13 @@ describe("vet", () => {
           primes: [2, 3, 5, 7, 11]
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
   
-        expect(Object.keys(req.body).length).to.equal(1);
-        expect(req.body.hasOwnProperty("primes")).to.be.true;
-        expect(req.body.primes.length).to.equal(5);
+        expect(Object.keys(value).length).to.equal(1);
+        expect(value.hasOwnProperty("primes")).to.be.true;
+        expect(value.primes.length).to.equal(5);
       });
     });
 
@@ -1805,14 +1862,14 @@ describe("vet", () => {
           test: [2, 4, 6, 8]
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
   
         expect(called).to.be.true;
-        expect(Object.keys(req.body).length).to.equal(1);
-        expect(req.body.hasOwnProperty("test")).to.be.true;
-        expect(req.body.test.length).to.equal(4);
+        expect(Object.keys(value).length).to.equal(1);
+        expect(value.hasOwnProperty("test")).to.be.true;
+        expect(value.test.length).to.equal(4);
       });
 
       it("should catch an exception thrown by a validation fundtion and return it as an error", () => {
@@ -1835,10 +1892,10 @@ describe("vet", () => {
           test: [2, 4, 5, 8]
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expect(res.locals.errors.length).to.equal(1);
-        expect(res.locals.errors[0]).to.equal("Property \"test\" has an invalid value. All values must be even.");
+        expect(errors.length).to.equal(1);
+        expect(errors[0]).to.equal("Property \"test\" has an invalid value. All values must be even.");
         expect(called).to.be.true;
       });
 
@@ -1858,14 +1915,14 @@ describe("vet", () => {
           test: "lowercase"
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
   
         expect(called).to.be.true;
-        expect(Object.keys(req.body).length).to.equal(1);
-        expect(req.body.hasOwnProperty("test")).to.be.true;
-        expect(req.body.test).to.equal("LOWERCASE");
+        expect(Object.keys(value).length).to.equal(1);
+        expect(value.hasOwnProperty("test")).to.be.true;
+        expect(value.test).to.equal("LOWERCASE");
       });
 
       it("Should perform validation LAST, after all other validation", () => {
@@ -1887,14 +1944,14 @@ describe("vet", () => {
           test: "lowercase"
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
 
-        expectZeroErrors(res.locals.errors);
+        expectZeroErrors(errors);
   
         expect(called).to.be.true;
-        expect(Object.keys(req.body).length).to.equal(1);
-        expect(req.body.hasOwnProperty("test")).to.be.true;
-        expect(req.body.test).to.equal("LOWERCASE");
+        expect(Object.keys(value).length).to.equal(1);
+        expect(value.hasOwnProperty("test")).to.be.true;
+        expect(value.test).to.equal("LOWERCASE");
       });
     });
 
@@ -1913,12 +1970,12 @@ describe("vet", () => {
           birthDate: "1997-01-01T01-01-01"
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expect(res.locals.errors.length).to.equal(3);
-        expect(res.locals.errors[0]).to.equal("Unknown property \"name\", check spelling.");
-        expect(res.locals.errors[1]).to.equal("Unknown property \"age\", check spelling.");
-        expect(res.locals.errors[2]).to.equal("Unknown property \"birthDate\", check spelling.");
+        expect(errors.length).to.equal(3);
+        expect(errors[0]).to.equal("Unknown property \"name\", check spelling.");
+        expect(errors[1]).to.equal("Unknown property \"age\", check spelling.");
+        expect(errors[2]).to.equal("Unknown property \"birthDate\", check spelling.");
       });
     
       it("should do nothing for fields that are missing", () => {
@@ -1933,12 +1990,12 @@ describe("vet", () => {
           birthDate: "2019-12-25T05:35:18"
         };
   
-        const [req, res] = buildState(schema, body);
+        const { value, errors } = validateObjectProperties(schema, body);
   
-        expect(res.locals.errors.length).to.equal(3);
-        expect(res.locals.errors[0]).to.equal("Unknown property \"name\", check spelling.");
-        expect(res.locals.errors[1]).to.equal("Unknown property \"age\", check spelling.");
-        expect(res.locals.errors[2]).to.equal("Unknown property \"birthDate\", check spelling.");
+        expect(errors.length).to.equal(3);
+        expect(errors[0]).to.equal("Unknown property \"name\", check spelling.");
+        expect(errors[1]).to.equal("Unknown property \"age\", check spelling.");
+        expect(errors[2]).to.equal("Unknown property \"birthDate\", check spelling.");
       });
     });
   });

@@ -89,18 +89,22 @@ function validatePrimitiveType(value, key, errors, expectedType) {
 }
 
 function validateDateType(value, key, errors) {
+  if (value === undefined || value === null) {
+    return true;
+  }
+
   if (typeof value !== "string") {
     errors.push(`Property "${key}" must be a string containing a date.`);
-    return undefined;
+    return false;
   }
 
   const date = Date.parse(value);
   if (isNaN(date)) {
     errors.push(`Property "${key}" does not contain a valid date string.`);
-    return undefined;
+    return false;
   }
 
-  return date;
+  return true;
 }
 
 function ValidateSubDocument(key, value, constraints) {
@@ -124,7 +128,7 @@ function ValidateSubDocument(key, value, constraints) {
     return { value: null, errors: []};
   }
 
-  return wrappedResult(validateObjectProperties(value, constraints.schema)); 
+  return wrappedResult(validateObjectProperties(constraints.schema, value)); 
 }
 
 function validateArray(key, value, constraints) {
@@ -189,7 +193,7 @@ function validateArray(key, value, constraints) {
   return { value: array, errors: [] };
 }
 
-function validateObjectProperties(obj, schema) {
+function validateObjectProperties(schema, obj) {
   const data = {};
   const errors = [];
 
@@ -202,23 +206,19 @@ function validateObjectProperties(obj, schema) {
     }
 
     if (!obj.hasOwnProperty(key)) {
-      if (!constraints) {
-        continue;
+      if (constraints) {
+        if (constraints.default !== undefined) {
+          data[key] = constraints.default;
+        } else if (constraints.required) {
+          errors.push(`Property "${key}" is required.`);
+        }
       }
   
-      if (constraints.hasOwnProperty("default")) {
-        data[key] = constraints.default;
-        continue;
-      }
-  
-      if (constraints.required) {
-        errors.push(`Property "${key}" is required.`);
-        continue;
-      }
+      continue;
     }
 
     let value = obj[key];
-    let result, date;
+    let result;
     switch(type) {
       case Boolean:
         if (!validatePrimitiveType(value, key, errors, "boolean")) {
@@ -254,50 +254,65 @@ function validateObjectProperties(obj, schema) {
         }
 
         if (constraints) {
-          if (constraints.minLength >= 0 && value.length < constraints.minLength) {
-            errors.push(`Property "${key}" must be at least ${constraints.minLength} characters long.`);
+          if (value === null && constraints.required) {
+            errors.push(`Property "${key}" is required, and cannot be null.`);
             continue;
           }
 
-          if (constraints.maxLength >= 0 && value.length > constraints.maxLength) {
-            errors.push(`Property "${key}" must be no more than ${constraints.maxLength} characters long.`);
-            continue;
-          }
-
-          if (constraints.toLowerCase) {
-            value = value.toLowerCase();
-          }
-
-          if (constraints.toUpperCase) {
-            value = value.toUpperCase();
-          }
-
-          if (constraints.trim) {
-            value = value.trim();
-          }
-
-          if (constraints.match && !constraints.match.test(value)) {
-            errors.push(`Value for property "${key}" is invalid.`);
-            continue;
+          if (value !== null) {
+            if (constraints.minLength >= 0 && value.length < constraints.minLength) {
+              errors.push(`Property "${key}" must be at least ${constraints.minLength} characters long.`);
+              continue;
+            }
+  
+            if (constraints.maxLength >= 0 && value.length > constraints.maxLength) {
+              errors.push(`Property "${key}" must be no more than ${constraints.maxLength} characters long.`);
+              continue;
+            }
+  
+            if (constraints.toLowerCase) {
+              value = value.toLowerCase();
+            }
+  
+            if (constraints.toUpperCase) {
+              value = value.toUpperCase();
+            }
+  
+            if (constraints.trim) {
+              value = value.trim();
+            }
+  
+            if (constraints.match && !constraints.match.test(value)) {
+              errors.push(`Value for property "${key}" is invalid.`);
+              continue;
+            }
           }
         }
         break;
 
       case Date:
-        date = validateDateType(value, key, errors, constraints);
-        if (!date) {
+        if (!validateDateType(value, key, errors)) {
           continue;
         }
 
         if (constraints) {
-          if (date < constraints.minDate) {
-            errors.push(`Value for property "${key}" cannot have date earlier than "${constraints.min}".`);
-            continue;
-          }
-    
-          if (date > constraints.maxDate) {
-            errors.push(`Value for property "${key}" cannot have date later than "${constraints.max}".`);
-            continue;
+          if (value === null) {
+            if (constraints.required) {
+              errors.push(`Property "${key}" is required, and cannot be null.`);
+              continue;
+            } else if (value === undefined) {
+              continue;
+            }
+          } else {
+            if (value < constraints.min) {
+              errors.push(`Value for property "${key}" cannot have date earlier than "${constraints.min}".`);
+              continue;
+            }
+      
+            if (value > constraints.max) {
+              errors.push(`Value for property "${key}" cannot have date later than "${constraints.max}".`);
+              continue;
+            }
           }
         }
         break;
@@ -322,22 +337,25 @@ function validateObjectProperties(obj, schema) {
         break;
     }
 
-    if (constraints && constraints.values && constraints.values.indexOf(value) < 0) {
-      errors.push(`Property "${key}" has an invalid value of ${value}.`);
-      continue;
-    }
-
-    if (constraints && constraints.validate) {
-      try {
-        const newValue = constraints.validate(value);
-        if (newValue !== undefined) {
-          value = newValue;
-        }
-      } catch (err) {
-        errors.push(`Property "${key}" has an invalid value. ${err.message}`);
+    // Now do constraints that apply to all types
+    if (constraints) {
+      if (constraints.values && constraints.values.indexOf(value) < 0) {
+        errors.push(`Property "${key}" has an invalid value of ${value}.`);
         continue;
       }
-    }
+  
+      if (constraints.validate) {
+        try {
+          const newValue = constraints.validate(value);
+          if (newValue !== undefined) {
+            value = newValue;
+          }
+        } catch (err) {
+          errors.push(`Property "${key}" has an invalid value. ${err.message}`);
+          continue;
+        }
+      }
+    } 
 
     data[key] = value;
   }
@@ -353,10 +371,6 @@ function validateObjectProperties(obj, schema) {
       
       errors.push(msg);
     }
-  }
-
-  if (errors.length === 0) {
-    Object.assign(obj, data);
   }
 
   return { value: data, errors };
@@ -533,12 +547,10 @@ function checkSchemaDefinition(schema, parentKey) {
     } else if (constraints.type === Date) {
       if (constraints.hasOwnProperty("min")) {
         checkTypeForValue(key, constraints.min, constraints.type, "min");
-        constraints.minDate = Date.parse(constraints.min);
       }
 
       if (constraints.hasOwnProperty("max")) {
         checkTypeForValue(key, constraints.max, constraints.type, "max");
-        constraints.maxDate = Date.parse(constraints.max);
       }
 
       if (constraints.hasOwnProperty("min") && constraints.hasOwnProperty("max") && constraints.min > constraints.max) {
@@ -563,11 +575,19 @@ function checkSchemaDefinition(schema, parentKey) {
 }
 
 function vet(schema) {
+  checkSchemaDefinition(schema);
+
+  return (obj) => validateObjectProperties(schema, obj);
+}
+
+function vetMiddleware(schema) {
+  const validator = vet(schema);
+
   function middleware(req, res, next) {
     if (typeof req.body !== "object") {
       req.errors = ["Request payload must be a JSON object"];
     } else {
-      const result = validateObjectProperties(req.body, schema);
+      const result = validator(req.body);
       
       if (result.errors.length === 0) {
         Object.assign(req.body, result.value);
@@ -579,9 +599,14 @@ function vet(schema) {
     next();
   }
 
-  checkSchemaDefinition(schema);
-
   return middleware;
 }
 
-module.exports = vet;
+module.exports = {
+  vet,
+  vetMiddleware,
+  utilities: {
+    checkSchemaDefinition,
+    validateObjectProperties
+  }
+};
