@@ -79,20 +79,42 @@ function internalError(key, msg) {
   throw new Error(`Vet internal error while processing key ${key}: ${msg}`);
 }
 
+function validationResults(value, errorProp, errorMsg) {
+  const result = {
+    value,
+    errors: []
+  };
+
+  if (Array.isArray(errorProp)) {
+    result.errors = [...errorProp];
+  } else if (typeof errorProp === "string") {
+    result.errors.push({
+      property: errorProp,
+      message: errorMsg
+    });
+  }
+
+  return result;
+}
+
 function wrappedResult(result) {
   if (result === undefined) {
     return undefined;
   } else if (result.errors.length > 0) {
-    return { value: undefined, errors: result.errors };
+    return validationResults(undefined, result.errors);
   } else {
-    return { value: result.value, errors: [] };
+    return validationResults(result.value);
   }
 }
 
+function addError(errors, property, message) {
+  errors.push({ property, message });
+}
+
 const defaultMessages = {
-  boolean: key => `Property "${key}" must be either true or false.`,
-  number: key => `Property "${key}" must be a number.`,
-  string: key => `Property "${key}" must be a string.`
+  boolean: property => ({ property, message: "must be either true or false" }),
+  number: property => ({ property, message: "must be a number" }),
+  string: property => ({ property, message: "must be a string" })
 };
 
 function validatePrimitiveType(value, key, errors, expectedType) {
@@ -110,13 +132,13 @@ function validateDateType(value, key, errors) {
   }
 
   if (typeof value !== "string") {
-    errors.push(`Property "${key}" must be a string containing a date.`);
+    addError(errors, key, "must be a string containing a date");
     return false;
   }
 
   const date = Date.parse(value);
   if (isNaN(date)) {
-    errors.push(`Property "${key}" does not contain a valid date string.`);
+    addError(errors, key, "does not contain a valid date string");
     return false;
   }
 
@@ -126,22 +148,22 @@ function validateDateType(value, key, errors) {
 function ValidateSubDocument(key, value, constraints) {
   if (value === undefined) {
     if (constraints && constraints.default === null) {
-      return { value: null, errors: [] };
+      return validationResults(null);
     }
 
     return undefined;
   }
 
   if (typeof value !== "object") {
-    return { value: undefined, errors: [`Property "${key}" must contain a nested object.`] };
+    return validationResults(undefined, key, "must contain a nested object");
   }
 
   if (value === null) {
     if (constraints && constraints.required) {
-      return { value: undefined, errors: [`Property "${key}" is required and may not be null.`]};
+      return validationResults(undefined, key, "is required and may not be null");
     }
 
-    return { value: null, errors: []};
+    return validationResults(null);
   }
 
   return wrappedResult(validateObjectProperties(constraints.schema, value)); 
@@ -150,30 +172,30 @@ function ValidateSubDocument(key, value, constraints) {
 function validateArray(key, value, constraints) {
   if (value === undefined) {
     if (constraints && constraints.default === null) {
-      return { value: null, errors: [] };
+      return validationResults(null);
     }
   
     return undefined;
   }
 
   if (!(typeof value === "object" && Array.isArray(value) || value === null)) {
-    return { value: undefined, errors: [`Property "${key}" must contain an array.`] };
+    return validationResults(undefined, key, "must contain an array");
   }
 
   if (value === null) {
     if (constraints && constraints.required) {
-      return { value: undefined, errors: [`Property "${key}" is required and may not be null.`]};
+      return validationResults(undefined, key, "is required and may not be null");
     }
 
-    return { value: null, errors: []};
+    return validationResults(null);
   }
 
   if (constraints.maxLength && value.length > constraints.maxLength) {
-    return { value: undefined, errors: [`Property "${key}" cannot have more than ${constraints.maxLength} elments in its array.`]};
+    return validationResults(undefined, key, `cannot have more than ${constraints.maxLength} elments`);
   }
 
   if (constraints.minLength && value.length < constraints.minLength) {
-    return { value: undefined, errors: [`Property "${key}" must have at least ${constraints.minLength} elments in its array.`]};
+    return validationResults(undefined, key, `must have at least ${constraints.minLength} elments`);
   }
 
   const array = [];
@@ -183,10 +205,7 @@ function validateArray(key, value, constraints) {
       const item = value[i];
 
       if (typeof item !== basicType) {
-        return {
-          value: undefined,
-          errors: [`Property "${key}" must have all elements of type ${basicType}. See item at index ${i}.`] 
-        };
+        return validationResults(undefined, key, `must have all elements of type ${basicType}, see item at index ${i}`); 
       }
 
       array.push(item);
@@ -197,7 +216,7 @@ function validateArray(key, value, constraints) {
       
       const result = ValidateSubDocument(key, item, constraints);
       if (result.errors.length > 0) {
-        return { value: undefined, errors: result.errors };
+        return validationResults(undefined, result.errors);
       }
 
       array.push(result.value);
@@ -206,7 +225,7 @@ function validateArray(key, value, constraints) {
     internalError(key, "ofType property contains a type that is not supported.");
   }
 
-  return { value: array, errors: [] };
+  return validationResults(array);
 }
 
 function validateObjectProperties(schema, obj) {
@@ -226,7 +245,7 @@ function validateObjectProperties(schema, obj) {
         if (constraints.default !== undefined) {
           data[key] = constraints.default;
         } else if (constraints.required) {
-          errors.push(`Property "${key}" is required.`);
+          addError(errors, key, "is required");
         }
       }
   
@@ -253,12 +272,12 @@ function validateObjectProperties(schema, obj) {
           }
 
           if (constraints.min && value < constraints.min) {
-            errors.push(`Property "${key}" is below the minimum value of ${constraints.min}.`);
+            addError(errors, key, `is below the minimum value of ${constraints.min}`);
             continue;
           }
     
           if (constraints.max && value > constraints.max) {
-            errors.push(`Property "${key}" is above the maximum value of ${constraints.max}.`);
+            addError(errors, key, `is above the maximum value of ${constraints.max}`);
             continue;
           }
         }
@@ -271,18 +290,18 @@ function validateObjectProperties(schema, obj) {
 
         if (constraints) {
           if (value === null && constraints.required) {
-            errors.push(`Property "${key}" is required, and cannot be null.`);
+            addError(errors, key, "is required, and cannot be null");
             continue;
           }
 
           if (value !== null) {
             if (constraints.minLength >= 0 && value.length < constraints.minLength) {
-              errors.push(`Property "${key}" must be at least ${constraints.minLength} characters long.`);
+              addError(errors, key, `must be at least ${constraints.minLength} characters long`);
               continue;
             }
   
             if (constraints.maxLength >= 0 && value.length > constraints.maxLength) {
-              errors.push(`Property "${key}" must be no more than ${constraints.maxLength} characters long.`);
+              addError(errors, key, `must be no more than ${constraints.maxLength} characters long`);
               continue;
             }
   
@@ -299,7 +318,7 @@ function validateObjectProperties(schema, obj) {
             }
   
             if (constraints.match && !constraints.match.test(value)) {
-              errors.push(`Value for property "${key}" is invalid.`);
+              addError(errors, key, "is invalid");
               continue;
             }
           }
@@ -314,19 +333,19 @@ function validateObjectProperties(schema, obj) {
         if (constraints) {
           if (value === null) {
             if (constraints.required) {
-              errors.push(`Property "${key}" is required, and cannot be null.`);
+              addError(errors, key, "is required, and cannot be null");
               continue;
             } else if (value === undefined) {
               continue;
             }
           } else {
             if (value < constraints.min) {
-              errors.push(`Value for property "${key}" cannot have date earlier than "${constraints.min}".`);
+              addError(errors, key, `cannot have date earlier than "${constraints.min}"`);
               continue;
             }
       
             if (value > constraints.max) {
-              errors.push(`Value for property "${key}" cannot have date later than "${constraints.max}".`);
+              addError(errors, key, `cannot have date later than "${constraints.max}"`);
               continue;
             }
           }
@@ -356,7 +375,7 @@ function validateObjectProperties(schema, obj) {
     // Now do constraints that apply to all types
     if (constraints) {
       if (constraints.values && constraints.values.indexOf(value) < 0) {
-        errors.push(`Property "${key}" has an invalid value of ${value}.`);
+        addError(errors, key, `has an invalid value of ${value}`);
         continue;
       }
   
@@ -367,7 +386,7 @@ function validateObjectProperties(schema, obj) {
             value = newValue;
           }
         } catch (err) {
-          errors.push(`Property "${key}" has an invalid value. ${err.message}`);
+          addError(errors, key, `has an invalid value: ${err.message}`);
           continue;
         }
       }
@@ -378,18 +397,18 @@ function validateObjectProperties(schema, obj) {
 
   for (let key in obj) {
     if (!schema.hasOwnProperty(key)) {
-      let msg = `Unknown property "${key}", check spelling.`;
+      let msg = `unknown property`;
       for (let schemaKey in schema) {
         if (key.toLowerCase() === schemaKey.toLowerCase()) {
-          msg += `  Did you mean to specify "${schemaKey}"?`;
+          msg += `, did you mean to specify "${schemaKey}"?`;
         }
       }
       
-      errors.push(msg);
+      addError(errors, key, msg);
     }
   }
 
-  return { value: data, errors };
+  return validationResults(data, errors);
 }
 
 const typeMap = new Map();
