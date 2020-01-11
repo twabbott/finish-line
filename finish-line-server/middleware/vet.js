@@ -55,12 +55,28 @@
       * Allow shorthand syntax of [{schema}], or [BasicType]
 */
 
-function internalError(key, msg) {
-  throw new Error(`Vet internal error while processing key ${key}: ${msg}`);
+class VetSchemaError extends Error {
+  constructor(message, propertyName, ...errorArgs) {
+    super(`Vet schema error for property ${propertyName}: ${message}`, ...errorArgs);
+    Error.captureStackTrace(this, VetSchemaError);
+
+    if (propertyName) {
+      this.propertyName = propertyName;
+    }
+  }
 }
 
-function schemaError(key, msg) {
-  throw new Error(`Vet schema error for property ${key}: ${msg}`);
+class VetValidationError extends Error {
+  constructor(message = "Validation failed", errors=[], ...errorArgs) {
+    super(message, ...errorArgs);
+    Error.captureStackTrace(this, VetValidationError);
+
+    this.errors = errors;
+  }
+}
+
+function internalError(key, msg) {
+  throw new Error(`Vet internal error while processing key ${key}: ${msg}`);
 }
 
 function wrappedResult(result) {
@@ -323,7 +339,7 @@ function validateObjectProperties(schema, obj) {
         } else if (type === Array) {
           result = validateArray(key, value, constraints);
         } else {
-          schemaError(key, "unsupported value for constraint \"type\".");
+          throw new VetSchemaError("unsupported value for constraint \"type\".", key);
         }
 
         if (result === undefined) {
@@ -389,61 +405,61 @@ function checkBasicType(type) {
 function checkTypeForValue(key, value, type, name) {
   const typeName = typeMap.get(type);
   if (typeof value !== typeName) {
-    schemaError(key, `value for constraint "${name}" must be a ${typeName}.`);
+    throw new VetSchemaError(`value for constraint "${name}" must be a ${typeName}.`, key);
   }
 
   if (type === Date) {
     if (typeof value !== "string" || typeof value === "string" && isNaN(Date.parse(value))) {
-      schemaError(key, `value for constraint "${name}" must be a valid date string.`);
+      throw new VetSchemaError(`value for constraint "${name}" must be a valid date string.`, key);
     }
   }
 }
 
 function checkObject(key, constraints) {
   if (!constraints.hasOwnProperty("schema")) {
-    schemaError(key, "when type is Object, property \"schema\" is required.");
+    throw new VetSchemaError("when type is Object, property \"schema\" is required.", key);
   }
   
   checkSchemaDefinition(constraints.schema, key);
 
   if (constraints.hasOwnProperty("default") && constraints.default !== null) {
-    schemaError(key, "when type is Object, property \"default\" may only have a value of null.");
+    throw new VetSchemaError("when type is Object, property \"default\" may only have a value of null.", key);
   }
 }
 
 function checkArray(key, constraints) {
   if (!constraints.hasOwnProperty("ofType")) {
-    schemaError(key, "when type is Array, property \"ofType\" is required.");
+    throw new VetSchemaError("when type is Array, property \"ofType\" is required.", key);
   }
   
   if (constraints.hasOwnProperty("maxLength")) {
     if (typeof constraints.maxLength !== "number") {
-      schemaError(key, "property \"maxLength\" must be a number.");
+      throw new VetSchemaError("property \"maxLength\" must be a number.", key);
     }
 
     if (constraints.maxLength < 0) {
-      schemaError(key, "property \"maxLength\" cannot be less than zero.");
+      throw new VetSchemaError("property \"maxLength\" cannot be less than zero.", key);
     }
   }
 
   if (constraints.hasOwnProperty("minLength")) {
     if (typeof constraints.minLength !== "number") {
-      schemaError(key, "property \"minLength\" must be a number.");
+      throw new VetSchemaError("property \"minLength\" must be a number.", key);
     }
 
     if (constraints.minLength < 0) {
-      schemaError(key, "property \"minLength\" cannot be less than zero.");
+      throw new VetSchemaError("property \"minLength\" cannot be less than zero.", key);
     }
 
     if (constraints.maxLength && constraints.minLength > constraints.maxLength) {
-      schemaError(key, "property \"minLength\" cannot be greater than maxLength.");
+      throw new VetSchemaError("property \"minLength\" cannot be greater than maxLength.", key);
     }
   }
 
   if (!checkBasicType(constraints.ofType)) {
     if (constraints.ofType === Object) {
       if (!constraints.hasOwnProperty("schema")) {
-        schemaError(key, "when type is Array and property \"ofType\" is Object, property \"schema\" is required.");
+        throw new VetSchemaError("when type is Array and property \"ofType\" is Object, property \"schema\" is required.", key);
       }
   
       checkSchemaDefinition(constraints.schema, key);
@@ -455,7 +471,7 @@ function checkSchemaDefinition(schema, parentKey) {
   if (!schema || (schema && (typeof schema !== "object" || Array.isArray(schema)))) {
     let err = "Invalid schema definition, schema must be an object.";
     if (parentKey) {
-      schemaError(parentKey, err);
+      throw new VetSchemaError(err, parentKey);
     }
 
     throw new Error(err);
@@ -465,7 +481,7 @@ function checkSchemaDefinition(schema, parentKey) {
     const constraints = schema[key];
 
     if (!constraints) {
-      schemaError(key, "constraints object expected.");
+      throw new VetSchemaError("constraints object expected.", key);
     }
 
     if (checkBasicType(constraints)) {
@@ -474,12 +490,12 @@ function checkSchemaDefinition(schema, parentKey) {
     }
 
     if (typeof constraints !== "object") {
-      schemaError(key, "expected primitive type, or Date, or constraints object.");
+      throw new VetSchemaError("expected primitive type, or Date, or constraints object.", key);
     }
 
     // At this point, we're looking at a constraints object.
     if (!constraints.hasOwnProperty("type")) {
-      schemaError(key, "constraints object must have property \"type\".");
+      throw new VetSchemaError("constraints object must have property \"type\".", key);
     }
 
     if (!checkBasicType(constraints.type)) {
@@ -488,7 +504,7 @@ function checkSchemaDefinition(schema, parentKey) {
       } else if(constraints.type === Array) {
         checkArray(key, constraints);
       } else {
-        schemaError(key, "constraints object has invalid/unsupported value for constraint \"type\".");
+        throw new VetSchemaError("constraints object has invalid/unsupported value for constraint \"type\".", key);
       }
     }
 
@@ -498,7 +514,7 @@ function checkSchemaDefinition(schema, parentKey) {
 
     if (constraints.type === Number) {
       if (constraints.hasOwnProperty("trunc") && typeof constraints.trunc !== "boolean") {
-        schemaError(key, "value must be either true or false.");
+        throw new VetSchemaError("value must be either true or false.", key);
       }
 
       if (constraints.hasOwnProperty("min")) {
@@ -510,39 +526,39 @@ function checkSchemaDefinition(schema, parentKey) {
       }
 
       if (constraints.hasOwnProperty("min") && constraints.hasOwnProperty("max") && constraints.min > constraints.max) {
-        schemaError(key, "min constraint cannot be greater than max constraint.");
+        throw new VetSchemaError("min constraint cannot be greater than max constraint.", key);
       }
     } else if (constraints.type === String) {
       if (constraints.hasOwnProperty("toLowerCase") && typeof constraints.toLowerCase !== "boolean") {
-        schemaError(key, "value for constraint \"toLowerCase\" must be either true or false.");
+        throw new VetSchemaError("value for constraint \"toLowerCase\" must be either true or false.", key);
       }
 
       if (constraints.hasOwnProperty("toUpperCase") && typeof constraints.toUpperCase !== "boolean") {
-        schemaError(key, "value for constraint \"toUpperCase\" must be either true or false.");
+        throw new VetSchemaError("value for constraint \"toUpperCase\" must be either true or false.", key);
       }
 
       if (constraints.toLowerCase === true && constraints.toUpperCase === true) {
-        schemaError(key, "cannot have both toLowerCase and toUpperCase set to true.");
+        throw new VetSchemaError("cannot have both toLowerCase and toUpperCase set to true.", key);
       }
 
       if (constraints.hasOwnProperty("trim") && typeof constraints.trim !== "boolean") {
-        schemaError(key, "value for constraint \"trim\" must be either true or false.");
+        throw new VetSchemaError("value for constraint \"trim\" must be either true or false.", key);
       }
 
       if (constraints.hasOwnProperty("minLength") && typeof constraints.minLength !== "number") {
-        schemaError(key, "value for constraint \"minLength\" must be a number.");
+        throw new VetSchemaError("value for constraint \"minLength\" must be a number.", key);
       }
 
       if (constraints.hasOwnProperty("maxLength") && typeof constraints.maxLength !== "number") {
-        schemaError(key, "value for constraint \"maxLength\" must be a number.");
+        throw new VetSchemaError("value for constraint \"maxLength\" must be a number.", key);
       }
 
       if (constraints.hasOwnProperty("minLength") && constraints.hasOwnProperty("maxLength") && constraints.minLength > constraints.maxLength) {
-        schemaError(key, "value for constraint \"minLength\" cannot be greater than \"maxLength\".");
+        throw new VetSchemaError("value for constraint \"minLength\" cannot be greater than \"maxLength\".", key);
       }
 
       if (constraints.hasOwnProperty("match") && !(constraints.match instanceof RegExp)) {
-        schemaError(key, "Value for constraint \"match\" must be a regular expression.");
+        throw new VetSchemaError("Value for constraint \"match\" must be a regular expression.", key);
       }
     } else if (constraints.type === Date) {
       if (constraints.hasOwnProperty("min")) {
@@ -554,13 +570,13 @@ function checkSchemaDefinition(schema, parentKey) {
       }
 
       if (constraints.hasOwnProperty("min") && constraints.hasOwnProperty("max") && constraints.min > constraints.max) {
-        schemaError(key, "min constraint cannot be greater than max constraint.");
+        throw new VetSchemaError("min constraint cannot be greater than max constraint.", key);
       }
     }
 
     if (constraints.hasOwnProperty("values")) {
       if (!Array.isArray(constraints.values)) {
-        schemaError(key, "property \"values\" must be an array.");
+        throw new VetSchemaError("property \"values\" must be an array.", key);
       }
 
       for (let v of constraints.values) {
@@ -569,7 +585,7 @@ function checkSchemaDefinition(schema, parentKey) {
     }
 
     if (constraints.hasOwnProperty("validate") && typeof constraints.validate !== "function") {
-      schemaError(key, "value for constraint \"validate\" must be a function.");
+      throw new VetSchemaError("value for constraint \"validate\" must be a function.", key);
     }
   }
 }
@@ -605,6 +621,8 @@ function vetMiddleware(schema) {
 module.exports = {
   vet,
   vetMiddleware,
+  VetSchemaError,
+  VetValidationError,
   utilities: {
     checkSchemaDefinition,
     validateObjectProperties

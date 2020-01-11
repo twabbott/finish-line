@@ -713,6 +713,52 @@ describe.only("vet", () => {
           expect(errors[0]).to.equal("Property \"isVeteran\" is required.");
           expect(errors[1]).to.equal("Property \"isMale\" is required.");
         });
+  
+        it("should ignore an optional Boolean property, if not given", () => {
+          const schema = {
+            isVeteran: {
+              type: Boolean
+            },
+            isMale: {
+              type: Boolean
+            }
+          };
+    
+          const body = {
+          };
+    
+          const { value, errors } = validateObjectProperties(schema, body);
+    
+          expectZeroErrors(errors);
+    
+          expect(Object.keys(value).length).to.equal(0);
+          expect(value.isVeteran).to.be.undefined;
+          expect(value.isMale).to.be.undefined;
+        });
+  
+        it("should allow a value of null, if not required", () => {
+          const schema = {
+            isVeteran: {
+              type: Boolean
+            },
+            isMale: {
+              type: Boolean
+            }
+          };
+    
+          const body = {
+            isVeteran: null,
+            isMale: null
+          };
+    
+          const { value, errors } = validateObjectProperties(schema, body);
+    
+          expectZeroErrors(errors);
+    
+          expect(Object.keys(value).length).to.equal(2);
+          expect(value.isVeteran).to.be.null;
+          expect(value.isMale).to.be.null;
+        });
       });
     });
   
@@ -933,6 +979,52 @@ describe.only("vet", () => {
           expect(value.weight).to.be.equal(123.45);
         });
   
+        it("should ignore an optional numeric property, if not given", () => {
+          const schema = {
+            age: { 
+              type: Number
+            },
+            weight: { 
+              type: Number
+            }
+          };
+    
+          const body = {
+          };
+    
+          const { value, errors } = validateObjectProperties(schema, body);
+    
+          expectZeroErrors(errors);
+    
+          expect(Object.keys(value).length).to.equal(0);
+          expect(value.age).to.be.undefined;
+          expect(value.weight).to.be.undefined;
+        });
+  
+        it("should allow a value of null, if not required", () => {
+          const schema = {
+            age: { 
+              type: Number
+            },
+            weight: { 
+              type: Number
+            }
+          };
+    
+          const body = {
+            age: null,
+            weight: null
+          };
+    
+          const { value, errors } = validateObjectProperties(schema, body);
+    
+          expectZeroErrors(errors);
+    
+          expect(Object.keys(value).length).to.equal(2);
+          expect(value.age).to.be.null;
+          expect(value.weight).to.be.null;
+        });
+
         it("should give an error for a value not in the array of acceptable values", () => {
           const schema = {
             age: { 
@@ -1154,6 +1246,42 @@ describe.only("vet", () => {
           expect(errors[0]).to.equal("Property \"test\" must be no more than 10 characters long.");
         });
 
+        it("should accept a string with min and max length equal to each other", () => {
+          const schema = {
+            test: { 
+              type: String,
+              minLength: 10,
+              maxLength: 10
+            },
+          };
+
+          const body = {
+            test: "1234567890",
+          };
+  
+          const { value, errors } = validateObjectProperties(schema, body);
+  
+          expect(errors.length).to.equal(0);
+          expect(value.test).to.equal("1234567890");
+        });
+
+        it("should accept a string without min/max constraints", () => {
+          const schema = {
+            test: { 
+              type: String
+            },
+          };
+
+          const body = {
+            test: "1234567890",
+          };
+  
+          const { value, errors } = validateObjectProperties(schema, body);
+  
+          expect(errors.length).to.equal(0);
+          expect(value.test).to.equal("1234567890");
+        });
+
         it("should reject a string that does not match a regular expression", () => {
           const schema = {
             test: { 
@@ -1190,6 +1318,49 @@ describe.only("vet", () => {
   
           expect(Object.keys(value).length).to.equal(1);
           expect(value.test).to.be.equal("12345");
+        });
+
+        it("should should ignore an optional string property, if not given", () => {
+          const schema = {
+            test: { 
+              type: String,
+              match: /^\d+$/,
+              minLength: 3,
+              maxLength: 5
+            },
+          };
+
+          const body = {
+          };
+  
+          const { value, errors } = validateObjectProperties(schema, body);
+  
+          expectZeroErrors(errors);
+  
+          expect(Object.keys(value).length).to.equal(0);
+          expect(value.test).to.be.undefined;
+        });
+
+        it("should should allow a value of null, if not required", () => {
+          const schema = {
+            test: { 
+              type: String,
+              match: /^\d+$/,
+              minLength: 3,
+              maxLength: 5
+            },
+          };
+
+          const body = {
+            test: null
+          };
+  
+          const { value, errors } = validateObjectProperties(schema, body);
+  
+          expectZeroErrors(errors);
+  
+          expect(Object.keys(value).length).to.equal(1);
+          expect(value.test).to.be.null;
         });
 
         it("should validate a string from an array of values", () => {
