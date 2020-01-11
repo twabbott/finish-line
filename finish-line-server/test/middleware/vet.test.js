@@ -5,9 +5,12 @@ const { expect } = require("chai");
 //const sinon = require("sinon");
 
 const { mockState, executeMiddleware } = require("../test-utils/express-shim");
-const vet = require("../../middleware/vet");
+const {
+  checkSchemaDefinition,
+  validateObjectProperties
+} = require("../../middleware/vet");
 
-describe.only("vet", () => {
+describe("vet", () => {
   function buildState(schema, body) {
     const mockReq = {
       body
@@ -34,9 +37,10 @@ describe.only("vet", () => {
   }
 
   function testForError(errors, property, message) {
-    for (err of errors) {
-      if (err.property === property) {
-        expect(err.message).to.equal(message);
+    for (let i = 0; i < errors.length; i++) {
+      if (errors[i].property === property) {
+        expect(errors[i].message).to.equal(message);
+        errors.splice(i, 1);
         return;
       }
     }
@@ -45,8 +49,6 @@ describe.only("vet", () => {
   }
 
   describe("schema error checking", () => {
-    const { checkSchemaDefinition } = vet.utilities;
-
     describe("Basic checks", () => {
       it("should allow all supported types", () => {
         const schema = {
@@ -613,7 +615,6 @@ describe.only("vet", () => {
   });
 
   describe("validation for individual props", () => {
-    const { validateObjectProperties } = vet.utilities;
     describe("boolean", () => {
       it("should validate value of either true or false", () => {
         const schema = {
@@ -651,6 +652,7 @@ describe.only("vet", () => {
   
         testForError(errors, "isVeteran", "must be either true or false");
         testForError(errors, "isMale", "must be either true or false");
+        expectZeroErrors(errors);
       });
 
       describe("with constraints", () => {
@@ -721,7 +723,8 @@ describe.only("vet", () => {
     
           testForError(errors, "isVeteran", "is required");
           testForError(errors, "isMale", "is required");
-        });
+          expectZeroErrors(errors);
+      });
   
         it("should ignore an optional Boolean property, if not given", () => {
           const schema = {
@@ -807,6 +810,7 @@ describe.only("vet", () => {
   
         testForError(errors, "age", "must be a number");
         testForError(errors, "weight", "must be a number");
+        expectZeroErrors(errors);
       });
 
       describe("with constraints", () => {
@@ -877,6 +881,7 @@ describe.only("vet", () => {
     
           testForError(errors, "age", "is required");
           testForError(errors, "weight", "is required");
+          expectZeroErrors(errors);
         });
 
         it("should truncate a real number to an integer", () => {
@@ -931,6 +936,7 @@ describe.only("vet", () => {
     
           testForError(errors, "age", "is below the minimum value of 18");
           testForError(errors, "weight", "is below the minimum value of 160");
+          expectZeroErrors(errors);
         });
 
         it("should give an error for a value above max constraint", () => {
@@ -955,6 +961,7 @@ describe.only("vet", () => {
           expect(errors.length).to.equal(2);
           testForError(errors, "age", "is above the maximum value of 18");
           testForError(errors, "weight", "is above the maximum value of 290");
+          expectZeroErrors(errors);
         });
 
         it("should validate an integer within the min and max values", () => {
@@ -1052,6 +1059,7 @@ describe.only("vet", () => {
     
           testForError(errors, "age", "has an invalid value of 25");
           testForError(errors, "weight", "has an invalid value of 300");
+          expectZeroErrors(errors);
         });
 
         it("should validate an integer within a set of values", () => {
@@ -1118,6 +1126,7 @@ describe.only("vet", () => {
   
         testForError(errors, "firstName", "must be a string");
         testForError(errors, "lastName", "must be a string");
+        expectZeroErrors(errors);
       });
 
       describe("with constraints", () => {
@@ -1229,6 +1238,7 @@ describe.only("vet", () => {
           const { value, errors } = validateObjectProperties(schema, body);
   
           testForError(errors, "test", "must be at least 10 characters long");
+          expectZeroErrors(errors);
         });
 
         it("should reject a string longer than the maxLength property", () => {
@@ -1246,6 +1256,7 @@ describe.only("vet", () => {
           const { value, errors } = validateObjectProperties(schema, body);
   
           testForError(errors, "test", "must be no more than 10 characters long");
+          expectZeroErrors(errors);
         });
 
         it("should accept a string with min and max length equal to each other", () => {
@@ -1300,6 +1311,7 @@ describe.only("vet", () => {
   
           expect(errors.length).to.equal(1);
           testForError(errors, "test", "is invalid");
+          expectZeroErrors(errors);
         });
 
         it("should accept a string that matches a regular expression", () => {
@@ -1412,6 +1424,7 @@ describe.only("vet", () => {
     
           testForError(errors, "weekend", "has an invalid value of Monday");
           testForError(errors, "color", "has an invalid value of Black");
+          expectZeroErrors(errors);
         });
       });
     });
@@ -1452,6 +1465,7 @@ describe.only("vet", () => {
 
         testForError(errors, "startDate", "must be a string containing a date");
         testForError(errors, "endDate", "does not contain a valid date string");
+        expectZeroErrors(errors);
       });
 
       describe("With constraints", () => {
@@ -1470,6 +1484,7 @@ describe.only("vet", () => {
           const { value, errors } = validateObjectProperties(schema, body);
     
           testForError(errors, "test", "cannot have date earlier than \"1980-01-01T00:00:00\"");
+          expectZeroErrors(errors);
         });
 
         it("should give an error for a date occurring after max constraint", () => {
@@ -1487,6 +1502,7 @@ describe.only("vet", () => {
           const { value, errors } = validateObjectProperties(schema, body);
     
           testForError(errors, "test", "cannot have date later than \"2100-01-01T00:00:00\"");
+          expectZeroErrors(errors);
         });
 
         it("should accept a date within the min and max values", () => {
@@ -1689,6 +1705,7 @@ describe.only("vet", () => {
         const { value, errors } = validateObjectProperties(schema, body);
 
         testForError(errors, "profile", "is required");
+        expectZeroErrors(errors);
       });
 
       it("should fail validation if required constraint is true, but null is given", () => {
@@ -1711,6 +1728,7 @@ describe.only("vet", () => {
         const { value, errors } = validateObjectProperties(schema, body);
 
         testForError(errors, "profile", "is required and may not be null");
+        expectZeroErrors(errors);
       });
 
       it("should fail validation if nested document is not an object", () => {
@@ -1732,6 +1750,7 @@ describe.only("vet", () => {
         const { value, errors } = validateObjectProperties(schema, body);
 
         testForError(errors, "profile", "must contain a nested object");
+        expectZeroErrors(errors);
       });
     });
   
@@ -1776,6 +1795,7 @@ describe.only("vet", () => {
         const { value, errors } = validateObjectProperties(schema, body);
 
         testForError(errors, "fibonacci", "must have all elements of type number, see item at index 3");
+        expectZeroErrors(errors);
       });
 
       it("should ignore missing array if property is not required", () => {
@@ -1808,6 +1828,7 @@ describe.only("vet", () => {
         const { value, errors } = validateObjectProperties(schema, body);
 
         testForError(errors, "fibonacci", "must contain an array");
+        expectZeroErrors(errors);
       });
 
       it("should fail validation if required constraint is true, but null is given", () => {
@@ -1826,6 +1847,7 @@ describe.only("vet", () => {
         const { value, errors } = validateObjectProperties(schema, body);
 
         testForError(errors, "fibonacci", "is required and may not be null");
+        expectZeroErrors(errors);
       });
 
       it("should allow null for array if no required constraint given", () => {
@@ -1958,6 +1980,7 @@ describe.only("vet", () => {
         const { value, errors } = validateObjectProperties(schema, body);
 
         testForError(errors, "primes", "cannot have more than 3 elments");
+        expectZeroErrors(errors);
       });
 
       it("should fail validation if array shorter than minLength is given", () => {
@@ -1976,6 +1999,7 @@ describe.only("vet", () => {
         const { value, errors } = validateObjectProperties(schema, body);
 
         testForError(errors, "primes", "must have at least 10 elments");
+        expectZeroErrors(errors);
       });
 
       it("should allow array size between minLength and maxLength", () => {
@@ -2056,6 +2080,7 @@ describe.only("vet", () => {
         const { value, errors } = validateObjectProperties(schema, body);
 
         testForError(errors, "test", "has an invalid value: All values must be even.");
+        expectZeroErrors(errors);
         expect(called).to.be.true;
       });
 
@@ -2135,6 +2160,7 @@ describe.only("vet", () => {
         testForError(errors, "name", "unknown property");
         testForError(errors, "age", "unknown property");
         testForError(errors, "birthDate", "unknown property");
+        expectZeroErrors(errors);
       });
     
       it("should do nothing for fields that are missing", () => {
@@ -2154,6 +2180,7 @@ describe.only("vet", () => {
         testForError(errors, "name", "unknown property");
         testForError(errors, "age", "unknown property");
         testForError(errors, "birthDate", "unknown property");
+        expectZeroErrors(errors);
       });
     });
   });

@@ -228,6 +228,10 @@ function validateArray(key, value, constraints) {
   return validationResults(array);
 }
 
+/** Validates an object against a schema
+ * @param schema - The schema you want to use for validation.
+ * @param obj - The JSON object you want to check against the schema.
+ */
 function validateObjectProperties(schema, obj) {
   const data = {};
   const errors = [];
@@ -609,41 +613,7 @@ function checkSchemaDefinition(schema, parentKey) {
   }
 }
 
-function vet(schema) {
-  checkSchemaDefinition(schema);
-
-  return (obj) => validateObjectProperties(schema, obj);
-}
-
-function vetMiddleware(schema) {
-  const validator = vet(schema);
-
-  function middleware(req, res, next) {
-    if (typeof req.body !== "object") {
-      req.errors = ["Request payload must be a JSON object"];
-    } else {
-      const result = validator(req.body);
-      
-      if (result.errors.length === 0) {
-        Object.assign(req.body, result.value);
-      } else {
-        res.locals.errors = result.errors;
-      }
-    }
-
-    next();
-  }
-
-  return middleware;
-}
-
 module.exports = {
-  vet,
-  vetMiddleware,
-  VetSchemaError,
-  VetValidationError,
-  utilities: {
-    checkSchemaDefinition,
-    validateObjectProperties
-  }
+  checkSchemaDefinition,
+  validateObjectProperties
 };
