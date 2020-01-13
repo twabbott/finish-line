@@ -24,7 +24,6 @@ function mockState(testReq, testRes) {
   const baseRes = {
     finalResponse: {
       status: undefined,
-      message: undefined,
       body: undefined,
       headers: {},
       isSent: false,
@@ -62,50 +61,109 @@ function mockState(testReq, testRes) {
   ];
 }
 
-function arrayCrawl(state, midList, depth) {
-  if (depth > 5) {
-    throw new Error("executeMiddleware stack overflow detected.");
-  }
+function arrayCrawl(state, ...array) {
+  const [req, res] = state;
+  let lastError = undefined;
 
-  for (let m of midList) {
-    if (Array.isArray(m)) {
-      arrayCrawl(state, m, depth + 1);
-    } else if (typeof m === "function") {
-      // eslint-disable-next-line no-unused-vars
-      const [req, res, next] = state;
+  invoke(req, res, ...array);
+
+  function invoke(req, res, middleware, ...rest) {
+    // console.log("arrayCrawl - begin")
+    const next = (err) => {
+      res.finalResponse.err = err;
+
       if (res.finalResponse.isSent) {
-        continue;
-      } 
-      
-      if (res.finalResponse.err) {
-        if (m.length === 4) {
-          m(res.finalResponse.err, ...state);
-          res.finalResponse.err = null;
-        }
-
-        continue;
-      } 
-
-      next.reset();
-      try {
-        m(...state);
-      } catch (err) {
-        res.finalResponse.err = err;
+        // console.log("arrayCrawl - next - response is sent")
+        return;
       }
 
-      if (!next.wasCalled()) {
-        if (res.finalResponse.isSent || res.finalResponse.err) {
-          continue;
-        }
+      // console.log("arrayCrawl - next - calling next middleware")
+      invoke(req, res, ...rest);
+    }
 
-        throw new Error("Middleware did not send a response, throw an error, or call next");
+    if (!middleware) {
+      // console.log("arrayCrawl - quitting");
+      return;
+    }
+  
+    if (Array.isArray(middleware)) {
+      // console.log("arrayCrawl - invoking an array")
+      invoke(req, res, ...middleware);
+  
+      next();
+      // console.log("arrayCrawl - done invoking an array")
+    } else {
+      try {
+        if (res.finalResponse.err) {
+          // console.log("arrayCrawl - searching for error middleware")
+          if (middleware.length !== 4) {
+            // console.log("arrayCrawl - skipping non-error middleware")
+            next(res.finalResponse.err);
+          } else {
+            // console.log("arrayCrawl - calling error middleware")
+            middleware(res.finalResponse.err, req, res, next);
+          }
+        } else {
+          // console.log("arrayCrawl - calling middleware")
+          middleware(req, res, next);
+        }
+      } catch (err) {
+        // console.log("arrayCrawl - caught an exception")
+        // console.trace(err)
+        next(err);
       }
     }
+
+    // console.log("arrayCrawl - end");
   }
 }
 
+// function xxx_arrayCrawl(state, midList, depth) {
+//   if (depth > 5) {
+//     throw new Error("executeMiddleware stack overflow detected.");
+//   }
+
+//   for (let m of midList) {
+//     if (Array.isArray(m)) {
+//       arrayCrawl(state, m, depth + 1);
+//     } else if (typeof m === "function") {
+//       // eslint-disable-next-line no-unused-vars
+//       const [req, res, next] = state;
+//       if (res.finalResponse.isSent) {
+//         continue;
+//       } 
+      
+//       if (res.finalResponse.err) {
+//         if (m.length === 4) {
+//           m(res.finalResponse.err, ...state);
+//           res.finalResponse.err = null;
+//         }
+
+//         continue;
+//       } 
+
+//       next.reset();
+//       try {
+//         m(...state);
+//       } catch (err) {
+//         res.finalResponse.err = err;
+//       }
+
+//       if (!next.wasCalled()) {
+//         if (res.finalResponse.isSent || res.finalResponse.err) {
+//           continue;
+//         }
+
+//         throw new Error("Middleware did not send a response, throw an error, or call next");
+//       }
+//     }
+//   }
+// }
+
 function executeMiddleware(state, ...middleware) {
-  arrayCrawl(state, middleware, 1);
+  arrayCrawl(state, ...middleware);
+
+  return state[1].finalResponse;
 }
 
 module.exports = {

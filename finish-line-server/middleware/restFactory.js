@@ -27,21 +27,38 @@ function trace(message) {
  *       - Do not catch any unexpected exceptions.  Let restFactory handle them.
  */
 function asyncServiceWrapper(service) {
+  if (service.constructor.name !== "AsyncFunction") {
+    throw new Error("asyncServiceWrapper must take an async function");
+  }
+  
   return function (req, res, next) {
-    const state = {};
+    trace("asyncServiceWrapper - begin");
+    const controller = {
+      setLocationId(id) {
+        res.locals.locationId = id;
+      },
+      setLocation(url) {
+        res.locals.url = url;
+      },
+      setMessage(Message) {
+        res.locals.message
+      }
+    };
 
-    service(req, state)
+    service(req, controller)
       .then(data => {
-        Object.assign(res.locals, state);
-
-        if (data !== null && data !== undefined) {
+        trace("asyncServiceWrapper - service returned successfully");
+        if (data !== undefined) {
           res.locals.data = data;
-          next();
-        } else {
-          next(new NotFoundError());
         }
+
+        trace("asyncServiceWrapper - end (calling next)");
+        next();
       })
-      .catch(err => next(err));
+      .catch(err => {
+        trace("asyncServiceWrapper - caught an exception");
+        next(err);
+      });
   };
 }
 
@@ -62,7 +79,13 @@ function asyncServiceWrapper(service) {
  */
 function handleOK(req, res, next) { // eslint-disable-line
   trace("handleOK - 200");
-  return res.ok(res.locals.data, res.locals.message);
+  res
+    .status(200)
+    .json({
+      success: true,
+      message: res.locals.message || "OK",
+      data: res.locals.data
+    });
 }
 
 /* handleCreated()
@@ -80,46 +103,48 @@ function handleOK(req, res, next) { // eslint-disable-line
  *   and all params should be validated BEFORE this middleware is invoked. 
  */
 function handleCreated(req, res, next) { // eslint-disable-line
-  if (typeof res.locals.id !== "number" && typeof res.locals.id !== "string") {
-    delete res.locals.id;
+  let url = undefined;
+  if (typeof res.locals.locationId === "number" || typeof res.locals.locationId === "string") {
+    url = `${req.protocol}://${req.headers["host"]}${req.url}/${res.locals.locationId}`;
+  } else if (typeof res.locals.url === "string") {
+    url = res.locals.url;
   }
 
-  if (res.locals.id) {
-    trace("handleCreated - 201, with locationId");
+  if (url) {
+    trace("handleCreated - 201, Location=" + url);
+    res.set("Location", url);
   } else {
     trace("handleCreated - 201");
   }
 
-  return res.created(res.locals.data, res.locals.id, res.locals.message);
+  res
+    .status(201)
+    .json({
+      success: true,
+      message: res.locals.message || "Created",
+      data: res.locals.data
+    });
 }
 
-/* handleNoContent()
- *   This middleware relies on the previous middleware in the chain performing the 
- *   following:
- *     - If the operation was successful, set res.locals.data to the number of 
- *       items deleted.  This number must be greater than zero.
- *     - If no such item was found, you can
- *         - set res.locals.data to zero
- *         - Leave res.locals.data to its default value of undefined.
- *         - Throw a NotFoundError
- *     - If the parameters for the request are invalid (400 bad request), throw a
- *       NotFoundError
- *     - For any fatal errors, either throw an exception or call next(err), whichever you 
- *       like.
- * 
- *   This middleware relies on validation happening earlier in the pipeline.  The body
- *   and all params should be validated BEFORE this middleware is invoked. 
+/** Causes a 400 Bad Request to be sent to the client.  Use this error when validating 
+ * request data before processing it.  This exception type allows you to include an array
+ * containing error info (strings, or whatever format you like). 
+ * @param {string} message - A title indicating the operation that the user was trying to perform.
+ * @param {string} errors - An array of one or more errors describing validation errors for the user to fix.
  */
-function handleNoContent(req, res, next) { // eslint-disable-line
-  if (typeof res.locals.data === "number" && res.locals.data > 0) {
-    trace("handleNoContent = 200");
-    return res.ok(undefined, `Deleted ${res.locals.data} item${res.locals.data !== 1? "s": ""}.`);
-  } else {
-    trace("handleNoContent = 404");
-    return res.notFound();
+class ValidationError extends Error {
+  constructor(message, errors, fileName, lineNumber) {
+    super(message, fileName, lineNumber);    
+    Error.captureStackTrace(this, ValidationError);
+
+    this.errors = errors;
   }
 }
 
+/** Causes a 400 Bad Request to be sent to the client
+ * @param {string} message - A title indicating the operation that the user was trying to perform.
+ * @param {string} description - Specific details about what went wrong, so the user can fix the problem.
+ */
 class BadRequestError extends Error {
   constructor(message, description, fileName, lineNumber) {
     super(message, fileName, lineNumber);    
@@ -168,34 +193,119 @@ class NotFoundError extends Error {
  * log an exception stack trace and return a 500.
  */
 function handleErrors(err, req, res, next) { // eslint-disable-line
+  if (err instanceof ValidationError) {
+    trace("handleErrors - 400 (ValidationError)");
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message,
+        errors
+      });
+  }
+
   if (err instanceof BadRequestError) {
-    trace("handleErrors - 400");
-    return res.badRequest(err.message, err.description);
+    trace("handleErrors - 400 (BadRequestError)");
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message,
+        errors: [ description ]
+      });
   }
 
   if (err instanceof UnauthorizedError) {
     trace("handleErrors - 401");
-    return res.unauthorized(err.challengeOptions, err.message);
+    if (err.challengeOptions) {
+      res.set("WWW-Authenticate", wwwAuthenticateChallenge(challengeOptions));
+    }
+  
+    return res
+      .status(401)
+      .json({
+        success: false,
+        message: err.message || "Unauthorized"
+      });
   }
 
   if (err instanceof ForbiddenError) {
     trace("handleErrors - 403");
-    return res.forbidden(err.message);
+    return res
+      .status(403)
+      .json({
+        success: false,
+        message: err.message || "Forbidden"
+      });
   }
 
   if (err instanceof NotFoundError) {
     trace("handleErrors - 404");
-    return res.notFound(undefined, err.message);
+    return res
+      .status(404)
+      .json({
+        success: false,
+        message: err.message || "Not found"
+      });
   }
 
   trace("handleErrors - 500");
   logError(err);
-  return res.internalServerError();
+  return res
+    .status(500)
+    .json({
+      success: false,
+      message: err.message || "Internal server error"
+    });
+}
+
+function wwwAuthenticateChallenge(challengeOptions) {
+  if (typeof challengeOptions==="object") {
+    if (!challengeOptions.hasOwnProperty("scheme")) {
+      throw new Error("challengeOptions parameter missing \"scheme\" property.");
+    }
+
+    const scheme = challengeOptions.scheme.charAt(0).toUpperCase() + challengeOptions.scheme.slice(1);
+    const params = [];
+    for (let prop in challengeOptions) {
+      if (prop==="scheme") {
+        continue;
+      }
+
+      const value = challengeOptions[prop];
+      switch (typeof value) {
+        case "string":
+          params.push(`${prop}="${value}"`);  
+          break;
+
+        case "number":
+        case "boolean":
+          params.push(`${prop}=${value}`);  
+          break;
+
+        default:
+          throw new Error(`Error processing field "${prop}" in challengeOptions.  Value must be string, number, or boolean.`);
+      }
+    }
+
+    if (!params.length) {
+      return scheme;
+    }
+
+    return `${scheme} ${params.join(", ")}`;
+  } 
+  
+  if (typeof challengeOptions === "string") {
+    return challengeOptions;
+  }
+  
+  throw new Error("Error processing challengeOptions.  Parameter must be an object or a string.");
 }
 
 module.exports = {
   init,
   asyncServiceWrapper,
+  ValidationError,
   BadRequestError,
   UnauthorizedError,
   ForbiddenError,
@@ -213,7 +323,7 @@ module.exports = {
     handleErrors
   ],
   deleteResponse: [    
-    handleNoContent,
+    handleOK,
     handleErrors
   ],
   handleErrors
