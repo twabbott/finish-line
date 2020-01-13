@@ -41,7 +41,9 @@ function createMap(map) {
         outKey = prop[1];
       }
 
-      if (typeof inObj[key] !== undefined) {
+      if (inObj[key] === undefined) {
+        outObj[outKey] = null;
+      } else {
         outObj[outKey] = inObj[key];
       }
     } 
