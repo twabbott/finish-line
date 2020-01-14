@@ -1,12 +1,9 @@
 const jwt = require("jsonwebtoken");
 const config = require("../config");
 
-const { UnauthorizedError, handleErrors } = require("../middleware/restFactory");
+const { UnauthorizedError, challengeOptions, handleErrors } = require("../middleware/restFactory");
 
-const challengeOptions = {
-  scheme: "Bearer",
-  realm: "Finish line"
-};
+const challenge = challengeOptions("Bearer", "Finish line");
 
 function validateToken(req, res, next) {
   // get the token from the header if present
@@ -14,12 +11,12 @@ function validateToken(req, res, next) {
 
   // if no token found, return response (without going to the next middelware)
   if (!token) {
-    throw new UnauthorizedError("User not authenticated.", challengeOptions);
+    throw new UnauthorizedError("User not authenticated.", challenge);
   }
 
   // Remove "Bearer" from string
   if (!token.startsWith("Bearer ")) {
-    throw new UnauthorizedError("Bearer token expected.", challengeOptions);
+    throw new UnauthorizedError("Bearer token expected.", challenge);
   }
 
   try {
@@ -29,13 +26,14 @@ function validateToken(req, res, next) {
     req.user = decoded;
   } catch (ex) {
     // if invalid token
-    throw new UnauthorizedError("Invalid token.", challengeOptions);
+    throw new UnauthorizedError("Invalid token.", challenge);
   }
 
   next();
 }
 
 module.exports = {
+  challengeOptions: challenge,
   validateToken: [
     validateToken,
     handleErrors

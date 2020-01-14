@@ -3,8 +3,7 @@ const { expect } = require("chai");
 const sinon = require("sinon");
 
 // Local dependencies
-const repartee = require("../../middleware/repartee");
-const { mockState } = require("../test-utils/express-shim");
+const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 
 // Mocked modules
 const jwt = require("jsonwebtoken");
@@ -12,86 +11,93 @@ const jwt = require("jsonwebtoken");
 // Module under test
 const { validateToken } = require("../../middleware/auth");
 
-describe("auth", () => {
+describe.only("auth", () => {
   const testEmail = "nobody@nowhere.com";
   const testUser = { username: testEmail };
 
   sinon.stub(jwt, "verify").returns(testUser);
 
-  function buildState(mockReq, mockRes) {
-    const state = mockState(mockReq, mockRes);
+  function executeStack(authHeader, ...middleware) {
+    const mockReq = {
+      headers: {
+        host: "my-test.com",
+      },
+      url: "/foo",
+    };
 
-    // Add repartee
-    repartee.responses()(...state);
-
-    return state;
+    if (authHeader) {
+      mockReq.headers.authorization = authHeader;
+    }
+  
+    const state = mockState(mockReq);
+    return executeMiddleware(state, ...middleware);
   }
 
   it("should authorize with a valid token", () => {
-    const mockReq = {
-      headers: {
-        authorization: "Bearer 12345"
-      }
-    };
+    let request = undefined;
+    function testMiddleware(req, res, next) {
+      request = req;
+      next();
+    }
 
-    const [req, res, next] = buildState(mockReq);
+    const response = executeStack("Bearer 12345", validateToken, testMiddleware);
 
-    validateToken(req, res, next);
-
-    expect(req.user).to.be.ok;
-    expect(req.user.username).to.equal(testEmail);
+    expect(response.isSent).to.be.false;
+    expect(request.user).to.be.ok;
+    expect(request.user.username).to.equal(testEmail);
   });
 
   it("should respond with 401 if token is missing", () => {
-    const mockReq = {
-      headers: {
-      }
-    };
+    let request = undefined;
+    function testMiddleware(req, res, next) {
+      request = req;
+      next();
+    }
 
-    const [req, res, next] = buildState(mockReq);
+    const response = executeStack(undefined, validateToken, testMiddleware);
 
-    validateToken(req, res, next);
-
-    expect(req.user).to.be.undefined;
+    expect(request).to.be.undefined;
     
-    expect(res.finalResponse.status).to.equal(401);
-    expect(res.finalResponse.body.message).to.be.equal("User not authenticated.");
+    expect(response.isSent).to.be.true;
+    expect(response.status).to.equal(401);
+    expect(response.headers["WWW-Authenticate"]).to.equal("Bearer realm=\"Finish line\"");
+    expect(response.body.message).to.be.equal("User not authenticated.");
   });
 
   it("should respond with 401 if token type is not \"Bearer\"", () => {
-    const mockReq = {
-      headers: {
-        authorization: "xxx 12345"
-      }
-    };
+    let request = undefined;
+    function testMiddleware(req, res, next) {
+      request = req;
+      next();
+    }
 
-    const [req, res, next] = buildState(mockReq);
+    const response = executeStack("xxx 12345", validateToken, testMiddleware);
 
-    validateToken(req, res, next);
-
-    expect(req.user).to.be.undefined;
+    expect(request).to.be.undefined;
     
-    expect(res.finalResponse.status).to.equal(401);
-    expect(res.finalResponse.body.message).to.be.equal("Bearer token expected.");
+    expect(response.isSent).to.be.true;
+    expect(response.status).to.equal(401);
+    expect(response.headers["WWW-Authenticate"]).to.equal("Bearer realm=\"Finish line\"");
+    expect(response.body.message).to.be.equal("Bearer token expected.");
   });
 
   it("should respond with 401 if token is invalid", () => {
-    const mockReq = {
-      headers: {
-        authorization: "Bearer 12345"
-      }
-    };
+    let request = undefined;
+    function testMiddleware(req, res, next) {
+      request = req;
+      next();
+    }
 
     jwt.verify.restore(); // Get rid of old stub.
     sinon.stub(jwt, "verify").throws("Nope!");
 
-    const [req, res, next] = buildState(mockReq);
+    const response = executeStack("Bearer 12345", validateToken, testMiddleware);
 
-    validateToken(req, res, next);
-
-    expect(req.user).to.be.undefined;
+    expect(request).to.be.undefined;
     
-    expect(res.finalResponse.status).to.equal(401);
-    expect(res.finalResponse.body.message).to.be.equal("Invalid token.");
+    expect(response.isSent).to.be.true;
+    expect(response.status).to.equal(401);
+    expect(response.headers["WWW-Authenticate"]).to.equal("Bearer realm=\"Finish line\"");
+    expect(response.body.message).to.be.equal("Invalid token.");
   });
 });
