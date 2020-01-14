@@ -44,7 +44,7 @@ function handleMongoErrors(message = "Unable to process request") {
   };
 }
 
-function handleValidationErrors(schema) {
+function validateRequestBody(schema) {
   checkSchemaDefinition(schema);
 
   function middleware(req, res, next) {
@@ -67,6 +67,6 @@ function handleValidationErrors(schema) {
 }
 
 module.exports = {
-  handleValidationErrors,
+  validateRequestBody,
   handleMongoErrors,
 };

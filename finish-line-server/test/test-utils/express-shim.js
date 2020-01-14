@@ -1,17 +1,5 @@
 
 
-function nextSpy() {
-  let nextCalled = false;
-  function mockNext() {
-    nextCalled = true;
-  }
-
-  mockNext.reset = () => nextCalled = false;
-  mockNext.wasCalled = () => nextCalled;
-
-  return mockNext;
-}
-
 function mockState(testReq, testRes) {
   const baseReq = {
     protocol: "http",
@@ -62,7 +50,6 @@ function mockState(testReq, testRes) {
 
 function arrayCrawl(state, ...array) {
   const [req, res] = state;
-  let lastError = undefined;
 
   invoke(req, res, ...array);
 
@@ -78,7 +65,7 @@ function arrayCrawl(state, ...array) {
 
       // console.log("arrayCrawl - next - calling next middleware")
       invoke(req, res, ...rest);
-    }
+    };
 
     if (!middleware) {
       // console.log("arrayCrawl - quitting");

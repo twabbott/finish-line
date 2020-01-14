@@ -1,16 +1,15 @@
 // Test framework libraries
 const { expect } = require("chai");
-const sinon = require("sinon");
 
 // Local dependencies
 const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 const { init, getResponse } = require("../../middleware/restFactory");
 
 // Module under test
-const { handleValidationErrors } = require("../../middleware/errorHandlers");
+const { validateRequestBody } = require("../../middleware/errorHandlers");
 
 describe("errorHandlers", () => {
-  describe("handleValidationErrors", () => {
+  describe("validateRequestBody", () => {
     const schema = {
       user: {
         type: String,
@@ -32,7 +31,7 @@ describe("errorHandlers", () => {
       const state = mockState(mockReq);
       return executeMiddleware(        
         state, 
-        handleValidationErrors(schema), 
+        validateRequestBody(schema), 
         (req, res, next) => {
           next();
         },

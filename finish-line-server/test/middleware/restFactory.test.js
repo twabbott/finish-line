@@ -19,12 +19,12 @@ describe("restFactory", () => {
     return executeMiddleware(state, ...middleware);
   }
 
-//   before(() => {
-//     restFactory.init({ 
-// //      traceOn: true,
-//       errorLogger: err => console.trace(err) 
-//     });
-//   });
+  //   before(() => {
+  //     restFactory.init({ 
+  // //      traceOn: true,
+  //       errorLogger: err => console.trace(err) 
+  //     });
+  //   });
 
   // after(() => {
   //   restFactory.init({ traceOn: false });
@@ -232,7 +232,7 @@ describe("restFactory", () => {
 
     it("should send 201 Created with location header from url", () => {
       function returnResult(req, res, next) {
-        res.locals.url = "http://foo.com"
+        res.locals.url = "http://foo.com";
         res.locals.data = {
           test: 1234
         };
@@ -675,5 +675,5 @@ describe("restFactory", () => {
       expect(result.body.message).to.equal("blarg");
       expect(result.body.data).to.be.undefined;
     });
-  })
+  });
 });

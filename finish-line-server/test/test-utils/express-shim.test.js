@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+
 const { mockState, executeMiddleware } = require("./express-shim");
 const { expect } = require("chai");
 
@@ -51,7 +53,7 @@ describe("express-shim", () => {
   
       expect(called1).to.be.true;
       expect(called2).to.be.true;
-      expect(response.headers["Location"]).to.equal("http://blarg.com")
+      expect(response.headers["Location"]).to.equal("http://blarg.com");
       expect(response.isSent).to.be.true;
       expect(response.status).to.equal(200);
       expect(response.body.test).to.equal(1234);
@@ -73,7 +75,7 @@ describe("express-shim", () => {
   
       const response = executeMiddleware(state, [middleware1, middleware2]);
   
-      expect(response.headers["Location"]).to.equal("http://blarg.com")
+      expect(response.headers["Location"]).to.equal("http://blarg.com");
       expect(response.isSent).to.be.true;
       expect(response.status).to.equal(200);
       expect(response.body.test).to.equal(1234);
@@ -110,9 +112,9 @@ describe("express-shim", () => {
         middlewareEnd
       );
   
-      expect(response.headers["h1"]).to.equal("1")
-      expect(response.headers["h2"]).to.equal("2")
-      expect(response.headers["h3"]).to.equal("3")
+      expect(response.headers["h1"]).to.equal("1");
+      expect(response.headers["h2"]).to.equal("2");
+      expect(response.headers["h3"]).to.equal("3");
       expect(response.isSent).to.be.true;
       expect(response.status).to.equal(200);
       expect(response.body.test).to.equal(1234);

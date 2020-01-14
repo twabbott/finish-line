@@ -42,8 +42,8 @@ const serviceWrapper = {
         setLocation(url) {
           res.locals.url = url;
         },
-        setMessage(Message) {
-          res.locals.message
+        setMessage(message) {
+          res.locals.message = message;
         }
       };
 
@@ -79,8 +79,8 @@ const serviceWrapper = {
         setLocation(url) {
           res.locals.url = url;
         },
-        setMessage(Message) {
-          res.locals.message
+        setMessage(message) {
+          res.locals.message = message;
         }
       };
 
@@ -100,7 +100,7 @@ const serviceWrapper = {
       }
     };
   }
-}
+};
 
 /* handleOK()
  *     This middleware relies on the previous middleware in the chain performing the 

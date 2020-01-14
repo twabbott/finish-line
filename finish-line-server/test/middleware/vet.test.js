@@ -11,19 +11,6 @@ const {
 } = require("../../middleware/vet");
 
 describe("vet", () => {
-  function buildState(schema, body) {
-    const mockReq = {
-      body
-    };
-
-    const state = mockState(mockReq);
-
-    const middleware = vet(schema, { autoRespond: false });
-    executeMiddleware(state, middleware);
-
-    return state;
-  }
-
   function expectZeroErrors(errors) {
     if (!errors) {
       return;
@@ -724,7 +711,7 @@ describe("vet", () => {
           testForError(errors, "isVeteran", "is required");
           testForError(errors, "isMale", "is required");
           expectZeroErrors(errors);
-      });
+        });
   
         it("should ignore an optional Boolean property, if not given", () => {
           const schema = {

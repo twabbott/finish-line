@@ -77,15 +77,6 @@ class VetSchemaError extends Error {
   }
 }
 
-class VetValidationError extends Error {
-  constructor(message = "Validation failed", errors=[], ...errorArgs) {
-    super(message, ...errorArgs);
-    Error.captureStackTrace(this, VetValidationError);
-
-    this.errors = errors;
-  }
-}
-
 function internalError(key, msg) {
   throw new Error(`Vet internal error while processing key ${key}: ${msg}`);
 }
@@ -412,7 +403,7 @@ function validateObjectProperties(schema, obj) {
 
   for (let key in obj) {
     if (!schema.hasOwnProperty(key)) {
-      let msg = `unknown property`;
+      let msg = "unknown property";
       for (let schemaKey in schema) {
         if (key.toLowerCase() === schemaKey.toLowerCase()) {
           msg += `, did you mean to specify "${schemaKey}"?`;
