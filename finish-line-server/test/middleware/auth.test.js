@@ -11,7 +11,7 @@ const jwt = require("jsonwebtoken");
 // Module under test
 const { validateToken } = require("../../middleware/auth");
 
-describe.only("auth", () => {
+describe("auth", () => {
   const testEmail = "nobody@nowhere.com";
   const testUser = { username: testEmail };
 

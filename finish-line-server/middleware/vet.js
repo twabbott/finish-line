@@ -1,9 +1,12 @@
 /*
     // Step #1: Import vet
-    const vet = require("../middleware/vet");
+    const {
+      checkSchemaDefinition,
+      validateObjectProperties
+    } = require("../middleware/vet");
 
     // Step #2: define a schema middleware
-    const validateBody = vet(const validateUserInfo = vet({
+    const schema = {
       name: { 
         type: String, 
         required: true 
@@ -19,23 +22,31 @@
         required: true,
         maxLength: 50
       }
-    });
+    };
+
+    checkSchemaDefinition(schema);
+
+    // Step #2: Do the validation
+    function validateSchema(req, res, next) {
+      const result = validateObjectProperties(req.body);
+      
+      if (result.errors.length === 0) {
+        Object.assign(req.body, result.value);
+      } else {
+        res.locals.errors = result.errors
+        throw new Error("Validation error");
+      }
+    }
 
     // Step #3: (optional) Define an error response middleware
-    function handleErrors((req, res, next) => {
-      if (res.locals.errors) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            "Bad Request",
-            errors: res.locals.errors
-          });
-        
-        return;
-      }
-
-      next();
+    function handleErrors(err, req, res, next) => {
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: err.message || "Bad Request",
+          errors: res.locals.errors
+        });
     });
 
     // Step #4: Add validation to the top when composing your pipeline

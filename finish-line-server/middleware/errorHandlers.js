@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
-const { BadRequestError } = require("../middleware/restFactory");
+const { RequestError, BadRequestError } = require("../middleware/restFactory");
+const { checkSchemaDefinition, validateObjectProperties } = require("./vet");
 
 /** Middleware to handle MongoDB / Mongoose errors and return a 400 error to the 
  *  client.  This function will detect any known exceptions, and re-throw them as 
@@ -43,23 +44,29 @@ function handleMongoErrors(message = "Unable to process request") {
   };
 }
 
-/** returns a middleware that looks for vet validation errors
- *  and throws an BadRequestError if res.locals.errors is a non-empty array
- * 
- * @param {string} message - A genreal message that validation failed for the object type. 
- * @return {middleware} a middleware function.
- */
-function handleValidationErrors(message) {
-  return (req, res, next) => {
-    if (res.locals.errors) {
-      throw new BadRequestError(message, res.locals.errors);
+function handleValidationErrors(schema) {
+  checkSchemaDefinition(schema);
+
+  function middleware(req, res, next) {
+    if (typeof req.body !== "object") {
+      throw new BadRequestError("Request payload must be a JSON object");
+    }
+
+    const result = validateObjectProperties(schema, req.body);
+    
+    if (result.errors.length === 0) {
+      Object.assign(req.body, result.value);
+    } else {
+      throw new RequestError("Validation error", 400, result.errors);
     }
 
     next();
-  };
+  }
+
+  return middleware;
 }
 
 module.exports = {
+  handleValidationErrors,
   handleMongoErrors,
-  handleValidationErrors
 };
