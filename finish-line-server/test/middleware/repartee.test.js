@@ -1,328 +1,337 @@
 const { expect } = require("chai");
 
 const repartee = require("../../middleware/repartee");
-const { mockState } = require("../test-utils/express-shim");
+const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 
+// Not using repartee any more.  Good idea, but not a good idea.
 describe("repartee", () => {
   const testMessage = "This is the message.";
   const testData = { a: "some string", b: 6, c: true };
 
-  function buildResponse(mockReq, mockRes) {
-    const middleware = repartee.responses();
-
-    const [req, res, next] = mockState(mockReq, mockRes);
-
-    middleware(req, res, next);
-
-    return res;
+  function buildResponse(...middleware) {
+    return executeMiddleware(
+      mockState(),
+      repartee.responses(),       
+      ...middleware);
   }
 
   describe("responses", () => {
     //////////////////////////////////////////////////////////////////////////////
     describe("200 ok()", () => {
       it("should return default 200 response", () => {
-        const mockRes = buildResponse();
-    
-        mockRes.ok();
-    
-        expect(mockRes.finalResponse.status).to.equal(200);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.true;
-        expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.ok);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        function doOk(req, res, next) {
+          res.ok();
+        }
+        const result = buildResponse(doOk);
+
+        expect(result.status).to.equal(200);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.true;
+        expect(result.body.message).to.be.equal(repartee.defaultMessages.ok);
+        expect(result.body.data).to.be.undefined;
       });
     
       it("should return 200 response with message", () => {
-        const mockRes = buildResponse();
-    
-        mockRes.ok(undefined, testMessage);
-    
-        expect(mockRes.finalResponse.status).to.equal(200);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.true;
-        expect(mockRes.finalResponse.body.message).to.be.equal(testMessage);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        function doOk(req, res, next) {
+          res.ok(undefined, testMessage);
+        }
+        const result = buildResponse(doOk);
+
+        expect(result.status).to.equal(200);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.true;
+        expect(result.body.message).to.be.equal(testMessage);
+        expect(result.body.data).to.be.undefined;
       });
     
       it("should return 200 response with payload", () => {
-        const mockRes = buildResponse();
-    
-        mockRes.ok({...testData});
-    
-        expect(mockRes.finalResponse.status).to.equal(200);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.true;
-        expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.ok);
-        expect(mockRes.finalResponse.body.data).to.deep.equal(testData);
+        function doOk(req, res, next) {
+          res.ok({...testData});
+        }
+        const result = buildResponse(doOk);
+
+        expect(result.status).to.equal(200);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.true;
+        expect(result.body.message).to.be.equal(repartee.defaultMessages.ok);
+        expect(result.body.data).to.deep.equal(testData);
       });
     });
 
     //////////////////////////////////////////////////////////////////////////////
     describe("201 created()", () => {
       it("should return default 201 response", () => {
-        const mockReq = {
-          headers: {
-            host: "my-test.com",
-          },
-          url: "/foo",
-        };
-        const mockRes = buildResponse(mockReq);
-    
-        mockRes.created(testData, 1234);
-    
-        expect(mockRes.finalResponse.status).to.equal(201);
-        expect(mockRes.finalResponse.headers.Location).to.equal("http://my-test.com/foo/1234");
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.true;
-        expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.created);
-        expect(mockRes.finalResponse.body.data).to.deep.equal(testData);
+        function doCreated(req, res, next) {
+          res.created(testData, 1234);
+        }
+        const result = buildResponse(doCreated);
+
+        expect(result.status).to.equal(201);
+        expect(result.headers.Location).to.equal("http://blah.com//1234");
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.true;
+        expect(result.body.message).to.be.equal(repartee.defaultMessages.created);
+        expect(result.body.data).to.deep.equal(testData);
       });
 
       it("should return a 201 response with a message", () => {
-        const mockReq = {
-          headers: {
-            host: "my-test.com",
-          },
-          url: "/foo",
-        };
-        const mockRes = buildResponse(mockReq);
         const testMsg = "Hello world";
+        function doCreated(req, res, next) {
+          res.created(testData, 1234, testMsg);
+        }
+        const result = buildResponse(doCreated);
 
-        mockRes.created(testData, 1234, testMsg);
-    
-        expect(mockRes.finalResponse.status).to.equal(201);
-        expect(mockRes.finalResponse.headers.Location).to.equal("http://my-test.com/foo/1234");
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.true;
-        expect(mockRes.finalResponse.body.message).to.be.equal(testMsg);
-        expect(mockRes.finalResponse.body.data).to.deep.equal(testData);
+        expect(result.status).to.equal(201);
+        expect(result.headers.Location).to.equal("http://blah.com//1234");
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.true;
+        expect(result.body.message).to.be.equal(testMsg);
+        expect(result.body.data).to.deep.equal(testData);
       });
     });
 
     //////////////////////////////////////////////////////////////////////////////
     describe("204 noContent()", () => {
       it("should return a 204 response", () => {
-        const mockRes = buildResponse();
+        function doNoContent(req, res, next) {
+          res.noContent();
+        }
+        const result = buildResponse(doNoContent);
 
-        mockRes.noContent();
-    
-        expect(mockRes.finalResponse.status).to.equal(204);
-        expect(mockRes.finalResponse.body).to.be.undefined;
+        expect(result.status).to.equal(204);
+        expect(result.body).to.be.undefined;
       });
     });
 
     //////////////////////////////////////////////////////////////////////////////
     describe("400 badRequest()", () => {
       it("should return default 400 response", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.badRequest();
+        }
+        const result = buildResponse(doError);
     
-        mockRes.badRequest();
-    
-        expect(mockRes.finalResponse.status).to.equal(400);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.badRequest);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(400);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(repartee.defaultMessages.badRequest);
+        expect(result.body.data).to.be.undefined;
       });
     
       it("should return 400 response with message", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.badRequest(testMessage);
+        }
+        const result = buildResponse(doError);
     
-        mockRes.badRequest(testMessage);
-    
-        expect(mockRes.finalResponse.status).to.equal(400);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(testMessage);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(400);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(testMessage);
+        expect(result.body.data).to.be.undefined;
       });
     });
 
     //////////////////////////////////////////////////////////////////////////////
     describe("401 unauthorized()", () => {
       it("should return default 401 response", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.unauthorized(testMessage);
+        }
+        const result = buildResponse(doError);
     
-        mockRes.unauthorized();
-    
-        expect(mockRes.finalResponse.status).to.equal(401);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.unauthorized);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(401);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(repartee.defaultMessages.unauthorized);
+        expect(result.body.data).to.be.undefined;
       });
     
       it("should return 401 response with message", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.unauthorized(null, testMessage);
+        }
+        const result = buildResponse(doError);
     
-        mockRes.unauthorized(null, testMessage);
-    
-        expect(mockRes.finalResponse.status).to.equal(401);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(testMessage);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(401);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(testMessage);
+        expect(result.body.data).to.be.undefined;
       });
     
       it("should return 401 response with WWW-Authenticate challenge", () => {
-        const mockRes = buildResponse();
-        mockRes.unauthorized(null, testMessage);
+        function doError(req, res, next) {
+          res.unauthorized(null, testMessage);
+        }
+        const result = buildResponse(doError);
     
-        expect(mockRes.finalResponse.status).to.equal(401);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(testMessage);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(401);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(testMessage);
+        expect(result.body.data).to.be.undefined;
       });
     });
 
     //////////////////////////////////////////////////////////////////////////////
     describe("403 forbidden()", () => {
       it("should return default 403 response", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.forbidden();
+        }
+        const result = buildResponse(doError);
     
-        mockRes.forbidden();
-    
-        expect(mockRes.finalResponse.status).to.equal(403);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.forbidden);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(403);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(repartee.defaultMessages.forbidden);
+        expect(result.body.data).to.be.undefined;
       });
     
       it("should return 403 response with message", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.forbidden(testMessage);
+        }
+        const result = buildResponse(doError);
     
-        mockRes.forbidden(testMessage);
-    
-        expect(mockRes.finalResponse.status).to.equal(403);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(testMessage);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(403);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(testMessage);
+        expect(result.body.data).to.be.undefined;
       });
     });
 
     //////////////////////////////////////////////////////////////////////////////
     describe("404 notFound()", () => {
       it("should return default 404 response", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.notFound();
+        }
+        const result = buildResponse(doError);
     
-        mockRes.notFound();
-    
-        expect(mockRes.finalResponse.status).to.equal(404);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.notFound);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(404);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(repartee.defaultMessages.notFound);
+        expect(result.body.data).to.be.undefined;
       });
     
       it("should return 404 response with message", () => {
-        const mockRes = buildResponse();
-    
-        mockRes.notFound(testMessage);
-    
-        expect(mockRes.finalResponse.status).to.equal(404);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(testMessage);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        function doError(req, res, next) {
+          res.notFound(testMessage);
+        }
+        const result = buildResponse(doError);
+
+        expect(result.status).to.equal(404);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(testMessage);
+        expect(result.body.data).to.be.undefined;
       });
     });
 
     //////////////////////////////////////////////////////////////////////////////
     describe("405 methodNotAllowed()", () => {
       it("should return default 405 response", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.methodNotAllowed();
+        }
+        const result = buildResponse(doError);
     
-        mockRes.methodNotAllowed();
-    
-        expect(mockRes.finalResponse.status).to.equal(405);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.methodNotAllowed);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(405);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(repartee.defaultMessages.methodNotAllowed);
+        expect(result.body.data).to.be.undefined;
       });
     
       it("should return 405 response with message", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.methodNotAllowed(testMessage);
+        }
+        const result = buildResponse(doError);
     
-        mockRes.methodNotAllowed(testMessage);
-    
-        expect(mockRes.finalResponse.status).to.equal(405);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(testMessage);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(405);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(testMessage);
+        expect(result.body.data).to.be.undefined;
       });
     });
 
     //////////////////////////////////////////////////////////////////////////////
     describe("409 conflict()", () => {
       it("should return default 409 response", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.conflict();
+        }
+        const result = buildResponse(doError);
     
-        mockRes.conflict();
-    
-        expect(mockRes.finalResponse.status).to.equal(409);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.conflict);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(409);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(repartee.defaultMessages.conflict);
+        expect(result.body.data).to.be.undefined;
       });
     
       it("should return 409 response with message", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.conflict(testMessage);
+        }
+        const result = buildResponse(doError);
     
-        mockRes.conflict(testMessage);
-    
-        expect(mockRes.finalResponse.status).to.equal(409);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(testMessage);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(409);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(testMessage);
+        expect(result.body.data).to.be.undefined;
       });
     });
 
     //////////////////////////////////////////////////////////////////////////////
     describe("500 internalServerError()", () => {
       it("should return default 500 response", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.internalServerError();
+        }
+        const result = buildResponse(doError);
     
-        mockRes.internalServerError();
-    
-        expect(mockRes.finalResponse.status).to.equal(500);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(repartee.defaultMessages.internalServerError);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(500);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(repartee.defaultMessages.internalServerError);
+        expect(result.body.data).to.be.undefined;
       });
     
       it("should return 500 response with message", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.internalServerError(testMessage);
+        }
+        const result = buildResponse(doError);
     
-        mockRes.internalServerError(testMessage);
-    
-        expect(mockRes.finalResponse.status).to.equal(500);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(testMessage);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(500);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(testMessage);
+        expect(result.body.data).to.be.undefined;
       });
     });
 
     //////////////////////////////////////////////////////////////////////////////
     describe("errorResponse()", () => {
       it("should return status code 999 and test message", () => {
-        const mockRes = buildResponse();
+        function doError(req, res, next) {
+          res.errorResponse(999, testMessage);
+        }
+        const result = buildResponse(doError);
     
-        mockRes.errorResponse(999, testMessage);
-    
-        expect(mockRes.finalResponse.status).to.equal(999);
-        expect(mockRes.finalResponse.body).to.not.be.undefined;
-        expect(mockRes.finalResponse.body.success).to.be.false;
-        expect(mockRes.finalResponse.body.message).to.be.equal(testMessage);
-        expect(mockRes.finalResponse.body.data).to.be.undefined;
+        expect(result.status).to.equal(999);
+        expect(result.body).to.not.be.undefined;
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.be.equal(testMessage);
+        expect(result.body.data).to.be.undefined;
       });
     });
   });

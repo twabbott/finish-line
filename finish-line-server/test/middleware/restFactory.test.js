@@ -6,7 +6,7 @@ const { expect } = require("chai");
 const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 const restFactory = require("../../middleware/restFactory");
 
-describe.only("restFactory", () => {
+describe("restFactory", () => {
   const mockReq = {
     headers: {
       host: "my-test.com",
