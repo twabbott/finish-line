@@ -170,13 +170,15 @@ function handleCreated(req, res, next) { // eslint-disable-line
  * request data before processing it.  This exception type allows you to include an array
  * containing error info (strings, or whatever format you like). 
  * @param {string} message - A title indicating the operation that the user was trying to perform.
+ * @param {number} statusCode - HTTP status code you want to send.
  * @param {string} errors - An array of one or more errors describing validation errors for the user to fix.
  */
-class ValidationError extends Error {
-  constructor(message, errors, fileName, lineNumber) {
+class RequestError extends Error {
+  constructor(message, statusCode = 400, errors = undefined, fileName, lineNumber) {
     super(message, fileName, lineNumber);    
-    Error.captureStackTrace(this, ValidationError);
+    Error.captureStackTrace(this, RequestError);
 
+    this.statusCode = statusCode;
     this.errors = errors;
   }
 }
@@ -196,13 +198,20 @@ class BadRequestError extends Error {
 
 /** Causes a 401 Not Authorized to be sent to the client
  * @param {string} message - Any details you want to provide (usually not needed).
+ * @param {Object} challenge - An object containing challenge info (e.g.: { scheme: "Bearer", realm: "My website" }).
  */
 class UnauthorizedError extends Error {
   constructor(message, challenge, ...errorArgs) {
     super(message, ...errorArgs);
     Error.captureStackTrace(this, UnauthorizedError);
 
-    this.challengeOptions = challenge;
+    if (challenge) {
+      try {
+        this.challengeOptions = wwwAuthenticateChallenge(challenge);
+      } catch (err) {
+        logError(err);
+      }      
+    }
   }
 }
 
@@ -233,14 +242,14 @@ class NotFoundError extends Error {
  * log an exception stack trace and return a 500.
  */
 function handleErrors(err, req, res, next) { // eslint-disable-line
-  if (err instanceof ValidationError) {
-    trace("handleErrors - 400 (ValidationError)");
+  if (err instanceof RequestError) {
+    trace(`handleErrors - ${err.statusCode} (RequestError)`);
     return res
-      .status(400)
+      .status(err.statusCode || 400)
       .json({
         success: false,
         message: err.message || "Bad request",
-        errors: err.errors || undefined
+        errors: (Array.isArray(err.errors) && err.errors) || (err.errors && [err.errors]) || undefined
       });
   }
 
@@ -257,7 +266,7 @@ function handleErrors(err, req, res, next) { // eslint-disable-line
   if (err instanceof UnauthorizedError) {
     trace("handleErrors - 401");
     if (err.challengeOptions) {
-      res.set("WWW-Authenticate", wwwAuthenticateChallenge(challengeOptions));
+      res.set("WWW-Authenticate", err.challengeOptions);
     }
   
     return res
@@ -298,16 +307,43 @@ function handleErrors(err, req, res, next) { // eslint-disable-line
     });
 }
 
+/** Creates a challenge object for a WWW-Authenticate header.  For use when throwing an UnauthorizedError 
+ * @param {string} scheme - The scheme to use.  Common types are "Bearer", or "Digest"
+ * @param {string} realm - A description of the protected area. If no realm is specified, clients often display a formatted hostname instead.
+ * @param {Object} options - An options object containing any other props you want to set.  Acceptable data types are string, number, or boolean.
+*/
+function challengeOptions(scheme = "Bearer", realm = undefined, options = undefined) {
+  const challenge = {
+    scheme: scheme.charAt(0).toUpperCase() + scheme.substring(1),
+  };
+
+  if (realm) {
+    challenge.realm = realm;
+  }
+
+  if (typeof options === "object") {
+    return {
+      ...challenge,
+      ...options
+    };
+  }
+
+  return challenge;
+}
+
 function wwwAuthenticateChallenge(challengeOptions) {
   if (typeof challengeOptions==="object") {
-    if (!challengeOptions.hasOwnProperty("scheme")) {
-      throw new Error("challengeOptions parameter missing \"scheme\" property.");
+    if (!challengeOptions.scheme) {
+      throw new Error("UnauthorizedError has error in challenge object: missing \"scheme\" property.");
     }
 
     const scheme = challengeOptions.scheme.charAt(0).toUpperCase() + challengeOptions.scheme.slice(1);
     const params = [];
     for (let prop in challengeOptions) {
       if (prop==="scheme") {
+        if (challengeOptions.scheme === "bearer") {
+          challengeOptions.scheme = "Bearer";
+        }
         continue;
       }
 
@@ -323,7 +359,7 @@ function wwwAuthenticateChallenge(challengeOptions) {
           break;
 
         default:
-          throw new Error(`Error processing field "${prop}" in challengeOptions.  Value must be string, number, or boolean.`);
+          throw new Error(`UnauthorizedError has error in challenge object: field "${prop}" in challengeOptions must be string, number, or boolean.`);
       }
     }
 
@@ -344,11 +380,12 @@ function wwwAuthenticateChallenge(challengeOptions) {
 module.exports = {
   init,
   serviceWrapper,
-  ValidationError,
+  RequestError,
   BadRequestError,
   UnauthorizedError,
   ForbiddenError,
   NotFoundError,
+  challengeOptions,
   getResponse: [    
     handleOK,
     handleErrors

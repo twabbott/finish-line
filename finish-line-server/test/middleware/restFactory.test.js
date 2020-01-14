@@ -6,7 +6,7 @@ const { expect } = require("chai");
 const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 const restFactory = require("../../middleware/restFactory");
 
-describe("restFactory", () => {
+describe.only("restFactory", () => {
   const mockReq = {
     headers: {
       host: "my-test.com",
@@ -19,12 +19,12 @@ describe("restFactory", () => {
     return executeMiddleware(state, ...middleware);
   }
 
-  // before(() => {
-  //   restFactory.init({ 
-  //     traceOn: true,
-  //     errorLogger: err => console.trace(err) 
-  //   });
-  // });
+//   before(() => {
+//     restFactory.init({ 
+// //      traceOn: true,
+//       errorLogger: err => console.trace(err) 
+//     });
+//   });
 
   // after(() => {
   //   restFactory.init({ traceOn: false });
@@ -408,10 +408,43 @@ describe("restFactory", () => {
     });
   });
 
+  describe("challengeOptions()", () => {
+    it("should do default challenge options if no parameters given", () => {
+      const result = restFactory.challengeOptions();
+
+      expect(result).to.deep.equal({
+        scheme: "Bearer"
+      });
+    });
+
+    it("should set bearer and realm", () => {
+      const result = restFactory.challengeOptions("Basic", "The kingdom of Krull");
+
+      expect(result).to.deep.equal({
+        scheme: "Basic",
+        realm: "The kingdom of Krull"
+      });
+    });
+
+    it("should set bearer, realm, and options", () => {
+      const result = restFactory.challengeOptions(
+        "Basic", 
+        "The kingdom of Krull",
+        { charset: "UTF-8" }
+      );
+
+      expect(result).to.deep.equal({
+        scheme: "Basic",
+        realm: "The kingdom of Krull",
+        charset: "UTF-8"
+      });
+    });
+  });
+
   describe("handleErrors", () => {
-    it("should handle a ValidationError", () => {
+    it("should handle a RequestError with message", () => {
       function throwError(req, res, next) {
-        throw new restFactory.ValidationError("blarg");
+        throw new restFactory.RequestError("blarg");
       }
 
       const result = executeStack(
@@ -424,6 +457,64 @@ describe("restFactory", () => {
       expect(result.body.success).to.be.false;
       expect(result.body.message).to.equal("blarg");
       expect(result.body.data).to.be.undefined;
+      expect(result.body.errors).to.be.undefined;
+    });
+
+    it("should handle a RequestError with message and status code", () => {
+      function throwError(req, res, next) {
+        throw new restFactory.RequestError("blarg", 999);
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(999);
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+      expect(result.body.errors).to.be.undefined;
+    });
+
+    it("should handle a RequestError with single error message", () => {
+      function throwError(req, res, next) {
+        throw new restFactory.RequestError("blarg", 999, "bad");
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(999);
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+      expect(Array.isArray(result.body.errors)).to.be.true;
+      expect(result.body.errors[0]).to.equal("bad");
+    });
+
+    it("should handle a RequestError with multiple error messages", () => {
+      function throwError(req, res, next) {
+        throw new restFactory.RequestError("blarg", 999, ["bad", "request"]);
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(999);
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+      expect(Array.isArray(result.body.errors)).to.be.true;
+      expect(result.body.errors[0]).to.equal("bad");
+      expect(result.body.errors[1]).to.equal("request");
     });
 
     it("should handle a BadRequestError", () => {
@@ -455,6 +546,80 @@ describe("restFactory", () => {
 
       expect(result.isSent).to.be.true;
       expect(result.status).to.equal(401);
+      expect(result.headers["WWW-Authenticate"]).to.be.undefined;
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+    });
+
+    it("should handle a UnauthorizedError with challenge object", () => {
+      function throwError(req, res, next) {
+        throw new restFactory.UnauthorizedError("blarg", { scheme: "Bearer", realm: "my-realm", count: 16, flag: true });
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(401);
+      expect(result.headers["WWW-Authenticate"]).to.equal("Bearer realm=\"my-realm\", count=16, flag=true");
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+    });
+
+    it("should handle a UnauthorizedError with challenge string", () => {
+      function throwError(req, res, next) {
+        throw new restFactory.UnauthorizedError("blarg", "Bearer realm=\"foo\"");
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(401);
+      expect(result.headers["WWW-Authenticate"]).to.equal("Bearer realm=\"foo\"");
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+    });
+
+    it("should handle a UnauthorizedError with challenge built using challengeOptions()", () => {
+      function throwError(req, res, next) {
+        const challenge = restFactory.challengeOptions("Bearer", "foo", { count: 16, flag: true });
+        throw new restFactory.UnauthorizedError("blarg", challenge);
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(401);
+      expect(result.headers["WWW-Authenticate"]).to.equal("Bearer realm=\"foo\", count=16, flag=true");
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+    });
+
+    it("should handle a UnauthorizedError with challenge object with invalid data", () => {
+      function throwError(req, res, next) {
+        throw new restFactory.UnauthorizedError("blarg", { scheme: "Bearer", data: ["foo"] });
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(401);
+      expect(result.headers["WWW-Authenticate"]).to.be.undefined;
       expect(result.body.success).to.be.false;
       expect(result.body.message).to.equal("blarg");
       expect(result.body.data).to.be.undefined;
