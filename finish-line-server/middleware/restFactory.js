@@ -16,7 +16,7 @@ function trace(message) {
   }
 }
 
-/* asyncServiceWrapper()
+/* serviceWrapper
  *     Use this function to wrap an async call to a service and generate a middleware.
  *       - If your service is successful, it shouild set result.data (and  
  *         optionally result.message or result.id).
@@ -26,40 +26,80 @@ function trace(message) {
  *       - If there is a permissions problem, throw a ForbiddenError.
  *       - Do not catch any unexpected exceptions.  Let restFactory handle them.
  */
-function asyncServiceWrapper(service) {
-  if (service.constructor.name !== "AsyncFunction") {
-    throw new Error("asyncServiceWrapper must take an async function");
-  }
-  
-  return function (req, res, next) {
-    trace("asyncServiceWrapper - begin");
-    const controller = {
-      setLocationId(id) {
-        res.locals.locationId = id;
-      },
-      setLocation(url) {
-        res.locals.url = url;
-      },
-      setMessage(Message) {
-        res.locals.message
-      }
-    };
+const serviceWrapper = {
+  callAsync(service) {
+    if (service.constructor.name !== "AsyncFunction") {
+      throw new Error("serviceWrapper.callAsync() must take an async function");
+    }
 
-    service(req, controller)
-      .then(data => {
-        trace("asyncServiceWrapper - service returned successfully");
+    return async function (req, res, next) {
+      trace("serviceWrapper - begin");
+
+      const controller = {
+        setLocationId(id) {
+          res.locals.locationId = id;
+        },
+        setLocation(url) {
+          res.locals.url = url;
+        },
+        setMessage(Message) {
+          res.locals.message
+        }
+      };
+
+      try {
+        const data = await service(req, controller);
+
+        trace("serviceWrapper - service returned successfully");
         if (data !== undefined) {
           res.locals.data = data;
         }
 
-        trace("asyncServiceWrapper - end (calling next)");
+        trace("serviceWrapper - end (calling next)");
         next();
-      })
-      .catch(err => {
-        trace("asyncServiceWrapper - caught an exception");
+      } catch (err) {
+        trace("serviceWrapper - caught an exception");
         next(err);
-      });
-  };
+      }
+    };
+  },
+
+  call(service) {
+    if (service.constructor.name === "AsyncFunction") {
+      throw new Error("serviceWrapper.call() can not take an async function");
+    }
+
+    return function (req, res, next) {
+      trace("serviceWrapper - begin");
+
+      const controller = {
+        setLocationId(id) {
+          res.locals.locationId = id;
+        },
+        setLocation(url) {
+          res.locals.url = url;
+        },
+        setMessage(Message) {
+          res.locals.message
+        }
+      };
+
+      try {
+        const data = service(req, controller);
+
+        trace("serviceWrapper - service returned successfully");
+        if (data !== undefined) {
+          res.locals.data = data;
+        }
+
+        trace("serviceWrapper - end (calling next)");
+        next();
+      } catch (err) {
+        trace("serviceWrapper - caught an exception");
+        next(err);
+      }
+    };
+  }
 }
 
 /* handleOK()
@@ -199,8 +239,8 @@ function handleErrors(err, req, res, next) { // eslint-disable-line
       .status(400)
       .json({
         success: false,
-        message,
-        errors
+        message: err.message || "Bad request",
+        errors: err.errors || undefined
       });
   }
 
@@ -210,8 +250,7 @@ function handleErrors(err, req, res, next) { // eslint-disable-line
       .status(400)
       .json({
         success: false,
-        message,
-        errors: [ description ]
+        message: err.message || "Bad request"
       });
   }
 
@@ -304,7 +343,7 @@ function wwwAuthenticateChallenge(challengeOptions) {
 
 module.exports = {
   init,
-  asyncServiceWrapper,
+  serviceWrapper,
   ValidationError,
   BadRequestError,
   UnauthorizedError,

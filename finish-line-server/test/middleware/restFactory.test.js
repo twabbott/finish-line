@@ -30,14 +30,105 @@ describe.only("restFactory", () => {
   //   restFactory.init({ traceOn: false });
   // });
 
-  describe("asyncServiceWrapper", () => {
-    it("should throw an exception if the service is not async", () => {
-      function service(req, ctrl) {
-      }
+  describe("service", () => {
+    describe("serviceWrapper", () => {
+      it("call() should return a 200 for normal behavior", () => {
+        function normalService(req, ctrl) {
+          return {
+            test: 1234
+          };
+        }
+  
+        const result = executeStack(
+          restFactory.serviceWrapper.call(normalService),
+          restFactory.getResponse
+        );
+  
+        expect(result.isSent).to.be.true;
+        expect(result.status).to.equal(200);
+        expect(result.body.success).to.be.true;
+        expect(result.body.message).to.equal("OK");
+        expect(result.body.data).to.be.ok;
+        expect(result.body.data.test).to.equal(1234);
+      });
 
-      expect(() => 
-        restFactory.asyncServiceWrapper(service)
-      ).to.throw("asyncServiceWrapper must take an async function");
+      it("call() should return a 404 for a NotFoundError", () => {
+        function throwNotFound(req, ctrl) {
+          throw new restFactory.NotFoundError("blarg");
+        }
+  
+        const result = executeStack(
+          restFactory.serviceWrapper.call(throwNotFound),
+          restFactory.getResponse
+        );
+  
+        expect(result.isSent).to.be.true;
+        expect(result.status).to.equal(404);
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.equal("blarg");
+        expect(result.body.data).to.be.undefined;
+      });
+  
+      it("call() should throw an exception if the service is async", () => {
+        async function service(req, ctrl) {
+        }
+  
+        expect(() => 
+          restFactory.serviceWrapper.call(service)
+        ).to.throw("serviceWrapper.call() can not take an async function");
+      });
+
+      it("callAsync() should return a 200 for normal behavior", (done) => {
+        async function normalService(req, ctrl) {
+          return {
+            test: 1234
+          };
+        }
+  
+        const result = executeStack(
+          restFactory.serviceWrapper.callAsync(normalService),
+          restFactory.getResponse
+        );
+  
+        setTimeout(() => {
+          expect(result.isSent).to.be.true;
+          expect(result.status).to.equal(200);
+          expect(result.body.success).to.be.true;
+          expect(result.body.message).to.equal("OK");
+          expect(result.body.data).to.be.ok;
+          expect(result.body.data.test).to.equal(1234);
+          done();
+        }, 30);
+      });
+
+      it("callAsync() should return a 404 for a NotFoundError", (done) => {
+        async function throwNotFound(req, ctrl) {
+          throw new restFactory.NotFoundError("blarg");
+        }
+  
+        const result = executeStack(
+          restFactory.serviceWrapper.callAsync(throwNotFound),
+          restFactory.getResponse
+        );
+  
+        setTimeout(() => {
+          expect(result.isSent).to.be.true;
+          expect(result.status).to.equal(404);
+          expect(result.body.success).to.be.false;
+          expect(result.body.message).to.equal("blarg");
+          expect(result.body.data).to.be.undefined;
+          done();
+        }, 30);
+      });
+
+      it("callAsync() should throw an exception if the service is not async", () => {
+        function service(req, ctrl) {
+        }
+  
+        expect(() => 
+          restFactory.serviceWrapper.callAsync(service)
+        ).to.throw("serviceWrapper.callAsync() must take an async function");
+      });
     });
   });
 
@@ -316,4 +407,108 @@ describe.only("restFactory", () => {
       expect(result.body.data).to.be.undefined;
     });
   });
+
+  describe("handleErrors", () => {
+    it("should handle a ValidationError", () => {
+      function throwError(req, res, next) {
+        throw new restFactory.ValidationError("blarg");
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(400);
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+    });
+
+    it("should handle a BadRequestError", () => {
+      function throwError(req, res, next) {
+        throw new restFactory.BadRequestError("blarg");
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(400);
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+    });
+
+    it("should handle a UnauthorizedError", () => {
+      function throwError(req, res, next) {
+        throw new restFactory.UnauthorizedError("blarg");
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(401);
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+    });
+
+    it("should handle a ForbiddenError", () => {
+      function throwError(req, res, next) {
+        throw new restFactory.ForbiddenError("blarg");
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(403);
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+    });
+
+    it("should handle a NotFoundError", () => {
+      function throwError(req, res, next) {
+        throw new restFactory.NotFoundError("blarg");
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(404);
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+    });
+
+    it("should respond with a 500 for any other error", () => {
+      function throwError(req, res, next) {
+        throw new Error("blarg");
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(500);
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+    });
+  })
 });

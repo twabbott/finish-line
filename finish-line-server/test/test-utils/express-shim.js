@@ -55,9 +55,8 @@ function mockState(testReq, testRes) {
   };
 
   return [
-    {...baseReq, ...testReq},
-    {...baseRes, ...testRes},
-    nextSpy()
+    Object.assign(baseReq, testReq),
+    Object.assign(baseRes, testRes),
   ];
 }
 
