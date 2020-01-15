@@ -1,44 +1,42 @@
-const vet = require("../middleware/vet");
-const { asyncServiceWrapper, getResponse, postResponse, putResponse, deleteResponse } = require("../middleware/restFactory");
+const { serviceWrapper, getResponse, postResponse, putResponse, deleteResponse } = require("../middleware/restFactory");
 const { createMap } = require("../middleware/automapper");
 const regex = require("../shared/regex");
-const { handleMongoErrors, handleValidationErrors } = require("../middleware/errorHandlers");
+const { handleMongoErrors, validateRequestBody } = require("../middleware/errorHandlers");
 
-const { createUser, readAllUsers, readOneUser, updateUser, deleteUser, errorMessages } = require("../services/users.service");
+const { postUser, readAllUsers, readOneUser, updateUser, deleteUser, errorMessages } = require("../services/users.service");
 
-const validateUserInfo = [
-  vet({
-    name: { 
-      type: String, 
-      required: true 
-    },
-    email: {
-      type: String,
-      match: regex.email,
-      required: true,
-      maxLength: 50
-    },
-    password: {
-      type: String,
-      required: true,
-      maxLength: 50
-    },
-    newPassword: {
-      type: String,
-      default: null,
-      maxLength: 50
-    },
-    isAdmin: {
-      type: Boolean,
-      default: false
-    },
-    isActive: {
-      type: Boolean,
-      required: true
-    }
-  }),
-  handleValidationErrors("Invalid user info")
-];
+const userInfoSchema = {
+  name: { 
+    type: String, 
+    required: true 
+  },
+  email: {
+    type: String,
+    match: regex.email,
+    required: true,
+    maxLength: 50
+  },
+  password: {
+    type: String,
+    default: null,
+    maxLength: 50
+  },
+  newPassword: {
+    type: String,
+    default: null,
+    maxLength: 50
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
+  isActive: {
+    type: Boolean,
+    required: true
+  }
+};
+
+const validateUserInfo = validateRequestBody(userInfoSchema);
 
 const mapAll = createMap([
   ["_id", "id"],
@@ -52,33 +50,33 @@ const mapAll = createMap([
 
 module.exports = {
   getAllUsers: [
-    asyncServiceWrapper(readAllUsers),
+    serviceWrapper.callAsync(readAllUsers),
     handleMongoErrors(errorMessages.read),
     mapAll.mapArray,
     getResponse
   ],
   getOneUser: [
-    asyncServiceWrapper(readOneUser),
+    serviceWrapper.callAsync(readOneUser),
     handleMongoErrors(errorMessages.read),
     mapAll.mapScalar,
     getResponse
   ],
-  createUser: [
+  postUser: [
     validateUserInfo,
-    asyncServiceWrapper(createUser),
+    serviceWrapper.callAsync(postUser),
     handleMongoErrors(errorMessages.create),
     mapAll.mapScalar,
     postResponse
   ],
   putUser: [
     validateUserInfo,
-    asyncServiceWrapper(updateUser),
+    serviceWrapper.callAsync(updateUser),
     handleMongoErrors(errorMessages.update),
     mapAll.mapScalar,
     putResponse
   ],
   deleteUser: [
-    asyncServiceWrapper(deleteUser),
+    serviceWrapper.callAsync(deleteUser),
     handleMongoErrors(errorMessages.delete),
     deleteResponse
   ]

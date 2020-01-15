@@ -33,7 +33,7 @@ const serviceWrapper = {
     }
 
     return async function (req, res, next) {
-      trace("serviceWrapper - begin");
+      trace("callAsync - begin");
 
       const controller = {
         setLocationId(id) {
@@ -50,15 +50,28 @@ const serviceWrapper = {
       try {
         const data = await service(req, controller);
 
-        trace("serviceWrapper - service returned successfully");
+        trace("callAsync - service returned successfully");
         if (data !== undefined) {
           res.locals.data = data;
         }
 
-        trace("serviceWrapper - end (calling next)");
+        trace("callAsync - end, success");
         next();
       } catch (err) {
-        trace("serviceWrapper - caught an exception");
+        if (err instanceof RequestError) {
+          trace("callAsync - caught a RequestError");
+        } else if (err instanceof BadRequestError) {
+          trace("callAsync - caught a BadRequestError");
+        } else if (err instanceof UnauthorizedError) {
+          trace("callAsync - caught a UnauthorizedError");
+        } else if (err instanceof ForbiddenError) {
+          trace("callAsync - caught a ForbiddenError");
+        } else if (err instanceof NotFoundError) {
+          trace("callAsync - caught a NotFoundError");
+        } else {
+          trace("callAsync - caught an unknown exception");
+        }
+
         next(err);
       }
     };
@@ -192,7 +205,7 @@ class BadRequestError extends Error {
     super(message, fileName, lineNumber);    
     Error.captureStackTrace(this, BadRequestError);
 
-    this.description = description;
+    this.errors = description && [ description ];
   }
 }
 
@@ -259,7 +272,8 @@ function handleErrors(err, req, res, next) { // eslint-disable-line
       .status(400)
       .json({
         success: false,
-        message: err.message || "Bad request"
+        message: err.message || "Bad request",
+        errors: err.errors
       });
   }
 

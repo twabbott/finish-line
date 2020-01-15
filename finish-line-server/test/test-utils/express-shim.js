@@ -82,16 +82,21 @@ function arrayCrawl(state, ...array) {
       try {
         if (res.finalResponse.err) {
           // console.log("arrayCrawl - searching for error middleware")
-          if (middleware.length !== 4) {
-            // console.log("arrayCrawl - skipping non-error middleware")
-            next(res.finalResponse.err);
-          } else {
+          if (middleware.length === 4) {
             // console.log("arrayCrawl - calling error middleware")
             middleware(res.finalResponse.err, req, res, next);
+          } else {
+            // console.log("arrayCrawl - skipping non-error middleware")
+            next(res.finalResponse.err);
           }
         } else {
-          // console.log("arrayCrawl - calling middleware")
-          middleware(req, res, next);
+          if (middleware.length === 3) {
+            // console.log("arrayCrawl - calling middleware")
+            middleware(req, res, next);
+          } else {
+            // console.log("arrayCrawl - skipping non-error middleware")
+            next();
+          }
         }
       } catch (err) {
         // console.log("arrayCrawl - caught an exception")

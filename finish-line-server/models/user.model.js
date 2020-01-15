@@ -1,9 +1,6 @@
 const mongoose = require("mongoose");
-
-function ValidateEmail(address) 
-{
-  return /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(address);
-}
+const mongodb = require("mongodb");
+const regex = require("../shared/regex");
 
 const usersSchema = new mongoose.Schema(
   {
@@ -21,7 +18,7 @@ const usersSchema = new mongoose.Schema(
       lowercase: true,
       validate: {
         validator: function(address) {
-          return ValidateEmail(address);
+          return regex.email.test(address);
         },
         message: "Invalid email address"
       }
@@ -48,6 +45,40 @@ const usersSchema = new mongoose.Schema(
 
 const userSchema = mongoose.model("users", usersSchema);
 
+const userRepository = {
+  createUser: async(user) => {
+    const doc = new userSchema(user);
+    return await doc.save();
+  },
+
+  readAllUsers: async() => {
+    return await userSchema.find();
+  },
+
+  readOneUser: async (userId) => {
+    if (!mongodb.ObjectID.isValid(userId)) {
+      return null;
+    }
+
+    return await userSchema.findById(userId);
+  },
+
+  readByEmail: async (email) => {
+    const [user] = await userSchema.find({ email });
+    return user;
+  },
+
+  deleteUser: async (userId) => {
+    if (!mongodb.ObjectID.isValid(userId)) {
+      return null;
+    }
+
+    const result = await userSchema.deleteOne({ _id: userId });
+    return (result && result.deletedCount) || 0;
+  }
+};
+
 module.exports = {
-  userSchema
+  userSchema,
+  userRepository
 };

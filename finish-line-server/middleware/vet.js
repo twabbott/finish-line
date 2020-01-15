@@ -50,14 +50,14 @@
     });
 
     // Step #4: Add validation to the top when composing your pipeline
-    const createUser = [
+    const postUser = [
       validateBody, // vet
       handleErrors, // error handler
       createUserController, // your controller
       // etc, etc...
     ];
 
-    app.post("/api/users", createUser);
+    app.post("/api/users", postUser);
 
     TODO:
     ===========================

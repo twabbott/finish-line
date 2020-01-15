@@ -534,6 +534,25 @@ describe("restFactory", () => {
       expect(result.body.data).to.be.undefined;
     });
 
+    it("should handle a BadRequestError with a description", () => {
+      function throwError(req, res, next) {
+        throw new restFactory.BadRequestError("blarg", "bad");
+      }
+
+      const result = executeStack(
+        throwError,
+        restFactory.getResponse
+      );
+
+      expect(result.isSent).to.be.true;
+      expect(result.status).to.equal(400);
+      expect(result.body.success).to.be.false;
+      expect(result.body.message).to.equal("blarg");
+      expect(result.body.data).to.be.undefined;
+      expect(Array.isArray(result.body.errors)).to.be.true;
+      expect(result.body.errors[0]).to.equal("bad");
+    });
+
     it("should handle a UnauthorizedError", () => {
       function throwError(req, res, next) {
         throw new restFactory.UnauthorizedError("blarg");
