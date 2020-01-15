@@ -10,7 +10,7 @@ function init({ errorLogger = undefined, traceOn = false } = {}) {
   tracing = traceOn;
 }
 
-function trace(message) {
+function trace(name, message) {
   if (tracing) {
     console.log("restFactory: " + message);
   }
@@ -33,7 +33,7 @@ const serviceWrapper = {
     }
 
     return async function (req, res, next) {
-      trace("callAsync - begin");
+      trace("restFactory", "callAsync - begin");
 
       const controller = {
         setLocationId(id) {
@@ -50,26 +50,26 @@ const serviceWrapper = {
       try {
         const data = await service(req, controller);
 
-        trace("callAsync - service returned successfully");
+        trace("restFactory", "callAsync - service returned successfully");
         if (data !== undefined) {
           res.locals.data = data;
         }
 
-        trace("callAsync - end, success");
+        trace("restFactory", "callAsync - end, success");
         next();
       } catch (err) {
         if (err instanceof RequestError) {
-          trace("callAsync - caught a RequestError");
+          trace("restFactory", "callAsync - caught a RequestError");
         } else if (err instanceof BadRequestError) {
-          trace("callAsync - caught a BadRequestError");
+          trace("restFactory", "callAsync - caught a BadRequestError");
         } else if (err instanceof UnauthorizedError) {
-          trace("callAsync - caught a UnauthorizedError");
+          trace("restFactory", "callAsync - caught a UnauthorizedError");
         } else if (err instanceof ForbiddenError) {
-          trace("callAsync - caught a ForbiddenError");
+          trace("restFactory", "callAsync - caught a ForbiddenError");
         } else if (err instanceof NotFoundError) {
-          trace("callAsync - caught a NotFoundError");
+          trace("restFactory", "callAsync - caught a NotFoundError");
         } else {
-          trace("callAsync - caught an unknown exception");
+          trace("restFactory", "callAsync - caught an unknown exception");
         }
 
         next(err);
@@ -83,7 +83,7 @@ const serviceWrapper = {
     }
 
     return function (req, res, next) {
-      trace("serviceWrapper - begin");
+      trace("restFactory", "serviceWrapper - begin");
 
       const controller = {
         setLocationId(id) {
@@ -100,15 +100,15 @@ const serviceWrapper = {
       try {
         const data = service(req, controller);
 
-        trace("serviceWrapper - service returned successfully");
+        trace("restFactory", "serviceWrapper - service returned successfully");
         if (data !== undefined) {
           res.locals.data = data;
         }
 
-        trace("serviceWrapper - end (calling next)");
+        trace("restFactory", "serviceWrapper - end (calling next)");
         next();
       } catch (err) {
-        trace("serviceWrapper - caught an exception");
+        trace("restFactory", "serviceWrapper - caught an exception");
         next(err);
       }
     };
@@ -131,7 +131,7 @@ const serviceWrapper = {
  *   and all params should be validated BEFORE this middleware is invoked. 
  */
 function handleOK(req, res, next) { // eslint-disable-line
-  trace("handleOK - 200");
+  trace("restFactory", "handleOK - 200");
   res
     .status(200)
     .json({
@@ -164,10 +164,10 @@ function handleCreated(req, res, next) { // eslint-disable-line
   }
 
   if (url) {
-    trace("handleCreated - 201, Location=" + url);
+    trace("restFactory", "handleCreated - 201, Location=" + url);
     res.set("Location", url);
   } else {
-    trace("handleCreated - 201");
+    trace("restFactory", "handleCreated - 201");
   }
 
   res
@@ -267,7 +267,7 @@ function handleErrors(err, req, res, next) { // eslint-disable-line
   }
 
   if (err instanceof BadRequestError) {
-    trace("handleErrors - 400 (BadRequestError)");
+    trace("restFactory", "handleErrors - 400 (BadRequestError)");
     return res
       .status(400)
       .json({
@@ -278,7 +278,7 @@ function handleErrors(err, req, res, next) { // eslint-disable-line
   }
 
   if (err instanceof UnauthorizedError) {
-    trace("handleErrors - 401");
+    trace("restFactory", "handleErrors - 401");
     if (err.challengeOptions) {
       res.set("WWW-Authenticate", err.challengeOptions);
     }
@@ -292,7 +292,7 @@ function handleErrors(err, req, res, next) { // eslint-disable-line
   }
 
   if (err instanceof ForbiddenError) {
-    trace("handleErrors - 403");
+    trace("restFactory", "handleErrors - 403");
     return res
       .status(403)
       .json({
@@ -302,7 +302,7 @@ function handleErrors(err, req, res, next) { // eslint-disable-line
   }
 
   if (err instanceof NotFoundError) {
-    trace("handleErrors - 404");
+    trace("restFactory", "handleErrors - 404");
     return res
       .status(404)
       .json({
@@ -311,7 +311,7 @@ function handleErrors(err, req, res, next) { // eslint-disable-line
       });
   }
 
-  trace("handleErrors - 500");
+  trace("restFactory", "handleErrors - 500");
   logError(err);
   return res
     .status(500)

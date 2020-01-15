@@ -1,17 +1,15 @@
 /* eslint-disable no-unused-vars */
 
 const { expect, assert } = require("chai");
-const sinon = require("sinon");
 
 // Dependencies
 const restFactory = require("../../middleware/restFactory");
 const { mockState, executeMiddleware } = require("../test-utils/express-shim");
+const mockUserRepo = require("../mockRepositories/users.model.mock");
+const regex = require("../../shared/regex");
 
 // Module under test
 const usersCtrl = require("../../controllers/users.ctrl");
-
-// Modules to be mocked
-const { userRepository } = require("../../models/user.model");
 
 describe.only("users.ctrl", () => {
   before(() => {
@@ -19,31 +17,29 @@ describe.only("users.ctrl", () => {
       //traceOn: true,
       errorLogger: err => console.trace(err) 
     });
+
+    mockUserRepo.initialize();
+  });
+
+  after(() => {
+    mockUserRepo.finalize();
   });
 
   const adminCreds = {
-    userId: "111122223333444455550000",
+    userId: mockUserRepo.constants.adminUserId,
     name: "Admin",
     email: "admin@foo.com",
     isAdmin: true
   };
 
   const normalCreds = {
-    userId: "111122223333444455550001",
-    name: "Fred Flintstone",
-    email: "fred.flintstone@hb.com",
+    userId: mockUserRepo.constants.normalUserId,
+    name: "Barney Fief",
+    email: "barney@gmail.com",
     isAdmin: false
   };
 
-  const mockAdminlUser = {
-    name: "Admin",
-    email: "admin@foo.com",
-    password: "1234",
-    isAdmin: false,
-    isActive: true
-  };
-
-  const mockNormalUser = {
+  const mockNewUser = {
     name: "Fred Flintstone",
     email: "fred.flintstone@hb.com",
     password: "1234",
@@ -65,45 +61,30 @@ describe.only("users.ctrl", () => {
   }
 
   describe("postUser", () => {
-    const mockId = "0123456789abcdef01234567";
-    const mockDate = "2020-01-15T05:32:08.551Z";
-    const createUserStub = sinon.stub(userRepository, "createUser"); 
-
     before(() => {
-      createUserStub.callsFake(u => {
-        return {
-          _id: mockId,
-          ...u,
-          createdAt: mockDate,
-          updatedAt: mockDate
-        };
-      });
+      mockUserRepo.reset();
     });
 
     after(() => {
-      createUserStub.restore();
     });
 
     it("should create new user", (done) => {
       const result = executeStack(
         adminCreds,
-        mockNormalUser,
-        [usersCtrl.postUser],
+        mockNewUser,
+        usersCtrl.postUser,
         result => {
-          //console.log(result);
           expect(result.body.success).to.be.true;
           expect(result.status).to.equal(201);
-          expect(result.body.data).to.deep.equal({
-            id: mockId,
-            name: "Fred Flintstone",
-            email: "fred.flintstone@hb.com",
-            isAdmin: false,
-            isActive: true,
-            createdAt: mockDate,
-            updatedAt: mockDate
-          });
+          expect(regex.objectId.test(result.body.data.id)).to.be.true;
+          expect(result.body.data.name).to.equal("Fred Flintstone");
+          expect(result.body.data.email).to.equal("fred.flintstone@hb.com");
+          expect(result.body.data.isAdmin).to.equal(false);
+          expect(result.body.data.isActive).to.equal(true);
+          expect(isNaN(Date.parse(result.body.data.createdAt))).to.be.false;
+          expect(isNaN(Date.parse(result.body.data.updatedAt))).to.be.false;
           expect(result.headers).to.deep.equal({ 
-            Location: "http://blah.com//0123456789abcdef01234567" 
+            Location: `http://blah.com//${result.body.data.id}` 
           });
   
           done();
@@ -114,23 +95,21 @@ describe.only("users.ctrl", () => {
     it("should create new user using anonymous credentials", (done) => {
       const result = executeStack(
         undefined,
-        mockNormalUser,
-        [usersCtrl.postUser],
+        mockNewUser,
+        usersCtrl.postUser,
         result => {
           //console.log(result);
           expect(result.body.success).to.be.true;
           expect(result.status).to.equal(201);
-          expect(result.body.data).to.deep.equal({
-            id: mockId,
-            name: "Fred Flintstone",
-            email: "fred.flintstone@hb.com",
-            isAdmin: false,
-            isActive: true,
-            createdAt: mockDate,
-            updatedAt: mockDate
-          });
+          expect(regex.objectId.test(result.body.data.id)).to.be.true;
+          expect(result.body.data.name).to.equal("Fred Flintstone");
+          expect(result.body.data.email).to.equal("fred.flintstone@hb.com");
+          expect(result.body.data.isAdmin).to.equal(false);
+          expect(result.body.data.isActive).to.equal(true);
+          expect(isNaN(Date.parse(result.body.data.createdAt))).to.be.false;
+          expect(isNaN(Date.parse(result.body.data.updatedAt))).to.be.false;
           expect(result.headers).to.deep.equal({ 
-            Location: "http://blah.com//0123456789abcdef01234567" 
+            Location: `http://blah.com//${result.body.data.id}` 
           });
   
           done();
@@ -142,10 +121,10 @@ describe.only("users.ctrl", () => {
       const result = executeStack(
         undefined,
         {
-          ...mockNormalUser,
+          ...mockNewUser,
           isAdmin: true
         },
-        [usersCtrl.postUser],
+        usersCtrl.postUser,
         result => {
           expect(result.body.success).to.be.false;
           expect(result.status).to.equal(400);
@@ -162,10 +141,10 @@ describe.only("users.ctrl", () => {
       const result = executeStack(
         normalCreds,
         {
-          ...mockNormalUser,
+          ...mockNewUser,
           isAdmin: true
         },
-        [usersCtrl.postUser],
+        usersCtrl.postUser,
         result => {
           expect(result.body.success).to.be.false;
           expect(result.status).to.equal(400);

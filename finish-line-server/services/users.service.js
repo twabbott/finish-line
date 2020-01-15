@@ -12,7 +12,7 @@ const errorMessages = {
   delete: "Error deleting user"
 };
 
-async function postUser(req, ctrl) {
+async function createUser(req, ctrl) {
   const { name, email, password, isAdmin, isActive } = req.body;
 
   // Don't let the user create an admin user unless they're signed in AS an
@@ -123,7 +123,7 @@ async function deleteUser(req) {
 }
 
 module.exports = {
-  postUser,
+  createUser,
   readOneUser,
   readAllUsers,
   updateUser,

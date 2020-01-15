@@ -3,7 +3,7 @@ const { createMap } = require("../middleware/automapper");
 const regex = require("../shared/regex");
 const { handleMongoErrors, validateRequestBody } = require("../middleware/errorHandlers");
 
-const { postUser, readAllUsers, readOneUser, updateUser, deleteUser, errorMessages } = require("../services/users.service");
+const { createUser, readAllUsers, readOneUser, updateUser, deleteUser, errorMessages } = require("../services/users.service");
 
 const userInfoSchema = {
   name: { 
@@ -63,7 +63,7 @@ module.exports = {
   ],
   postUser: [
     validateUserInfo,
-    serviceWrapper.callAsync(postUser),
+    serviceWrapper.callAsync(createUser),
     handleMongoErrors(errorMessages.create),
     mapAll.mapScalar,
     postResponse
