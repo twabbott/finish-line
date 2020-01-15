@@ -30,12 +30,20 @@ describe.only("users.ctrl", () => {
 
   const normalCreds = {
     userId: "111122223333444455550001",
-    name: "Test User",
-    email: "test.user@foo.com",
+    name: "Fred Flintstone",
+    email: "fred.flintstone@hb.com",
     isAdmin: false
   };
 
-  const mockUser = {
+  const mockAdminlUser = {
+    name: "Admin",
+    email: "admin@foo.com",
+    password: "1234",
+    isAdmin: false,
+    isActive: true
+  };
+
+  const mockNormalUser = {
     name: "Fred Flintstone",
     email: "fred.flintstone@hb.com",
     password: "1234",
@@ -79,7 +87,7 @@ describe.only("users.ctrl", () => {
     it("should create new user", (done) => {
       const result = executeStack(
         adminCreds,
-        mockUser,
+        mockNormalUser,
         [usersCtrl.postUser],
         result => {
           //console.log(result);
@@ -106,7 +114,7 @@ describe.only("users.ctrl", () => {
     it("should create new user using anonymous credentials", (done) => {
       const result = executeStack(
         undefined,
-        mockUser,
+        mockNormalUser,
         [usersCtrl.postUser],
         result => {
           //console.log(result);
@@ -134,7 +142,7 @@ describe.only("users.ctrl", () => {
       const result = executeStack(
         undefined,
         {
-          ...mockUser,
+          ...mockNormalUser,
           isAdmin: true
         },
         [usersCtrl.postUser],
@@ -154,7 +162,7 @@ describe.only("users.ctrl", () => {
       const result = executeStack(
         normalCreds,
         {
-          ...mockUser,
+          ...mockNormalUser,
           isAdmin: true
         },
         [usersCtrl.postUser],
