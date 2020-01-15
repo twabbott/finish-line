@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { RequestError, BadRequestError } = require("../middleware/restFactory");
+const { RequestError, BadRequestError, trace } = require("../middleware/restFactory");
 const { checkSchemaDefinition, validateObjectProperties } = require("./vet");
 
 /** Middleware to handle MongoDB / Mongoose errors and return a 400 error to the 
@@ -14,11 +14,12 @@ function handleMongoErrors(message = "Unable to process request") {
     if (err.name === "MongoError") {
       switch (err.code) {
         case 11000:
+          trace("handleMongoErrors", "MongoError(11000) - unique constraint violation.");
           description = `The following prop/value must be unique: ${JSON.stringify(err.keyValue)}`;
           break;
 
         default:
-          console.log("MongoError: " + JSON.stringify(err, null, 2));
+          trace("handleMongoErrors", "MongoError(unknown): " + JSON.stringify(err, null, 2));
           description = "There was an error in the data for this request.";
           break;
       }
@@ -27,11 +28,17 @@ function handleMongoErrors(message = "Unable to process request") {
     if (err instanceof mongoose.Error) {
       switch (err.name) {
         case "CastError":
+          trace("handleMongoErrors", "MongooseError(CastError) " + JSON.stringify(err, null, 2));
           description = `Value ${err.stringValue} must be a valid ${err.kind}.`;
           break;
 
+        case "ValidationError":
+          trace("handleMongoErrors", "MongooseError(ValidationError) " + JSON.stringify(err, null, 2));
+          description = err.message;
+          break;
+    
         default:
-          console.log("MongooseError: " + JSON.stringify(err, null, 2));
+          trace("handleMongoErrors", "MongooseError(unknown): " + JSON.stringify(err, null, 2));
           description = "There was an error in the data for this request.";
       }
     }

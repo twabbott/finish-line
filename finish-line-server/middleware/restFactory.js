@@ -416,5 +416,6 @@ module.exports = {
     handleOK,
     handleErrors
   ],
+  trace,
   handleErrors
 };
