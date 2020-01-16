@@ -35,8 +35,16 @@ async function createUser(req, ctrl) {
 }
 
 async function readAllUsers(req) {
+  if (!req.user || !req.user.userId) {
+    throw new ForbiddenError();
+  }
+
   if (!req.user.isAdmin) {
-    return [await userRepository.readOneUser(req.user.userId)];
+    const item = await userRepository.readOneUser(req.user.userId);
+    if (!item) {
+      throw new NotFoundError(`User not found; userId=${req.user.userId}`);
+    }
+    return [item];
   }
 
   return await userRepository.readAllUsers();
@@ -45,7 +53,7 @@ async function readAllUsers(req) {
 async function readOneUser(req) {
   const userId = req.params.id;
 
-  if (!req.user.isAdmin && req.user.userId !== req.params.id) {
+  if (!req.user || !req.user.userId || (!req.user.isAdmin && req.user.userId !== req.params.id)) {
     throw new ForbiddenError();
   }
 

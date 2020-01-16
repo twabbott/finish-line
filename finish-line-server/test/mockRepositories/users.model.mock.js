@@ -10,6 +10,8 @@ const documentCollection = [];
 
 // Stubs
 let createUserStub = undefined; 
+let readAllUsersStub = undefined;
+let readOneUserStub = undefined;
 
 function initialize() {
   createUserStub = sinon.stub(userRepository, "createUser"); 
@@ -25,10 +27,18 @@ function initialize() {
     documentCollection.push(newDoc);
     return newDoc;
   });
+
+  readAllUsersStub = sinon.stub(userRepository, "readAllUsers");
+  readAllUsersStub.callsFake(() => documentCollection);
+
+  readOneUserStub = sinon.stub(userRepository, "readOneUser");
+  readOneUserStub.callsFake(userId => documentCollection.find(doc => doc._id === userId));
 }
 
 function finalize() {
   createUserStub.restore();
+  readAllUsersStub.restore();
+  readOneUserStub.restore();
 }
 
 function reset() {
