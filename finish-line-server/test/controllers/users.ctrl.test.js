@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+/* eslint-disable no-unused-vars, indent */
 
 const { expect, assert } = require("chai");
 
@@ -338,10 +338,285 @@ describe.only("users.ctrl", () => {
       });
     });
   });
+
+  describe("putUser", () => {
+    beforeEach(() => {
+      mockUserRepo.reset();
+    });
+
+    describe("with admin credentials", () => {
+      const newName = "John Doe";
+      const newEmail = "john.doe@gmail.com";
+
+      it("should allow updating a user's own info", (done) => {
+        executeStack({
+            params: { id: mockUserRepo.constants.adminUserId },
+            user: {...adminCreds},
+            body: {    
+              name: newName,
+              email: newEmail,
+              isAdmin: false,
+              isActive: false,
+            }
+          },
+          usersCtrl.putUser,
+          result => {
+            expect(result.body.success).to.be.true;
+            expect(result.status).to.equal(200);
+            expect(result.body.data.id).to.be.equal(mockUserRepo.constants.adminUserId);
+            expect(result.body.data.name).to.equal(newName);
+            expect(result.body.data.email).to.equal(newEmail);
+            expect(result.body.data.isAdmin).to.equal(false);
+            expect(result.body.data.isActive).to.equal(false);
+    
+            done();
+          }
+        );
+      });
+
+      it("should allow updating another user's info", (done) => {
+        executeStack({
+            params: { id: mockUserRepo.constants.normalUserId },
+            user: {...adminCreds},
+            body: {    
+              name: newName,
+              email: newEmail,
+              isAdmin: false,
+              isActive: false,
+            }
+          },
+          usersCtrl.putUser,
+          result => {
+            expect(result.body.success).to.be.true;
+            expect(result.status).to.equal(200);
+            expect(result.body.data.id).to.be.equal(mockUserRepo.constants.normalUserId);
+            expect(result.body.data.name).to.equal(newName);
+            expect(result.body.data.email).to.equal(newEmail);
+            expect(result.body.data.isAdmin).to.equal(false);
+            expect(result.body.data.isActive).to.equal(false);
+    
+            done();
+          }
+        );
+      });
+
+      it("should allow resetting another user's password", (done) => {
+        executeStack({
+            params: { id: mockUserRepo.constants.normalUserId },
+            user: {...adminCreds},
+            body: {    
+              name: newName,
+              email: newEmail,
+              newPassword: "qa",
+              isAdmin: false,
+              isActive: false,
+            }
+          },
+          usersCtrl.putUser,
+          result => {
+            expect(result.body.success).to.be.true;
+            expect(result.status).to.equal(200);
+            expect(result.body.data.id).to.be.equal(mockUserRepo.constants.normalUserId);
+            expect(result.body.data.name).to.equal(newName);
+            expect(result.body.data.email).to.equal(newEmail);
+            expect(result.body.data.isAdmin).to.equal(false);
+            expect(result.body.data.isActive).to.equal(false);
+    
+            done();
+          }
+        );
+      });
+    });
+
+    describe("with normal credentials", () => {
+      const newName = "John Doe";
+      const newEmail = "john.doe@gmail.com";
+  
+      it("should allow updating a user's own info", (done) => {
+        executeStack({
+            params: { id: mockUserRepo.constants.normalUserId },
+            user: {...normalCreds},
+            body: {    
+              name: newName,
+              email: newEmail,
+              password: mockUserRepo.constants.password,
+              isAdmin: false,
+              isActive: false,
+            }
+          },
+          usersCtrl.putUser,
+          result => {
+            expect(result.body.success).to.be.true;
+            expect(result.status).to.equal(200);
+            expect(result.body.data.id).to.be.equal(mockUserRepo.constants.normalUserId);
+            expect(result.body.data.name).to.equal(newName);
+            expect(result.body.data.email).to.equal(newEmail);
+            expect(result.body.data.isAdmin).to.equal(false);
+            expect(result.body.data.isActive).to.equal(false);
+    
+            done();
+          }
+        );
+      });
+  
+      it("should allow resetting user's own password", (done) => {
+        executeStack({
+            params: { id: mockUserRepo.constants.normalUserId },
+            user: {...normalCreds},
+            body: {    
+              name: newName,
+              email: newEmail,
+              newPassword: "blarggg",
+              password: mockUserRepo.constants.password,
+              isAdmin: false,
+              isActive: false,
+            }
+          },
+          usersCtrl.putUser,
+          result => {
+            expect(result.body.success).to.be.true;
+            expect(result.status).to.equal(200);
+            expect(result.body.data.id).to.be.equal(mockUserRepo.constants.normalUserId);
+            expect(result.body.data.name).to.equal(newName);
+            expect(result.body.data.email).to.equal(newEmail);
+            expect(result.body.data.isAdmin).to.equal(false);
+            expect(result.body.data.isActive).to.equal(false);
+  
+            done();
+          }, 200
+        );
+      });
+  
+      it("should forbid user from promoting themselves to admin", (done) => {
+        executeStack({
+            params: { id: mockUserRepo.constants.normalUserId },
+            user: {...normalCreds},
+            body: {    
+              name: newName,
+              email: newEmail,
+              password: mockUserRepo.constants.password,
+              isAdmin: true,
+              isActive: false,
+            }
+          },
+          usersCtrl.putUser,
+          result => {
+            expect(result.body.success).to.be.false;
+            expect(result.status).to.equal(400);
+            expect(result.body.message).to.equal("Error updating user.");
+            expect(result.body.errors).to.deep.equal(["You must be an admin in order to grant admin priveliges to any user."]);
+  
+            done();
+          }
+        );
+      });
+  
+      it("should forbid updating user's own info if no password given", (done) => {
+        executeStack({
+            params: { id: mockUserRepo.constants.normalUserId },
+            user: {...normalCreds},
+            body: {    
+              name: newName,
+              email: newEmail,
+              isAdmin: false,
+              isActive: false,
+            }
+          },
+          usersCtrl.putUser,
+          result => {
+            expect(result.body.success).to.be.false;
+            expect(result.status).to.equal(400);
+            expect(result.body.message).to.equal("Error updating user.");
+            expect(result.body.errors).to.deep.equal(["Property \"password\" must match current password."]);
+  
+            done();
+          }
+        );
+      });
+  
+      it("should forbid updating user's own info if password does not match", (done) => {
+        executeStack({
+            params: { id: mockUserRepo.constants.normalUserId },
+            user: {...normalCreds},
+            body: {    
+              name: newName,
+              email: newEmail,
+              password: "foobar",
+              isAdmin: false,
+              isActive: false,
+            }
+          },
+          usersCtrl.putUser,
+          result => {
+            expect(result.body.success).to.be.false;
+            expect(result.status).to.equal(400);
+            expect(result.body.message).to.equal("Error updating user.");
+            expect(result.body.errors).to.deep.equal(["Property \"password\" must match current password."]);
+  
+            done();
+          }
+        );
+      });
+  
+      it("should forbid updating another user's info", (done) => {
+        executeStack({
+            params: { id: mockUserRepo.constants.adminUserId },
+            user: {...normalCreds},
+            body: {    
+              name: newName,
+              email: newEmail,
+              password: mockUserRepo.constants.password,
+              isAdmin: false,
+              isActive: false,
+            }
+          },
+          usersCtrl.putUser,
+          result => {
+            expect(result.body.success).to.be.false;
+            expect(result.status).to.equal(403);
+            expect(result.body.message).to.equal("Forbidden");
+  
+            done();
+          }
+        );
+      });
+    });
+  });
+
+  describe("with anonymous credentials", () => {
+    const newName = "John Doe";
+    const newEmail = "john.doe@gmail.com";
+
+    it("should forbid updating any user's info", (done) => {
+      executeStack({
+          params: { id: mockUserRepo.constants.normalUserId },
+          body: {    
+            name: newName,
+            email: newEmail,
+            password: mockUserRepo.constants.password,
+            isAdmin: false,
+            isActive: false,
+          }
+        },
+        usersCtrl.putUser,
+        result => {
+          expect(result.body.success).to.be.false;
+          expect(result.status).to.equal(403);
+          expect(result.body.message).to.equal("Forbidden");
+
+          done();
+        }
+      );
+    });
+});
 });
 
 
+// out of date admin token:
+// Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1ZGNiMTdlOGQxMTQ4Njk1NDA4NjkzNzMiLCJuYW1lIjoiVG9tIEFiYm90dCIsImVtYWlsIjoidHdhYmJvdHRAb3V0bG9vay5jb20iLCJpc0FkbWluIjp0cnVlLCJpYXQiOjE1NzkxMTcwNzR9.mDt1P72VaePJskXwwvdYc1HLF_PDUJ8CI4RgnFKr62U
 
+// out of date user token:
+// 
 
 
 

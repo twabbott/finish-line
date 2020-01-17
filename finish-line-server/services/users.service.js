@@ -12,6 +12,10 @@ const errorMessages = {
   delete: "Error deleting user"
 };
 
+function canOnlySeeSelf(req) {
+  return !req.user || !req.user.userId || (!req.user.isAdmin && req.user.userId !== req.params.id);
+}
+
 async function createUser(req, ctrl) {
   const { name, email, password, isAdmin, isActive } = req.body;
 
@@ -53,7 +57,7 @@ async function readAllUsers(req) {
 async function readOneUser(req) {
   const userId = req.params.id;
 
-  if (!req.user || !req.user.userId || (!req.user.isAdmin && req.user.userId !== req.params.id)) {
+  if (canOnlySeeSelf(req)) {
     throw new ForbiddenError();
   }
 
@@ -61,7 +65,7 @@ async function readOneUser(req) {
 }
 
 async function updateUser(req) {
-  if (!req.user.isAdmin && req.user.userId !== req.params.id) {
+  if (canOnlySeeSelf(req)) {
     throw new ForbiddenError();
   }
 
@@ -73,12 +77,17 @@ async function updateUser(req) {
   const { name, email, password, newPassword, isAdmin, isActive } = req.body;
   item.name = name;
   item.email = email;
+
   if (!await passwords.comparePasswords(item.hashedPassword, password) && !req.user.isAdmin) {
     throw new BadRequestError(errorMessages.update, "Property \"password\" must match current password.");
   }
-  
+
   if (newPassword) {
-    item.hashedPassword = await passwords.createEncryptedPassword(newPassword);
+    try {
+      item.hashedPassword = await passwords.createEncryptedPassword(newPassword);
+    } catch (err) {
+      throw new BadRequestError(errorMessages.update, err.message);
+    }
   }
 
   if (isAdmin && !req.user.isAdmin) {
@@ -89,6 +98,7 @@ async function updateUser(req) {
   item.isActive = isActive;
 
   await item.save();
+
   return item;
 }
 
