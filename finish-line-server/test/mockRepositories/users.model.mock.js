@@ -13,13 +13,16 @@ const constants = {
 const documentCollection = [];
 
 // Stubs
-let createUserStub = undefined; 
-let readAllUsersStub = undefined;
-let readOneUserStub = undefined;
+const stubs = {
+  createUser: undefined,
+  readUser: undefined,
+  readOneUser: undefined,
+  deleteUser: undefined
+};
 
 function initialize() {
-  createUserStub = sinon.stub(userRepository, "createUser"); 
-  createUserStub.callsFake(item => {
+  stubs.createUser = sinon.stub(userRepository, "createUser"); 
+  stubs.createUser.callsFake(item => {
     const now = (new Date).toISOString();
     const newDoc = {
       _id: ObjectId().toString(),
@@ -32,11 +35,11 @@ function initialize() {
     return newDoc;
   });
 
-  readAllUsersStub = sinon.stub(userRepository, "readAllUsers");
-  readAllUsersStub.callsFake(() => documentCollection);
+  stubs.readUser = sinon.stub(userRepository, "readAllUsers");
+  stubs.readUser.callsFake(() => documentCollection);
 
-  readOneUserStub = sinon.stub(userRepository, "readOneUser");
-  readOneUserStub.callsFake(userId => {
+  stubs.readOneUser = sinon.stub(userRepository, "readOneUser");
+  stubs.readOneUser.callsFake(userId => {
     const user = documentCollection.find(doc => doc._id === userId);
     if (user) {      
       user.save = () => {};
@@ -44,12 +47,22 @@ function initialize() {
 
     return user;
   });
+
+  stubs.deleteUser = sinon.stub(userRepository, "deleteUser");
+  stubs.deleteUser.callsFake(userId => {
+    const count = documentCollection.length;
+    const idx = documentCollection.findIndex(item => item._id === userId);
+    if (idx >= 0) {
+      documentCollection.splice(idx, 1);
+    }
+    return count - documentCollection.length;
+  });
 }
 
 function finalize() {
-  createUserStub.restore();
-  readAllUsersStub.restore();
-  readOneUserStub.restore();
+  stubs.createUser.restore();
+  stubs.readUser.restore();
+  stubs.readOneUser.restore();
 }
 
 function reset() {
@@ -84,5 +97,6 @@ module.exports = {
   initialize,
   reset,
   finalize,
+  stubs,
   constants
 };

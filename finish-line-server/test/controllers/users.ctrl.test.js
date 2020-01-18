@@ -581,34 +581,163 @@ describe.only("users.ctrl", () => {
         );
       });
     });
+
+    describe("with anonymous credentials", () => {
+      const newName = "John Doe";
+      const newEmail = "john.doe@gmail.com";
+
+      it("should forbid updating any user's info", (done) => {
+        executeStack({
+            params: { id: mockUserRepo.constants.normalUserId },
+            body: {    
+              name: newName,
+              email: newEmail,
+              password: mockUserRepo.constants.password,
+              isAdmin: false,
+              isActive: false,
+            }
+          },
+          usersCtrl.putUser,
+          result => {
+            expect(result.body.success).to.be.false;
+            expect(result.status).to.equal(403);
+            expect(result.body.message).to.equal("Forbidden");
+
+            done();
+          }
+        );
+      });
+    });
   });
 
-  describe("with anonymous credentials", () => {
-    const newName = "John Doe";
-    const newEmail = "john.doe@gmail.com";
-
-    it("should forbid updating any user's info", (done) => {
-      executeStack({
-          params: { id: mockUserRepo.constants.normalUserId },
-          body: {    
-            name: newName,
-            email: newEmail,
-            password: mockUserRepo.constants.password,
-            isAdmin: false,
-            isActive: false,
-          }
-        },
-        usersCtrl.putUser,
-        result => {
-          expect(result.body.success).to.be.false;
-          expect(result.status).to.equal(403);
-          expect(result.body.message).to.equal("Forbidden");
-
-          done();
-        }
-      );
+  describe("deleteUser", () => {
+    beforeEach(() => {
+      mockUserRepo.reset();
     });
-});
+
+    describe("with admin credentials", () => {
+      it("should allow deleting another deactivated user", (done) => {
+        const normie = mockUserRepo.stubs.readOneUser(mockUserRepo.constants.normalUserId);
+        normie.isActive = false;
+        normie.save();
+
+        executeStack({
+            params: { id: mockUserRepo.constants.normalUserId },
+            user: {...adminCreds}
+          },
+          usersCtrl.deleteUser,
+          result => {
+            expect(result.body.success).to.be.true;
+            expect(result.status).to.equal(200);
+            expect(result.body.data).to.deep.equal(
+              { results: ["users: deleted 1 items."], totalCount: 1 }
+            );
+
+            done();
+          }
+        );
+      });
+
+      it("should not allow a user to delete theirself", (done) => {
+        const admin = mockUserRepo.stubs.readOneUser(mockUserRepo.constants.adminUserId);
+        admin.isActive = false;
+        admin.save();
+
+        executeStack({
+            params: { id: mockUserRepo.constants.adminUserId },
+            user: {...adminCreds}
+          },
+          usersCtrl.deleteUser,
+          result => {
+            expect(result.body.success).to.be.false;
+            expect(result.status).to.equal(400);
+            expect(result.body.errors).to.deep.equal([
+              "You cannot delete yourself.  Use another user that has admin rights."
+            ]);
+
+            done();
+          }
+        );
+      });
+
+      it("should allow deleting a user that is not deactivated", (done) => {
+        executeStack({
+            params: { id: mockUserRepo.constants.normalUserId },
+            user: {...adminCreds}
+          },
+          usersCtrl.deleteUser,
+          result => {
+            expect(result.body.success).to.be.false;
+            expect(result.status).to.equal(400);
+            expect(result.body.errors).to.deep.equal([
+              "Cannot delete a user that is marked as active."
+            ]);
+
+            done();
+          }
+        );
+      });
+
+      it("should return an error if you delete a user that does not exist", (done) => {
+        executeStack({
+            params: { id: "aaaabbbbccccddddeeeeffff" },
+            user: {...adminCreds}
+          },
+          usersCtrl.deleteUser,
+          result => {
+            expect(result.body.success).to.be.false;
+            expect(result.status).to.equal(404);
+            expect(result.body.message).to.equal("No records found for userId aaaabbbbccccddddeeeeffff");
+
+            done();
+          }
+        );
+      });
+    });
+
+    describe("with normal credentials", () => {
+      it("should not allow a user to delete another user", (done) => {
+        const admin = mockUserRepo.stubs.readOneUser(mockUserRepo.constants.adminUserId);
+        admin.isActive = false;
+        admin.save();
+
+        executeStack({
+            params: { id: mockUserRepo.constants.adminUserId },
+            user: {...normalCreds}
+          },
+          usersCtrl.deleteUser,
+          result => {
+            expect(result.body.success).to.be.false;
+            expect(result.status).to.equal(403);
+            expect(result.body.message).to.equal("Forbidden");
+  
+            done();
+          }
+        );
+      });
+    });
+
+    describe("with anonymous credentials", () => {
+      it("should not allow anonymous user to delete any user", (done) => {
+        const admin = mockUserRepo.stubs.readOneUser(mockUserRepo.constants.adminUserId);
+        admin.isActive = false;
+        admin.save();
+
+        executeStack({
+            params: { id: mockUserRepo.constants.adminUserId },
+          },
+          usersCtrl.deleteUser,
+          result => {
+            expect(result.body.success).to.be.false;
+            expect(result.status).to.equal(403);
+            expect(result.body.message).to.equal("Forbidden");
+  
+            done();
+          }
+        );
+      });
+    });
+  });
 });
 
 

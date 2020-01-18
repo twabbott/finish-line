@@ -103,11 +103,11 @@ async function updateUser(req) {
 }
 
 async function deleteUser(req) {
-  if (!req.user.isAdmin) {
-    if (req.user.userId !== req.params.id) {
-      throw new ForbiddenError();
-    }
+  if (!req.user || !req.user.userId || !req.user.isAdmin) {
+    throw new ForbiddenError();
+  }
 
+  if (req.user.userId === req.params.id) {
     throw new BadRequestError(errorMessages.delete, "You cannot delete yourself.  Use another user that has admin rights.");
   }
 
@@ -120,17 +120,15 @@ async function deleteUser(req) {
 
   // Delete all documents related to this user
   let count, totalCount = 0;
-  count = await folderService.userRepository.deleteAll(userId);
-  results.push[`folders: deleted ${count} items.`];
-  totalCount += count;
+  // count = await folderService.userRepository.deleteAll(userId);
+  // results.push[`folders: deleted ${count} items.`];
+  // totalCount += count;
 
   count = await userRepository.deleteUser(userId);
-  results.push[`users: deleted ${count} items.`];
+  results.push(`users: deleted ${count} items.`);
   totalCount += count;
 
   if (totalCount === 0) {
-    console.log("Delete did nothing");
-    console.log(results);
     throw new NotFoundError("No records found for userId " + userId);
   }
 
