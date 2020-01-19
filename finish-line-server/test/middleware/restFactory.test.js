@@ -3,7 +3,7 @@
 const { expect } = require("chai");
 //const sinon = require("sinon");
 
-const { mockState, executeMiddleware } = require("../test-utils/express-shim");
+const { executeMiddleware } = require("../test-utils/express-shim");
 const restFactory = require("../../middleware/restFactory");
 
 describe("restFactory", () => {
@@ -15,8 +15,7 @@ describe("restFactory", () => {
   };
 
   function executeStack(...middleware) {
-    const state = mockState(mockReq);
-    return executeMiddleware(state, ...middleware);
+    return executeMiddleware(mockReq, ...middleware);
   }
 
   //   before(() => {

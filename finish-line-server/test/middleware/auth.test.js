@@ -3,7 +3,7 @@ const { expect } = require("chai");
 const sinon = require("sinon");
 
 // Local dependencies
-const { mockState, executeMiddleware } = require("../test-utils/express-shim");
+const { executeMiddleware } = require("../test-utils/express-shim");
 
 // Mocked modules
 const jwt = require("jsonwebtoken");
@@ -29,8 +29,7 @@ describe("auth", () => {
       mockReq.headers.authorization = authHeader;
     }
   
-    const state = mockState(mockReq);
-    return executeMiddleware(state, ...middleware);
+    return executeMiddleware(mockReq, ...middleware);
   }
 
   it("should authorize with a valid token", () => {

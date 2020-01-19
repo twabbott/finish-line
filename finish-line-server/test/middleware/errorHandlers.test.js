@@ -2,7 +2,7 @@
 const { expect } = require("chai");
 
 // Local dependencies
-const { mockState, executeMiddleware } = require("../test-utils/express-shim");
+const { executeMiddleware } = require("../test-utils/express-shim");
 const { init, getResponse } = require("../../middleware/restFactory");
 
 // Module under test
@@ -21,16 +21,15 @@ describe("errorHandlers", () => {
       }
     };
 
-    init({ errorLogger: err => console.trace(err) });
+    //init({ errorLogger: err => console.trace(err) });
 
     function executeStack(schema, body) {
       const mockReq = {
         body
       };
   
-      const state = mockState(mockReq);
       return executeMiddleware(        
-        state, 
+        mockReq,
         validateRequestBody(schema), 
         (req, res, next) => {
           next();

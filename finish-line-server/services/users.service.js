@@ -3,7 +3,7 @@ const { userRepository } = require("../models/user.model");
 const passwords = require("../security/passwords");
 const { BadRequestError, ForbiddenError, NotFoundError } = require("../middleware/restFactory");
 
-const folderService = require("./folder.service");
+//const folderService = require("./folder.service");
 
 const errorMessages = {
   create: "Error creating new user.",

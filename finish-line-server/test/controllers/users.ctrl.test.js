@@ -4,19 +4,19 @@ const { expect, assert } = require("chai");
 
 // Dependencies
 const restFactory = require("../../middleware/restFactory");
-const { mockState, executeMiddleware } = require("../test-utils/express-shim");
+const { executeMiddleware } = require("../test-utils/express-shim");
 const mockUserRepo = require("../mockRepositories/users.model.mock");
 const regex = require("../../shared/regex");
 
 // Module under test
 const usersCtrl = require("../../controllers/users.ctrl");
 
-describe.only("users.ctrl", () => {
+describe("users.ctrl", () => {
   before(() => {
-    restFactory.init({ 
-      //traceOn: true,
-      errorLogger: err => console.trace(err) 
-    });
+    // restFactory.init({ 
+    //   traceOn: true,
+    //   errorLogger: err => console.trace(err) 
+    // });
 
     mockUserRepo.initialize();
   });
@@ -48,8 +48,7 @@ describe.only("users.ctrl", () => {
   };
 
   function executeStack(mockReq, middleware, callback, timeout=100) {
-    const state = mockState(mockReq);
-    const result = executeMiddleware(state, ...middleware);
+    const result = executeMiddleware(mockReq, ...middleware);
     setTimeout(() => {
       callback(result);
     }, timeout);

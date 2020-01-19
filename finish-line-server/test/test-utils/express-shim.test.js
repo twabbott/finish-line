@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-const { mockState, executeMiddleware } = require("./express-shim");
+const { executeMiddleware } = require("./express-shim");
 const { expect } = require("chai");
 
 describe("express-shim", () => {
@@ -13,7 +13,6 @@ describe("express-shim", () => {
 
   describe("normal flow", () => {
     it("should do one middleware", () => {
-      const state = mockState(mockReq);
       let called = false;
       
       function middleware(req, res, next) {
@@ -23,7 +22,7 @@ describe("express-shim", () => {
           .json({ test: 1234 });
       }
   
-      const response = executeMiddleware(state, middleware);
+      const response = executeMiddleware(mockReq, middleware);
   
       expect(called).to.be.true;
       expect(response.isSent).to.be.true;
@@ -32,7 +31,6 @@ describe("express-shim", () => {
     });
   
     it("should do two middlewares", () => {
-      const state = mockState(mockReq);
       let called1 = false;
       let called2 = false;
   
@@ -49,7 +47,7 @@ describe("express-shim", () => {
           .json({ test: 1234 });
       }
   
-      const response = executeMiddleware(state, middleware1, middleware2);
+      const response = executeMiddleware(mockReq, middleware1, middleware2);
   
       expect(called1).to.be.true;
       expect(called2).to.be.true;
@@ -60,8 +58,6 @@ describe("express-shim", () => {
     });
   
     it("should do an array of middlewares", () => {
-      const state = mockState(mockReq);
-  
       function middleware1(req, res, next) {
         res.set("Location", "http://blarg.com");
         next();
@@ -73,7 +69,7 @@ describe("express-shim", () => {
           .json({ test: 1234 });
       }
   
-      const response = executeMiddleware(state, [middleware1, middleware2]);
+      const response = executeMiddleware(mockReq, [middleware1, middleware2]);
   
       expect(response.headers["Location"]).to.equal("http://blarg.com");
       expect(response.isSent).to.be.true;
@@ -82,8 +78,6 @@ describe("express-shim", () => {
     });
   
     it("should do a mix of middleware and arrays", () => {
-      const state = mockState(mockReq);
-  
       function middleware1(req, res, next) {
         res.set("h1", "1");
         next();
@@ -106,7 +100,7 @@ describe("express-shim", () => {
       }
   
       const response = executeMiddleware(
-        state, 
+        mockReq,
         middleware1, 
         [middleware2, middleware3],
         middlewareEnd
@@ -123,7 +117,6 @@ describe("express-shim", () => {
 
   describe("error handling", () => {
     it("should hand off error by calling next(err)", () => {
-      const state = mockState(mockReq);
       let called = false;
   
       function middlewareBad(req, res, next) {
@@ -136,7 +129,7 @@ describe("express-shim", () => {
       }
 
       const response = executeMiddleware(
-        state, 
+        mockReq,
         middlewareBad, 
         middlewareHandle
       );
@@ -145,7 +138,6 @@ describe("express-shim", () => {
     });
 
     it("should hand off error by throwing an exception", () => {
-      const state = mockState(mockReq);
       let called = false;
   
       function middlewareBad(req, res, next) {
@@ -158,7 +150,7 @@ describe("express-shim", () => {
       }
 
       const response = executeMiddleware(
-        state, 
+        mockReq,
         middlewareBad, 
         middlewareHandle
       );
@@ -167,7 +159,6 @@ describe("express-shim", () => {
     });
 
     it("should skip over middleware until it finds an error handler", () => {
-      const state = mockState(mockReq);
       let called1 = false;
       let called2 = false;
 
@@ -185,7 +176,7 @@ describe("express-shim", () => {
       }
 
       const response = executeMiddleware(
-        state, 
+        mockReq,
         middlewareBad, 
         middlewareSkipped,
         middlewareHandle
@@ -196,7 +187,6 @@ describe("express-shim", () => {
     });
 
     it("should find an error handler in an array", () => {
-      const state = mockState(mockReq);
       let called1 = false;
       let called2 = false;
 
@@ -214,7 +204,7 @@ describe("express-shim", () => {
       }
 
       const response = executeMiddleware(
-        state, 
+        mockReq,
         middlewareBad, 
         [middlewareSkipped, middlewareHandle]
       );
@@ -224,7 +214,6 @@ describe("express-shim", () => {
     });
 
     it("should skip over an array of non error-handlers", () => {
-      const state = mockState(mockReq);
       let called1 = false;
       let called2 = false;
       let called3 = false;
@@ -247,7 +236,7 @@ describe("express-shim", () => {
       }
 
       const response = executeMiddleware(
-        state, 
+        mockReq,
         middlewareBad, 
         [middlewareSkip1, middlewareSkip2],
         middlewareHandle
@@ -259,7 +248,6 @@ describe("express-shim", () => {
     });
 
     it("should resume calling normal middleawares after handling an error", () => {
-      const state = mockState(mockReq);
       let called1 = false;
       let called2 = false;
       let called3 = false;
@@ -283,7 +271,7 @@ describe("express-shim", () => {
       }
 
       const response = executeMiddleware(
-        state, 
+        mockReq,
         middlewareBad, 
         middlewareSkipped, 
         middlewareHandle,

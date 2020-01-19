@@ -4,7 +4,6 @@
 const { expect } = require("chai");
 //const sinon = require("sinon");
 
-const { mockState, executeMiddleware } = require("../test-utils/express-shim");
 const {
   checkSchemaDefinition,
   validateObjectProperties

@@ -2,7 +2,7 @@
 const { expect } = require("chai");
 
 const repartee = require("../../middleware/repartee");
-const { mockState, executeMiddleware } = require("../test-utils/express-shim");
+const { executeMiddleware } = require("../test-utils/express-shim");
 
 // Not using repartee any more.  Good idea, but not a good idea.
 describe("repartee", () => {
@@ -11,7 +11,7 @@ describe("repartee", () => {
 
   function buildResponse(...middleware) {
     return executeMiddleware(
-      mockState(),
+      undefined,
       repartee.responses(),       
       ...middleware);
   }
