@@ -3,7 +3,7 @@
 const { expect } = require("chai");
 //const sinon = require("sinon");
 
-const { executeMiddleware } = require("../test-utils/express-shim");
+const { executeMiddleware, executeMiddlewareAsync } = require("../test-utils/express-shim");
 const restFactory = require("../../middleware/restFactory");
 
 describe("restFactory", () => {
@@ -13,10 +13,6 @@ describe("restFactory", () => {
     },
     url: "/foo",
   };
-
-  function executeStack(...middleware) {
-    return executeMiddleware(mockReq, ...middleware);
-  }
 
   //   before(() => {
   //     restFactory.init({ 
@@ -38,7 +34,8 @@ describe("restFactory", () => {
           };
         }
   
-        const result = executeStack(
+        const result = executeMiddleware(
+          mockReq, 
           restFactory.serviceWrapper.call(normalService),
           restFactory.getResponse
         );
@@ -56,7 +53,8 @@ describe("restFactory", () => {
           throw new restFactory.NotFoundError("blarg");
         }
   
-        const result = executeStack(
+        const result = executeMiddleware(
+          mockReq, 
           restFactory.serviceWrapper.call(throwNotFound),
           restFactory.getResponse
         );
@@ -77,47 +75,43 @@ describe("restFactory", () => {
         ).to.throw("serviceWrapper.call() can not take an async function");
       });
 
-      it("callAsync() should return a 200 for normal behavior", (done) => {
+      it("callAsync() should return a 200 for normal behavior", async () => {
         async function normalService(req, ctrl) {
           return {
             test: 1234
           };
         }
   
-        const result = executeStack(
+        const result = await executeMiddlewareAsync(
+          mockReq, 
           restFactory.serviceWrapper.callAsync(normalService),
           restFactory.getResponse
         );
   
-        setTimeout(() => {
-          expect(result.isSent).to.be.true;
-          expect(result.status).to.equal(200);
-          expect(result.body.success).to.be.true;
-          expect(result.body.message).to.equal("OK");
-          expect(result.body.data).to.be.ok;
-          expect(result.body.data.test).to.equal(1234);
-          done();
-        }, 30);
+        expect(result.isSent).to.be.true;
+        expect(result.status).to.equal(200);
+        expect(result.body.success).to.be.true;
+        expect(result.body.message).to.equal("OK");
+        expect(result.body.data).to.be.ok;
+        expect(result.body.data.test).to.equal(1234);
       });
 
-      it("callAsync() should return a 404 for a NotFoundError", (done) => {
+      it("callAsync() should return a 404 for a NotFoundError", async () => {
         async function throwNotFound(req, ctrl) {
           throw new restFactory.NotFoundError("blarg");
         }
   
-        const result = executeStack(
+        const result = await executeMiddlewareAsync(
+          mockReq, 
           restFactory.serviceWrapper.callAsync(throwNotFound),
           restFactory.getResponse
         );
   
-        setTimeout(() => {
-          expect(result.isSent).to.be.true;
-          expect(result.status).to.equal(404);
-          expect(result.body.success).to.be.false;
-          expect(result.body.message).to.equal("blarg");
-          expect(result.body.data).to.be.undefined;
-          done();
-        }, 30);
+        expect(result.isSent).to.be.true;
+        expect(result.status).to.equal(404);
+        expect(result.body.success).to.be.false;
+        expect(result.body.message).to.equal("blarg");
+        expect(result.body.data).to.be.undefined;
       });
 
       it("callAsync() should throw an exception if the service is not async", () => {
@@ -140,7 +134,8 @@ describe("restFactory", () => {
         next();
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         returnResult,
         restFactory.getResponse
       );
@@ -158,7 +153,8 @@ describe("restFactory", () => {
         next();
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         returnResult,
         restFactory.getResponse
       );
@@ -175,7 +171,8 @@ describe("restFactory", () => {
         throw new restFactory.NotFoundError("blarg");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwNotFound,
         restFactory.getResponse
       );
@@ -197,7 +194,8 @@ describe("restFactory", () => {
         next();
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         returnResult,
         restFactory.postResponse
       );
@@ -216,7 +214,8 @@ describe("restFactory", () => {
         next();
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         returnResult,
         restFactory.postResponse
       );
@@ -238,7 +237,8 @@ describe("restFactory", () => {
         next();
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         returnResult,
         restFactory.postResponse
       );
@@ -261,7 +261,8 @@ describe("restFactory", () => {
         next();
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         returnResult,
         restFactory.postResponse
       );
@@ -280,7 +281,8 @@ describe("restFactory", () => {
         throw new restFactory.NotFoundError("blarg");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwNotFound,
         restFactory.postResponse
       );
@@ -302,7 +304,8 @@ describe("restFactory", () => {
         next();
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         returnResult,
         restFactory.getResponse
       );
@@ -320,7 +323,8 @@ describe("restFactory", () => {
         next();
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         returnResult,
         restFactory.putResponse
       );
@@ -337,7 +341,8 @@ describe("restFactory", () => {
         throw new restFactory.NotFoundError("blarg");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwNotFound,
         restFactory.putResponse
       );
@@ -359,7 +364,8 @@ describe("restFactory", () => {
         next();
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         returnResult,
         restFactory.deleteResponse
       );
@@ -377,7 +383,8 @@ describe("restFactory", () => {
         next();
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         returnResult,
         restFactory.deleteResponse
       );
@@ -394,7 +401,8 @@ describe("restFactory", () => {
         throw new restFactory.NotFoundError("blarg");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwNotFound,
         restFactory.deleteResponse
       );
@@ -446,7 +454,8 @@ describe("restFactory", () => {
         throw new restFactory.RequestError("blarg");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -464,7 +473,8 @@ describe("restFactory", () => {
         throw new restFactory.RequestError("blarg", 999);
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -482,7 +492,8 @@ describe("restFactory", () => {
         throw new restFactory.RequestError("blarg", 999, "bad");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -501,7 +512,8 @@ describe("restFactory", () => {
         throw new restFactory.RequestError("blarg", 999, ["bad", "request"]);
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -521,7 +533,8 @@ describe("restFactory", () => {
         throw new restFactory.BadRequestError("blarg");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -538,7 +551,8 @@ describe("restFactory", () => {
         throw new restFactory.BadRequestError("blarg", "bad");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -557,7 +571,8 @@ describe("restFactory", () => {
         throw new restFactory.UnauthorizedError("blarg");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -575,7 +590,8 @@ describe("restFactory", () => {
         throw new restFactory.UnauthorizedError("blarg", { scheme: "Bearer", realm: "my-realm", count: 16, flag: true });
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -593,7 +609,8 @@ describe("restFactory", () => {
         throw new restFactory.UnauthorizedError("blarg", "Bearer realm=\"foo\"");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -612,7 +629,8 @@ describe("restFactory", () => {
         throw new restFactory.UnauthorizedError("blarg", challenge);
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -630,7 +648,8 @@ describe("restFactory", () => {
         throw new restFactory.UnauthorizedError("blarg", { scheme: "Bearer", data: ["foo"] });
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -648,7 +667,8 @@ describe("restFactory", () => {
         throw new restFactory.ForbiddenError("blarg");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -665,7 +685,8 @@ describe("restFactory", () => {
         throw new restFactory.NotFoundError("blarg");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );
@@ -682,7 +703,8 @@ describe("restFactory", () => {
         throw new Error("blarg");
       }
 
-      const result = executeStack(
+      const result = executeMiddleware(
+        mockReq, 
         throwError,
         restFactory.getResponse
       );

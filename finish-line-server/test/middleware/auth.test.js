@@ -33,70 +33,40 @@ describe("auth", () => {
   }
 
   it("should authorize with a valid token", () => {
-    let request = undefined;
-    function testMiddleware(req, res, next) {
-      request = req;
-      next();
-    }
+    const result = executeStack("Bearer 12345", validateToken);
 
-    const response = executeStack("Bearer 12345", validateToken, testMiddleware);
-
-    expect(response.isSent).to.be.false;
-    expect(request.user).to.be.ok;
-    expect(request.user.username).to.equal(testEmail);
+    expect(result.isSent).to.be.false;
+    expect(result.req.user).to.be.ok;
+    expect(result.req.user.username).to.equal(testEmail);
   });
 
   it("should respond with 401 if token is missing", () => {
-    let request = undefined;
-    function testMiddleware(req, res, next) {
-      request = req;
-      next();
-    }
-
-    const response = executeStack(undefined, validateToken, testMiddleware);
-
-    expect(request).to.be.undefined;
+    const result = executeStack(undefined, validateToken);
     
-    expect(response.isSent).to.be.true;
-    expect(response.status).to.equal(401);
-    expect(response.headers["WWW-Authenticate"]).to.equal("Bearer realm=\"Finish line\"");
-    expect(response.body.message).to.be.equal("User not authenticated.");
+    expect(result.isSent).to.be.true;
+    expect(result.status).to.equal(401);
+    expect(result.headers["WWW-Authenticate"]).to.equal("Bearer realm=\"Finish line\"");
+    expect(result.body.message).to.be.equal("User not authenticated.");
   });
 
   it("should respond with 401 if token type is not \"Bearer\"", () => {
-    let request = undefined;
-    function testMiddleware(req, res, next) {
-      request = req;
-      next();
-    }
+    const result = executeStack("xxx 12345", validateToken);
 
-    const response = executeStack("xxx 12345", validateToken, testMiddleware);
-
-    expect(request).to.be.undefined;
-    
-    expect(response.isSent).to.be.true;
-    expect(response.status).to.equal(401);
-    expect(response.headers["WWW-Authenticate"]).to.equal("Bearer realm=\"Finish line\"");
-    expect(response.body.message).to.be.equal("Bearer token expected.");
+    expect(result.isSent).to.be.true;
+    expect(result.status).to.equal(401);
+    expect(result.headers["WWW-Authenticate"]).to.equal("Bearer realm=\"Finish line\"");
+    expect(result.body.message).to.be.equal("Bearer token expected.");
   });
 
   it("should respond with 401 if token is invalid", () => {
-    let request = undefined;
-    function testMiddleware(req, res, next) {
-      request = req;
-      next();
-    }
-
     jwt.verify.restore(); // Get rid of old stub.
     sinon.stub(jwt, "verify").throws("Nope!");
 
-    const response = executeStack("Bearer 12345", validateToken, testMiddleware);
+    const result = executeStack("Bearer 12345", validateToken);
 
-    expect(request).to.be.undefined;
-    
-    expect(response.isSent).to.be.true;
-    expect(response.status).to.equal(401);
-    expect(response.headers["WWW-Authenticate"]).to.equal("Bearer realm=\"Finish line\"");
-    expect(response.body.message).to.be.equal("Invalid token.");
+    expect(result.isSent).to.be.true;
+    expect(result.status).to.equal(401);
+    expect(result.headers["WWW-Authenticate"]).to.equal("Bearer realm=\"Finish line\"");
+    expect(result.body.message).to.be.equal("Invalid token.");
   });
 });

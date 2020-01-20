@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-const { executeMiddleware } = require("./express-shim");
+const { executeMiddleware, executeMiddlewareAsync } = require("./express-shim");
 const { expect } = require("chai");
 
 describe("express-shim", () => {
@@ -77,7 +77,7 @@ describe("express-shim", () => {
       expect(response.body.test).to.equal(1234);
     });
   
-    it("should do a mix of middleware and arrays", () => {
+    it("should do a mix of middleware and arrays", async () => {
       function middleware1(req, res, next) {
         res.set("h1", "1");
         next();
@@ -98,8 +98,9 @@ describe("express-shim", () => {
           .status(200)
           .json({ test: 1234 });
       }
-  
-      const response = executeMiddleware(
+
+      // non-async version doesn't work, for some reason
+      const response = await executeMiddlewareAsync(
         mockReq,
         middleware1, 
         [middleware2, middleware3],
@@ -213,7 +214,7 @@ describe("express-shim", () => {
       expect(called2).to.be.true;
     });
 
-    it("should skip over an array of non error-handlers", () => {
+    it("should skip over an array of non error-handlers", async () => {
       let called1 = false;
       let called2 = false;
       let called3 = false;
@@ -235,7 +236,8 @@ describe("express-shim", () => {
         next();
       }
 
-      const response = executeMiddleware(
+      // Non-async version doesn't work, for some reason.
+      const response = await executeMiddlewareAsync(
         mockReq,
         middlewareBad, 
         [middlewareSkip1, middlewareSkip2],

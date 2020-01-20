@@ -48,85 +48,112 @@ function mockState(testReq, testRes) {
   ];
 }
 
+let tag;
+let tracing = false;
+
+function trace(enable) {
+  tracing = enable;
+}
+
+function logTrace(message) {
+  if (tracing) {
+    console.log(message);
+  }
+}
+
+function result(state) {
+  const info = {
+    ...state[1].finalResponse,
+    req: { ...state[0] },
+    res: { ...state[1] }
+  }
+  delete info.res.finalResponse;
+  return info;
+}
+
 function arrayCrawl(onComplete, state, ...array) {
   const [req, res] = state;
   state.depth = 0;
 
   invoke(...array);
 
-  function invoke(nextMiddleware, ...rest) {
-    function next(err) {
+  async function invoke(nextMiddleware, ...rest) {
+    async function next(err) {
       res.finalResponse.err = err;
   
       if (!res.finalResponse.isSent) {
-        // console.log("arrayCrawl - next - calling next middleware")
-        invoke(...rest);
+        logTrace(`[${tag}] next - calling next middleware`)
+        await invoke(...rest);
       }
     };
   
     state.depth++;
-    // console.log("arrayCrawl - begin")
+    logTrace(`[${tag}] begin, depth=${state.depth}`);
     if (nextMiddleware) {
       if (Array.isArray(nextMiddleware)) {
-        // console.log("arrayCrawl - invoking an array")
-        invoke(...nextMiddleware);
+        logTrace(`[${tag}] invoking an array`)
+        await invoke(...nextMiddleware);
     
-        next(res.finalResponse.err);
-        // console.log("arrayCrawl - done invoking an array")
+        await next(res.finalResponse.err);
+        logTrace(`[${tag}] done invoking an array`)
       } else {
         try {
           if (res.finalResponse.err) {
-            // console.log("arrayCrawl - searching for error middleware")
+            logTrace(`[${tag}] searching for error middleware`)
             if (nextMiddleware.length === 4) {
-              // console.log("arrayCrawl - calling error middleware")
-              nextMiddleware(res.finalResponse.err, req, res, next);
+              logTrace(`[${tag}] calling error middleware`)
+              await nextMiddleware(res.finalResponse.err, req, res, next);
             } else {
-              // console.log("arrayCrawl - skipping non-error middleware")
-              next(res.finalResponse.err);
+              logTrace(`[${tag}] skipping non-error middleware`)
+              await next(res.finalResponse.err);
             }
           } else {
             if (nextMiddleware.length === 3) {
-              // console.log("arrayCrawl - calling middleware")
-              nextMiddleware(req, res, next);
+              logTrace(`[${tag}] calling middleware`)
+              await nextMiddleware(req, res, next);
             } else {
-              // console.log("arrayCrawl - skipping non-error middleware")
-              next();
+              logTrace(`[${tag}] skipping non-error middleware`)
+              await next();
             }
           }
         } catch (err) {
-          // console.log("arrayCrawl - caught an exception")
+          logTrace(`[${tag}] caught an exception`)
           // console.trace(err)
-          next(err);
+          await next(err);
         }
       }
     }
 
+    logTrace(`[${tag}] end, depth=${state.depth}`);
     state.depth--;
     if (state.depth === 0 && onComplete) {
-      onComplete(state);
+      onComplete(result(state));
     }
-
-    // console.log("arrayCrawl - end, depth=" + state.depth);
   }
 }
 
 function executeMiddlewareAsync(initialReq, ...middleware) {
+  tag = Math.trunc(Math.random() * 900 + 100);
   const state = mockState(initialReq);
   const [req, res] = state;
 
   return new Promise((resolve, reject) => {
     arrayCrawl(resolve, state, ...middleware);
+    logTrace(`[${tag}] all done`);
   });
 }
 
-
 function executeMiddleware(initialReq, ...middleware) {
+  tag = Math.trunc(Math.random() * 900 + 100);
   const state = mockState(initialReq);
   arrayCrawl(undefined, state, ...middleware);
+  logTrace(`[${tag}] ###### all done`);
 
-  return state[1].finalResponse;
+  return result(state);
 }
 
 module.exports = {
-  executeMiddleware
+  executeMiddleware,
+  executeMiddlewareAsync,
+  trace
 };
