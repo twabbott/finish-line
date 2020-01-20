@@ -15,8 +15,9 @@ const documentCollection = [];
 // Stubs
 const stubs = {
   createUser: undefined,
-  readUser: undefined,
+  readAllUsers: undefined,
   readOneUser: undefined,
+  readByEmail: undefined,
   deleteUser: undefined
 };
 
@@ -35,13 +36,23 @@ function initialize() {
     return newDoc;
   });
 
-  stubs.readUser = sinon.stub(userRepository, "readAllUsers");
-  stubs.readUser.callsFake(() => documentCollection);
+  stubs.readAllUsers = sinon.stub(userRepository, "readAllUsers");
+  stubs.readAllUsers.callsFake(() => documentCollection);
 
   stubs.readOneUser = sinon.stub(userRepository, "readOneUser");
   stubs.readOneUser.callsFake(userId => {
     const user = documentCollection.find(doc => doc._id === userId);
-    if (user) {      
+    if (user) {
+      user.save = () => {};
+    }
+
+    return user;
+  });
+
+  stubs.readByEmail = sinon.stub(userRepository, "readByEmail");
+  stubs.readByEmail.callsFake(email => {
+    const user = documentCollection.find(doc => doc.email === email);
+    if (user) {
       user.save = () => {};
     }
 
@@ -61,8 +72,10 @@ function initialize() {
 
 function finalize() {
   stubs.createUser.restore();
-  stubs.readUser.restore();
+  stubs.readAllUsers.restore();
   stubs.readOneUser.restore();
+  stubs.readByEmail.restore();
+  stubs.deleteUser.restore();
 }
 
 function reset() {

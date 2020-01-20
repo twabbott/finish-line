@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars, indent */
+
 // Test framework libraries
 const { expect } = require("chai");
 

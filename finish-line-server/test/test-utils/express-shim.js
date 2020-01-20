@@ -66,7 +66,7 @@ function result(state) {
     ...state[1].finalResponse,
     req: { ...state[0] },
     res: { ...state[1] }
-  }
+  };
   delete info.res.finalResponse;
   return info;
 }
@@ -82,43 +82,43 @@ function arrayCrawl(onComplete, state, ...array) {
       res.finalResponse.err = err;
   
       if (!res.finalResponse.isSent) {
-        logTrace(`[${tag}] next - calling next middleware`)
+        logTrace(`[${tag}] next - calling next middleware`);
         await invoke(...rest);
       }
-    };
+    }
   
     state.depth++;
     logTrace(`[${tag}] begin, depth=${state.depth}`);
     if (nextMiddleware) {
       if (Array.isArray(nextMiddleware)) {
-        logTrace(`[${tag}] invoking an array`)
+        logTrace(`[${tag}] invoking an array`);
         await invoke(...nextMiddleware);
     
         await next(res.finalResponse.err);
-        logTrace(`[${tag}] done invoking an array`)
+        logTrace(`[${tag}] done invoking an array`);
       } else {
         try {
           if (res.finalResponse.err) {
-            logTrace(`[${tag}] searching for error middleware`)
+            logTrace(`[${tag}] searching for error middleware`);
             if (nextMiddleware.length === 4) {
-              logTrace(`[${tag}] calling error middleware`)
+              logTrace(`[${tag}] calling error middleware`);
               await nextMiddleware(res.finalResponse.err, req, res, next);
             } else {
-              logTrace(`[${tag}] skipping non-error middleware`)
+              logTrace(`[${tag}] skipping non-error middleware`);
               await next(res.finalResponse.err);
             }
           } else {
             if (nextMiddleware.length === 3) {
-              logTrace(`[${tag}] calling middleware`)
+              logTrace(`[${tag}] calling middleware`);
               await nextMiddleware(req, res, next);
             } else {
-              logTrace(`[${tag}] skipping non-error middleware`)
+              logTrace(`[${tag}] skipping non-error middleware`);
               await next();
             }
           }
         } catch (err) {
-          logTrace(`[${tag}] caught an exception`)
-          // console.trace(err)
+          logTrace(`[${tag}] caught an exception`);
+          // console.trace(err);
           await next(err);
         }
       }
@@ -135,9 +135,8 @@ function arrayCrawl(onComplete, state, ...array) {
 function executeMiddlewareAsync(initialReq, ...middleware) {
   tag = Math.trunc(Math.random() * 900 + 100);
   const state = mockState(initialReq);
-  const [req, res] = state;
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     arrayCrawl(resolve, state, ...middleware);
     logTrace(`[${tag}] all done`);
   });
