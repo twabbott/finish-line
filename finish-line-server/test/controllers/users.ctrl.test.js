@@ -101,7 +101,7 @@ describe("users.ctrl", () => {
     });
   });
 
-  describe("getOneUser", () => {
+  describe.only("getOneUser", () => {
     before(() => {
       mockUserRepo.reset();
     });
@@ -131,6 +131,18 @@ describe("users.ctrl", () => {
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
         expect(result.body.data.id).to.equal(mockUserRepo.constants.normalUserId);
+      });
+
+      it("should return 404 if user is not found", async () => {
+        const result = await executeMiddlewareAsync({
+            params: { id: "111222333444555666777888" },
+            user: {...adminCreds}
+          },
+          usersCtrl.getOneUser
+        );
+
+        expect(result.body.success).to.be.false;
+        expect(result.status).to.equal(404);
       });
     });
 

@@ -61,7 +61,12 @@ async function readOneUser(req) {
     throw new ForbiddenError();
   }
 
-  return await userRepository.readOneUser(userId);
+  const user = await userRepository.readOneUser(userId);
+  if (!user) {
+    throw new NotFoundError(`User ${req.params.id} not found`);
+  }
+
+  return user;
 }
 
 async function updateUser(req) {
