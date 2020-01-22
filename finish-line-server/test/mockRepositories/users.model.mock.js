@@ -12,6 +12,53 @@ const constants = {
 
 const documentCollection = [];
 
+function makeCreds(user) {
+  const creds = {
+    userId: user._id,
+    name: user.name,
+    email: user.email,
+    isAdmin: user.isAdmin
+  };
+  Object.freeze(creds);
+  return creds;
+}
+
+const mockFuncs = {
+  save() {}
+}
+
+const adminUser = {
+  _id: constants.adminUserId,
+  name: "System Administrator",
+  email: "admin@finish-line.com",
+  hashedPassword: "f$2b$10$Gvf8RJGuAw0Ep7SVxAWwzO824AzM3b54iBX9j9UkPR.si4WXXIxvy", // test123
+  isAdmin: true,
+  isActive: true,
+  createdAt: "2019-11-12T20:36:23.574Z",
+  updatedAt: "2020-01-15T20:20:30.735Z",
+  __v: 0,
+  ...mockFuncs
+};
+Object.freeze(adminUser);
+
+const adminCreds = makeCreds(adminUser);
+
+const normalUser = {
+  _id: constants.normalUserId,
+  name: "Barney Fief",
+  email: "barney@gmail.com",
+  hashedPassword: "$2b$10$Gvf8RJGuAw0Ep7SVxAWwzO824AzM3b54iBX9j9UkPR.si4WXXIxvy", // test123
+  isAdmin: false,
+  isActive: true,
+  createdAt: "2020-01-10T06:46:41.182Z",
+  updatedAt: "2020-01-10T06:46:41.182Z",
+  __v: 0,
+  ...mockFuncs
+};
+Object.freeze(normalUser);
+
+const normalCreds = makeCreds(normalUser);
+
 // Stubs
 const stubs = {
   createUser: undefined,
@@ -80,28 +127,8 @@ function finalize() {
 
 function reset() {
   documentCollection.length = 0;
-  documentCollection.push({
-    _id: constants.adminUserId,
-    name: "System Administrator",
-    email: "admin@finish-line.com",
-    hashedPassword: "f$2b$10$Gvf8RJGuAw0Ep7SVxAWwzO824AzM3b54iBX9j9UkPR.si4WXXIxvy", // test123
-    isAdmin: true,
-    createdAt: "2019-11-12T20:36:23.574Z",
-    updatedAt: "2020-01-15T20:20:30.735Z",
-    __v: 0,
-    isActive: true
-  });
-  documentCollection.push({
-    _id: constants.normalUserId,
-    name: "Barney Fief",
-    email: "barney@gmail.com",
-    hashedPassword: "$2b$10$Gvf8RJGuAw0Ep7SVxAWwzO824AzM3b54iBX9j9UkPR.si4WXXIxvy", // test123
-    isAdmin: false,
-    isActive: true,
-    createdAt: "2020-01-10T06:46:41.182Z",
-    updatedAt: "2020-01-10T06:46:41.182Z",
-    __v: 0
-  });
+  documentCollection.push({...adminUser});
+  documentCollection.push({...normalUser});
 
   return documentCollection;
 }
@@ -111,5 +138,13 @@ module.exports = {
   reset,
   finalize,
   stubs,
-  constants
+  constants,
+  documents: {
+    adminUser,
+    normalUser
+  },
+  credentials: {
+    adminCreds,
+    normalCreds
+  }
 };

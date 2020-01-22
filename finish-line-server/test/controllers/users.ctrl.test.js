@@ -25,20 +25,6 @@ describe("users.ctrl", () => {
     mockUserRepo.finalize();
   });
 
-  const adminCreds = {
-    userId: mockUserRepo.constants.adminUserId,
-    name: "Admin",
-    email: "admin@foo.com",
-    isAdmin: true
-  };
-
-  const normalCreds = {
-    userId: mockUserRepo.constants.normalUserId,
-    name: "Barney Fief",
-    email: "barney@gmail.com",
-    isAdmin: false
-  };
-
   const mockNewUser = {
     name: "Fred Flintstone",
     email: "fred.flintstone@hb.com",
@@ -57,7 +43,7 @@ describe("users.ctrl", () => {
 
       it("should read all users", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...adminCreds},
+            user: {...mockUserRepo.credentials.adminCreds},
           },
           usersCtrl.getAllUsers
         );
@@ -74,7 +60,7 @@ describe("users.ctrl", () => {
     describe("with normal credentials", () => {
       it("should read just the user's info.", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...normalCreds}
+            user: {...mockUserRepo.credentials.normalCreds}
           },
           usersCtrl.getAllUsers
         );
@@ -101,7 +87,7 @@ describe("users.ctrl", () => {
     });
   });
 
-  describe.only("getOneUser", () => {
+  describe("getOneUser", () => {
     before(() => {
       mockUserRepo.reset();
     });
@@ -110,7 +96,7 @@ describe("users.ctrl", () => {
       it("should read own user info", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.adminUserId },
-            user: {...adminCreds}
+            user: {...mockUserRepo.credentials.adminCreds}
           },
           usersCtrl.getOneUser
         );
@@ -123,7 +109,7 @@ describe("users.ctrl", () => {
       it("should read any other user's info", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.normalUserId },
-            user: {...adminCreds}
+            user: {...mockUserRepo.credentials.adminCreds}
           },
           usersCtrl.getOneUser
         );
@@ -136,7 +122,7 @@ describe("users.ctrl", () => {
       it("should return 404 if user is not found", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: "111222333444555666777888" },
-            user: {...adminCreds}
+            user: {...mockUserRepo.credentials.adminCreds}
           },
           usersCtrl.getOneUser
         );
@@ -150,7 +136,7 @@ describe("users.ctrl", () => {
       it("should read own user info", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.normalUserId },
-            user: {...normalCreds}
+            user: {...mockUserRepo.credentials.normalCreds}
           },
           usersCtrl.getOneUser
         );
@@ -164,7 +150,7 @@ describe("users.ctrl", () => {
         const result = await executeMiddlewareAsync(
           {
             params: { id: mockUserRepo.constants.adminUserId },
-            user: {...normalCreds}
+            user: {...mockUserRepo.credentials.normalCreds}
           },
           usersCtrl.getOneUser
         );
@@ -202,7 +188,7 @@ describe("users.ctrl", () => {
     describe("with admin credentials", () => {
       it("should allow creating a new user", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...adminCreds},
+            user: {...mockUserRepo.credentials.adminCreds},
             body: {...mockNewUser}
           },
           usersCtrl.postUser
@@ -226,7 +212,7 @@ describe("users.ctrl", () => {
     describe("with normal credentials", () => {
       it("should allow creating a new user", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...normalCreds},
+            user: {...mockUserRepo.credentials.normalCreds},
             body: {...mockNewUser}
           },
           usersCtrl.postUser
@@ -248,7 +234,7 @@ describe("users.ctrl", () => {
 
       it("should not allow creating an admin user", async () => {
         const result = await executeMiddlewareAsync({
-          user: {...normalCreds},
+          user: {...mockUserRepo.credentials.normalCreds},
             body: {
               ...mockNewUser,
               isAdmin: true
@@ -318,7 +304,7 @@ describe("users.ctrl", () => {
       it("should allow updating a user's own info", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.adminUserId },
-            user: {...adminCreds},
+            user: {...mockUserRepo.credentials.adminCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -341,7 +327,7 @@ describe("users.ctrl", () => {
       it("should allow updating another user's info", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.normalUserId },
-            user: {...adminCreds},
+            user: {...mockUserRepo.credentials.adminCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -364,7 +350,7 @@ describe("users.ctrl", () => {
       it("should allow resetting another user's password", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.normalUserId },
-            user: {...adminCreds},
+            user: {...mockUserRepo.credentials.adminCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -393,7 +379,7 @@ describe("users.ctrl", () => {
       it("should allow updating a user's own info", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.normalUserId },
-            user: {...normalCreds},
+            user: {...mockUserRepo.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -417,7 +403,7 @@ describe("users.ctrl", () => {
       it("should allow resetting user's own password", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.normalUserId },
-            user: {...normalCreds},
+            user: {...mockUserRepo.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -442,7 +428,7 @@ describe("users.ctrl", () => {
       it("should forbid user from promoting themselves to admin", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.normalUserId },
-            user: {...normalCreds},
+            user: {...mockUserRepo.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -463,7 +449,7 @@ describe("users.ctrl", () => {
       it("should forbid updating user's own info if no password given", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.normalUserId },
-            user: {...normalCreds},
+            user: {...mockUserRepo.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -483,7 +469,7 @@ describe("users.ctrl", () => {
       it("should forbid updating user's own info if password does not match", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.normalUserId },
-            user: {...normalCreds},
+            user: {...mockUserRepo.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -504,7 +490,7 @@ describe("users.ctrl", () => {
       it("should forbid updating another user's info", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.adminUserId },
-            user: {...normalCreds},
+            user: {...mockUserRepo.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -560,7 +546,7 @@ describe("users.ctrl", () => {
 
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.normalUserId },
-            user: {...adminCreds}
+            user: {...mockUserRepo.credentials.adminCreds}
           },
           usersCtrl.deleteUser
         );
@@ -579,7 +565,7 @@ describe("users.ctrl", () => {
 
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.adminUserId },
-            user: {...adminCreds}
+            user: {...mockUserRepo.credentials.adminCreds}
           },
           usersCtrl.deleteUser
         );
@@ -594,7 +580,7 @@ describe("users.ctrl", () => {
       it("should allow deleting a user that is not deactivated", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.normalUserId },
-            user: {...adminCreds}
+            user: {...mockUserRepo.credentials.adminCreds}
           },
           usersCtrl.deleteUser
         );
@@ -609,7 +595,7 @@ describe("users.ctrl", () => {
       it("should return an error if you delete a user that does not exist", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: "aaaabbbbccccddddeeeeffff" },
-            user: {...adminCreds}
+            user: {...mockUserRepo.credentials.adminCreds}
           },
           usersCtrl.deleteUser
         );
@@ -628,7 +614,7 @@ describe("users.ctrl", () => {
 
         const result = await executeMiddlewareAsync({
             params: { id: mockUserRepo.constants.adminUserId },
-            user: {...normalCreds}
+            user: {...mockUserRepo.credentials.normalCreds}
           },
           usersCtrl.deleteUser
         );
