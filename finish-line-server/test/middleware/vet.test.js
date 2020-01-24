@@ -459,7 +459,7 @@ describe("vet", () => {
         expect(() => checkSchemaDefinition(schema)).to.throw("Vet schema error for property profile: Invalid schema definition, schema must be an object.");
       });
 
-      it("should throw an error if schema property is a string", () => {
+      it("should throw an error if schema property is anything other than an object", () => {
         const schema = {
           profile: { 
             type: Object,
@@ -1595,7 +1595,7 @@ describe("vet", () => {
   
         expect(Object.keys(value).length).to.equal(1);
         expect(value.profile).to.be.ok;
-        expect(value.hasOwnProperty("profile")).to.be.true;
+        expect("profile" in value).to.be.true;
         expect(value.profile.name).to.be.equal("Billy Bob");
         expect(value.profile.age).to.be.equal(22);
         expect(value.profile.isVeteran).to.be.equal(false);
@@ -1643,7 +1643,7 @@ describe("vet", () => {
         expectZeroErrors(errors);
   
         expect(Object.keys(value).length).to.equal(1);
-        expect(value.hasOwnProperty("profile")).to.be.true;
+        expect("profile" in value).to.be.true;
         expect(value.profile).to.be.null;
       });
 
@@ -1668,7 +1668,7 @@ describe("vet", () => {
         expectZeroErrors(errors);
   
         expect(Object.keys(value).length).to.equal(1);
-        expect(value.hasOwnProperty("profile")).to.be.true;
+        expect("profile" in value).to.be.true;
         expect(value.profile).to.be.null;
       });
 
@@ -1760,7 +1760,7 @@ describe("vet", () => {
   
         expect(Object.keys(value).length).to.equal(1);
         expect(value.fibonacci).to.be.ok;
-        expect(value.hasOwnProperty("fibonacci")).to.be.true;
+        expect("fibonacci" in value).to.be.true;
         for (let i in value.fibonacci) {
           expect(value.fibonacci[i]).to.equal(fibs[i]);
         }
@@ -1853,7 +1853,7 @@ describe("vet", () => {
         expectZeroErrors(errors);
   
         expect(Object.keys(value).length).to.equal(1);
-        expect(value.hasOwnProperty("fibonacci")).to.be.true;
+        expect("fibonacci" in value).to.be.true;
         expect(value.fibonacci).to.be.null;
       });
 
@@ -1880,7 +1880,7 @@ describe("vet", () => {
         expectZeroErrors(errors);
   
         expect(Object.keys(value).length).to.equal(1);
-        expect(value.hasOwnProperty("colors")).to.be.true;
+        expect("colors" in value).to.be.true;
         expect(value.colors).to.be.ok;
         expect(Array.isArray(value.colors)).to.be.true;
         expect(value.colors.length).to.equal(colors.length);
@@ -1935,7 +1935,7 @@ describe("vet", () => {
       //   expectZeroErrors(errors);
   
       //   expect(Object.keys(value).length).to.equal(1);
-      //   expect(value.hasOwnProperty("cube")).to.be.true;
+      //   expect("cube" in value).to.be.true;
       //   expect(value.cube).to.be.ok;
       //   expect(Array.isArray(value.cube)).to.be.true;
       //   expect(value.cube.length).to.equal(cube.length);
@@ -2007,7 +2007,7 @@ describe("vet", () => {
         expectZeroErrors(errors);
   
         expect(Object.keys(value).length).to.equal(1);
-        expect(value.hasOwnProperty("primes")).to.be.true;
+        expect("primes" in value).to.be.true;
         expect(value.primes.length).to.equal(5);
       });
     });
@@ -2039,7 +2039,7 @@ describe("vet", () => {
   
         expect(called).to.be.true;
         expect(Object.keys(value).length).to.equal(1);
-        expect(value.hasOwnProperty("test")).to.be.true;
+        expect("test" in value).to.be.true;
         expect(value.test.length).to.equal(4);
       });
 
@@ -2092,7 +2092,7 @@ describe("vet", () => {
   
         expect(called).to.be.true;
         expect(Object.keys(value).length).to.equal(1);
-        expect(value.hasOwnProperty("test")).to.be.true;
+        expect("test" in value).to.be.true;
         expect(value.test).to.equal("LOWERCASE");
       });
 
@@ -2121,7 +2121,7 @@ describe("vet", () => {
   
         expect(called).to.be.true;
         expect(Object.keys(value).length).to.equal(1);
-        expect(value.hasOwnProperty("test")).to.be.true;
+        expect("test" in value).to.be.true;
         expect(value.test).to.equal("LOWERCASE");
       });
     });

@@ -41,7 +41,7 @@ function errorPayload(message, errors) {
 
 function wwwAuthenticateChallenge(challengeOptions) {
   if (typeof challengeOptions==="object") {
-    if (!challengeOptions.hasOwnProperty("scheme")) {
+    if ("scheme" in challengeOptions === false) {
       throw new Error("challengeOptions parameter missing \"scheme\" property.");
     }
 
