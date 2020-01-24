@@ -36,8 +36,8 @@ async function createFolder(req) {
       createdBy: userId,
       updatedBy: userId,
     });
-  } catch(err) {
-    throw new BadRequestError(errorMessages.create, `Error creating new folder ${name}: ${err.message}`);
+  } catch(err) {    
+    throw new BadRequestError(errorMessages.create, `Error creating new folder "${name}": ${err.message}`);
   }
 
   try {

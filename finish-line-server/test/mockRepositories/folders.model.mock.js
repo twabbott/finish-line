@@ -79,7 +79,7 @@ const documents = Object.freeze({
     __v: 27
   },
 
-  myProjectsId: {
+  myProjects: {
     _id: constants.myProjectsId,
     parentId: null,
     childrenIds: [],
@@ -91,7 +91,7 @@ const documents = Object.freeze({
     updatedAt: "2020-01-08T17:54:40.433Z",
     updatedBy: usersModelMock.constants.normalUserId,
     __v: 32,
-    isActive: false
+    isActive: true
   }
 });
 
