@@ -1,9 +1,8 @@
 /* eslint-disable no-unused-vars, indent */
 
-const { expect, assert } = require("chai");
+const { expect } = require("chai");
 
 // Dependencies
-const restFactory = require("../../middleware/restFactory");
 const { executeMiddleware, executeMiddlewareAsync, trace } = require("../test-utils/express-shim");
 const mockUserRepo = require("../mockRepositories/users.model.mock");
 const regex = require("../../shared/regex");
@@ -25,13 +24,13 @@ describe("users.ctrl", () => {
     mockUserRepo.finalize();
   });
 
-  const mockNewUser = {
+  const mockNewUser = Object.freeze({
     name: "Fred Flintstone",
     email: "fred.flintstone@hb.com",
     password: "1234",
     isAdmin: false,
     isActive: true
-  };
+  });
 
   describe("getAllUsers", () => {
     before(() => {

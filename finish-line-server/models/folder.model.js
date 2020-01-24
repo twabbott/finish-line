@@ -22,6 +22,78 @@ const FolderSchema = new mongoose.Schema(
 
 const folderSchema = mongoose.model(FOLDERS, FolderSchema);
 
+const folderRepository = {
+  async createFolder(folder) {
+    const doc = new folderSchema(folder);
+    return await doc.save();
+  },
+
+  async readAllFolders(userId) {
+    return await folderSchema.find({ userId });
+  },
+
+  async readOneFolder(folderId, userId) {
+    if (!mongodb.ObjectID.isValid(folderId)) {
+      return null;
+    }
+  
+    return await folderSchema.findOne({ _id: folderId, userId: userId });
+  },
+
+  async linkToParent(childFolder, parentFolder, userId) {
+    if (!parentFolder) {
+      return;
+    }
+    
+    if (parentFolder.childrenIds.findIndex(id => id === childFolder._id) >= 0) {
+      return;
+    }
+  
+    try {
+      parentFolder.childrenIds = [...parentFolder.childrenIds, childFolder._id];
+      parentFolder.updatedBy = userId;
+      await parentFolder.save();
+    } catch (err) {
+      throw new Error(`Error linking to parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
+    }
+  },
+
+  async unlinkFromParent(folder, userId) {
+    if (!folder.parentId) {
+      //console.log(`UNLINK: folder ${folder.name} has no parent`);
+      return;
+    }
+  
+    const parentFolder = await this.readOneFolder(folder.parentId, userId);
+    if (!parentFolder) {
+      //console.log(`UNLINK: cannot find parent of folder "${folder.name}".  parentId=${folder.parentId}`);
+      return;
+    }
+  
+    try {
+      //console.log(`UNLINK: children before ${JSON.stringify(parentFolder.childrenIds)}`);
+      parentFolder.childrenIds = parentFolder.childrenIds.filter(id => id.toString() !== folder._id.toString());
+      await parentFolder.save();
+      //console.log(`UNLINK: children after ${JSON.stringify(parentFolder.childrenIds)}`);
+    } catch (err) {
+      throw Error(`Error unlinking from parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
+    }
+  },
+
+  async deleteAll(userId) {
+    let result = await folderSchema.deleteMany({ userId });
+  
+    return (result && result.deletedCount) || 0;
+  },
+
+  async deleteMany(userId, folderIdList) {
+    let result = await folderSchema.deleteMany({ userId, _id: { $in: folderIdList }});
+  
+    return (result && result.deletedCount) || 0;
+  }
+}
+
 module.exports = {
-  folderSchema
+  folderSchema,
+  folderRepository
 };

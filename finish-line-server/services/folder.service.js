@@ -1,7 +1,7 @@
 const mongodb = require("mongodb");
 
-const { folderSchema } = require("../models");
-const { BadRequestError } = require("../middleware/restFactory");
+const { folderRepository } = require("../models/folder.model");
+const { RequestError, BadRequestError, NotFoundError } = require("../middleware/restFactory");
 
 const errorMessages = {
   create: "Error creating folder",
@@ -18,51 +18,51 @@ async function createFolder(req) {
 
   let parentFolder = null; 
   if (parentId) {
-    parentFolder =  await _findFolder(parentId, userId);
+    parentFolder =  await folderRepository.readOneFolder(parentId, userId);
     if (!parentFolder) {
       throw new BadRequestError(errorMessages.create, `Folder with parentId=${parentId} not found.`);
     }
   }
 
-  const folder = new folderSchema();
-
-  let created = false;
+  let folder = null;
   try {
-    folder.name = name;
-    folder.userId = userId;
-    folder.parentId = parentFolder && parentFolder._id;
-    folder.childrenIds = [];
-    folder.projectIds = [];
-    folder.isActive = true;
-    folder.createdBy = userId;
-    folder.updatedBy = userId;
-  
-    await folder.save();
-    created = true;
-
-    if (parentFolder) {
-      await _linkToParent(folder, parentFolder, userId);
-    }
+    folder = folderRepository.createFolder({
+      name,
+      userId,
+      parentId: parentFolder && parentFolder._id,
+      childrenIds: [],
+      projectIds: [],
+      isActive: true,
+      createdBy: userId,
+      updatedBy: userId,
+    });
   } catch(err) {
-    if (created) {
-      // Clean up the folder we just created
-      try {
-        await folder.delete();
-      } catch (err) {
-        console.log(`Error cleaning up stale folder "${name}" _id=${folder._id}`);
-      }
+    throw new BadRequestError(errorMessages.create, `Error creating new folder ${name}: ${err.message}`);
+  }
+
+  try {
+    if (parentFolder) {
+      await folderRepository.linkToParent(folder, parentFolder, userId);
+    }
+  } catch (err) {
+    const errors = [err.message];
+    // Clean up the folder we just created
+    try {
+      await folder.delete();
+    } catch (err) {
+      errors.push(`Error cleaning up stale folder "${name}" _id=${folder._id}`);
     }
 
-    throw new BadRequestError(errorMessages.create, `Error creating new folder ${name}: ${err.message}`);
+    throw new RequestError(errorMessages.create, 400, errors);
   }
 
   return folder;
 }
 
 async function readFolderTree(req) {
-  const folders = await readAllFolders(req);
+  const folders = await folderRepository.readAllFolders(req.user.userId);
   if (!folders || folders.length < 1) {
-    return;
+    return [];
   }
 
   const map = {};
@@ -94,13 +94,13 @@ async function readFolderTree(req) {
   return rootFolders;
 }
 
-async function readAllFolders(req) {
-  const { userId } = req.user;
-  return await folderSchema.find({ userId });
-}
-
 async function readOneFolder(req) {
-  await _findFolder(req.params.id, req.user.userId);
+  const folder = folderRepository.readOneFolder(req.params.id, req.user.userId);
+  if (!folder) {
+    throw new NotFoundError(`Unable to find folder ${req.params.id}`);
+  }
+
+  return folder;
 }
 
 async function updateFolder(req) {
@@ -108,9 +108,9 @@ async function updateFolder(req) {
   const { name, isActive, parentId } = req.body;
   const { userId } = req.user;
 
-  const folder = await _findFolder(folderId, userId);
+  const folder = await folderRepository.readOneFolder(folderId, userId);
   if (!folder) {
-    return;
+    throw new NotFoundError(`Unable to find folder ${req.params.id}`);
   }
 
   let newParentFolder = null; 
@@ -120,14 +120,18 @@ async function updateFolder(req) {
         throw new BadRequestError(errorMessages.update, "Cannot make a folder be its own parent.");
       }
 
-      newParentFolder =  await _findFolder(parentId, userId);
+      newParentFolder =  await folderRepository.readOneFolder(parentId, userId);
       if (!newParentFolder) {
         throw new BadRequestError(errorMessages.update, `Folder with parentId=${parentId} not found.`);
       }
     }
 
-    await _unlinkFromParent(folder, userId);
-    await _linkToParent(folder, newParentFolder, userId);
+    try {
+      await folderRepository.unlinkFromParent(folder, userId);
+      await folderRepository.linkToParent(folder, newParentFolder, userId);
+    } catch (err) {
+      throw new BadRequestError(errorMessages.update, err.message);
+    }
   }  
 
   folder.name = name;
@@ -144,9 +148,9 @@ async function deleteFolder(req) {
   const folderId = req.params.id;
   const { userId } = req.user;
 
-  const folder = await _findFolder(folderId, userId);
+  const folder = await folderRepository.readOneFolder(folderId, userId);
   if (!folder) {
-    return 0;
+    return NotFoundError(`Cannot find folder ${folderId}`);
   }
 
   // Can't delete an active folder.
@@ -155,115 +159,43 @@ async function deleteFolder(req) {
   }
 
   // Unlink from parent
-  await _unlinkFromParent(folder, userId);
+  try {
+    await folderRepository.unlinkFromParent(folder, userId);
+  } catch (err) {
+    throw new BadRequestError(errorMessages.update, err.message);
+  }
 
   // Find _id for all that need to be deleted
-  const allFolders = await readAllFolders(req);
-  const folderMap = _makeFolderMap(allFolders);
+  const allFolders = await folderRepository.readAllFolders(userId);
+  const folderMap = {};
+  allFolders.forEach(folder => folderMap[folder._id] = folder);
 
   const idList = [];
-  _findForDelete(folderMap, idList, folder._id);
+
+  function _findForDelete(rootId) {
+    const folder = folderMap[rootId];
+    if (!folder) {
+      return;
+    }
+  
+    idList.push(rootId);
+  
+    folder.childrenIds.forEach(f => _findForDelete(f._id));
+  }
+  
+  _findForDelete(folder._id);
 
   // TODO: Unlink all projects
 
   // Delete all
-  let result;
-  try {
-    result = await folderSchema.deleteMany({ userId, _id: { $in: idList }});
-  } catch(err) {
-    throw new BadRequestError(errorMessages.delete, `Error deleting folder _id=${folderId} name=${folder.name}: ${err.message}`);
-  }
-
-  return (result && result.deletedCount) || 0;
+  folderRepository.deleteMany(userId, idList);
 }
-
-async function _findFolder(folderId, userId) {
-  if (!mongodb.ObjectID.isValid(folderId)) {
-    return null;
-  }
-
-  return await folderSchema.findOne({ _id: folderId, userId: userId });
-}
-
-function _makeFolderMap(allFolders) {  
-  const folderMap = {};
-  allFolders.forEach(folder => folderMap[folder._id] = folder);
-  return folderMap;
-}
-
-function _findForDelete(folderMap, idList, rootId) {
-  const folder = folderMap[rootId];
-  if (!folder) {
-    return;
-  }
-
-  idList.push(rootId);
-
-  folder.childrenIds.forEach(f => _findForDelete(folderMap, idList, f._id));
-}
-
-async function _unlinkFromParent(folder, userId) {
-  if (!folder.parentId) {
-    //console.log(`UNLINK: folder ${folder.name} has no parent`);
-    return;
-  }
-
-  const parentFolder = await _findFolder(folder.parentId, userId);
-  if (!parentFolder) {
-    //console.log(`UNLINK: cannot find parent of folder "${folder.name}".  parentId=${folder.parentId}`);
-    return;
-  }
-
-  try {
-    //console.log(`UNLINK: children before ${JSON.stringify(parentFolder.childrenIds)}`);
-    parentFolder.childrenIds = parentFolder.childrenIds.filter(id => id.toString() !== folder._id.toString());
-    await parentFolder.save();
-    //console.log(`UNLINK: children after ${JSON.stringify(parentFolder.childrenIds)}`);
-  } catch (err) {
-    throw new BadRequestError(errorMessages.general, `Error unlinking from parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
-  }
-}
-
-async function _linkToParent(childFolder, parentFolder, userId) {
-  if (!parentFolder) {
-    return;
-  }
-  
-  if (parentFolder.childrenIds.findIndex(id => id === childFolder._id) >= 0) {
-    return;
-  }
-
-  try {
-    parentFolder.childrenIds = [...parentFolder.childrenIds, childFolder._id];
-    parentFolder.updatedBy = userId;
-    await parentFolder.save();
-  } catch (err) {
-    throw new BadRequestError(errorMessages.general, `Error linking to parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
-  } 
-}
-
-async function _bulkDeleteAll(userId) {
-  let result;
-  try {
-    result = await folderSchema.deleteMany({ userId });
-  } catch(err) {
-    throw new BadRequestError("Error bulk deleting all folders for user", err.message);
-  }
-
-  return (result && result.deletedCount) || 0;
-}
-
-const utilities = {
-  deleteAll: _bulkDeleteAll
-};
 
 module.exports = {
   createFolder,
   readFolderTree,
-  readAllFolders,
   readOneFolder,
   updateFolder,
   deleteFolder,
-  errorMessages,
-  utilities
+  errorMessages
 };
