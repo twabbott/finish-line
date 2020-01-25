@@ -1,5 +1,3 @@
-const mongodb = require("mongodb");
-
 const { folderRepository } = require("../models/folder.model");
 const { RequestError, BadRequestError, NotFoundError } = require("../middleware/restFactory");
 

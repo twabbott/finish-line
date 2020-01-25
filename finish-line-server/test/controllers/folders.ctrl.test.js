@@ -140,9 +140,6 @@ describe("folders.ctrl", () => {
           mockFolderRepo.constants.sprintOneId,
           mockFolderRepo.constants.sprintTwoId
         ],
-        projectIds: [],
-        isActive: true,
-        name: "Sprints",
         userId: mockUserRepo.constants.adminUserId,
         createdBy: mockUserRepo.constants.adminUserId,
         updatedBy: mockUserRepo.constants.adminUserId,
@@ -382,7 +379,7 @@ describe("folders.ctrl", () => {
         expect(result.status).to.equal(400);
         expect(result.body.message).to.equal(folderService.errorMessages.create);
         expect(result.body.errors[0]).to.equal("Yeeet!");
-        expect(result.body.errors[1]).to.contain(`Error cleaning up stale folder \"${mockNewFolder.name}\"`);
+        expect(result.body.errors[1]).to.contain(`Error cleaning up stale folder "${mockNewFolder.name}"`);
       });
     });
   });

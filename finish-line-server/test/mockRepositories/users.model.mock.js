@@ -24,7 +24,7 @@ function makeCreds(user) {
 
 const mockFuncs = {
   save() {}
-}
+};
 
 const documents = Object.freeze({
   adminUser: {

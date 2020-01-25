@@ -3,7 +3,7 @@ const sinon = require("sinon");
 const { ObjectId } = require("mongodb");
 
 const { folderRepository } = require("../../models/folder.model");
-const usersModelMock = require("./users.model.mock")
+const usersModelMock = require("./users.model.mock");
 
 const constants = Object.freeze({
   externalTodoId: "5d8be621f1a18d4d701f1885",
