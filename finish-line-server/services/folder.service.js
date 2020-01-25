@@ -11,7 +11,7 @@ const errorMessages = {
   general: "General error"
 };
 
-async function createFolder(req) {
+async function createFolder(req, ctrl) {
   const name = req.body.name;
   const userId = req.user.userId;
   const parentId = req.body.parentId;
@@ -55,6 +55,8 @@ async function createFolder(req) {
 
     throw new RequestError(errorMessages.create, 400, errors);
   }
+
+  ctrl.setLocationId(folder._id);
 
   return folder;
 }
@@ -121,6 +123,7 @@ async function updateFolder(req) {
       }
 
       newParentFolder =  await folderRepository.readOneFolder(parentId, userId);
+
       if (!newParentFolder) {
         throw new BadRequestError(errorMessages.update, `Folder with parentId=${parentId} not found.`);
       }
@@ -150,7 +153,7 @@ async function deleteFolder(req) {
 
   const folder = await folderRepository.readOneFolder(folderId, userId);
   if (!folder) {
-    return NotFoundError(`Cannot find folder ${folderId}`);
+    throw new NotFoundError(`Unable to find folder ${folderId}`);
   }
 
   // Can't delete an active folder.
@@ -162,7 +165,7 @@ async function deleteFolder(req) {
   try {
     await folderRepository.unlinkFromParent(folder, userId);
   } catch (err) {
-    throw new BadRequestError(errorMessages.update, err.message);
+    throw new BadRequestError(errorMessages.delete, err.message);
   }
 
   // Find _id for all that need to be deleted
@@ -180,7 +183,7 @@ async function deleteFolder(req) {
   
     idList.push(rootId);
   
-    folder.childrenIds.forEach(f => _findForDelete(f._id));
+    folder.childrenIds.forEach(f => _findForDelete(f));
   }
   
   _findForDelete(folder._id);
@@ -188,7 +191,10 @@ async function deleteFolder(req) {
   // TODO: Unlink all projects
 
   // Delete all
-  folderRepository.deleteMany(userId, idList);
+  const count = folderRepository.deleteMany(userId, idList);
+  return {
+    count
+  };
 }
 
 module.exports = {

@@ -8,8 +8,8 @@ const usersModelMock = require("./users.model.mock")
 const constants = Object.freeze({
   externalTodoId: "5d8be621f1a18d4d701f1885",
   sprintsId: "5dddb817d267f984a4aee81f",
-  sprint1Id: "5dddc3a9c5b897859467563b",
-  sprint2Id: "5dddc3a9c5b8978594675630",
+  sprintOneId: "5dddc3a9c5b897859467563b",
+  sprintTwoId: "5dddc3a9c5b8978594675630",
   myProjectsId: "5d8be621f1a18d4d701f18ff"
 });
 
@@ -35,8 +35,8 @@ const documents = Object.freeze({
     _id: constants.sprintsId,
     parentId: null,
     childrenIds: [
-      constants.sprint1Id,
-      constants.sprint2Id
+      constants.sprintOneId,
+      constants.sprintTwoId
     ],
     projectIds: [],
     isActive: true,
@@ -49,8 +49,8 @@ const documents = Object.freeze({
     __v: 2
   },
 
-  sprint1: {
-    _id: constants.sprint1Id,
+  sprintOne: {
+    _id: constants.sprintOneId,
     parentId: constants.sprintsId,
     childrenIds: [],
     projectIds: [],
@@ -64,8 +64,8 @@ const documents = Object.freeze({
     __v: 27
   },
 
-  sprint2: {
-    _id: constants.sprint2Id,
+  sprintTwo: {
+    _id: constants.sprintTwoId,
     parentId: constants.sprintsId,
     childrenIds: [],
     projectIds: [],
@@ -147,8 +147,10 @@ function initialize() {
           (folder.userId === userId && (list.findIndex(id => folder._id === id) < 0)) ||
           (folder.userId !== userId)
       );
+      const firstCount = documentCollection.length;
       documentCollection.length = 0;
       remainder.forEach(folder => documentCollection.push(folder));
+      return firstCount - remainder.length;
     });
 }
 

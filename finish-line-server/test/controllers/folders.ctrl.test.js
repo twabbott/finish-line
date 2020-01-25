@@ -38,6 +38,14 @@ describe.only("folders.ctrl", () => {
     isActive: true
   };
 
+  let linkToParentStub = undefined;
+  let unlinkFromParentStub = undefined;
+
+  afterEach(() => 
+    (linkToParentStub && linkToParentStub.restore()),
+    (unlinkFromParentStub && unlinkFromParentStub.restore())
+  );
+
   describe("getAllFolders", () => {
     before(() => {
       mockFolderRepo.reset();
@@ -69,7 +77,7 @@ describe.only("folders.ctrl", () => {
           "isActive": true,
           "children": [
             {
-              "id": mockFolderRepo.constants.sprint1Id,
+              "id": mockFolderRepo.constants.sprintOneId,
               "name": "Q4 Sprint 3 (3.53) – October 30, 2019",
               "parentId": mockFolderRepo.constants.sprintsId,
               "projectIds": [],
@@ -77,7 +85,7 @@ describe.only("folders.ctrl", () => {
               "children": []
             },
             {
-              "id": mockFolderRepo.constants.sprint2Id,
+              "id": mockFolderRepo.constants.sprintTwoId,
               "name": "Q4 Sprint 4 (3.54) – November 13, 2019",
               "parentId": mockFolderRepo.constants.sprintsId,
               "projectIds": [],
@@ -129,8 +137,8 @@ describe.only("folders.ctrl", () => {
         projectIds: [],
         isActive: true,
         childrenIds: [
-          mockFolderRepo.constants.sprint1Id,
-          mockFolderRepo.constants.sprint2Id
+          mockFolderRepo.constants.sprintOneId,
+          mockFolderRepo.constants.sprintTwoId
         ],
         projectIds: [],
         isActive: true,
@@ -205,6 +213,8 @@ describe.only("folders.ctrl", () => {
       const { data } = result.body;
       expect(result.body.success).to.be.true;
       expect(result.status).to.equal(201);
+      expect(result.headers).to.deep.equal({ Location: `http://blah.com//${data.id}` });
+
       expect(regex.objectId.test(data.id)).to.be.true;
       expect(data.name).to.equal(mockNewFolder.name);
       expect(data.parentId).to.be.null;
@@ -291,15 +301,9 @@ describe.only("folders.ctrl", () => {
     });
 
     describe("error handling", () => {
-      let linkToParentStub = undefined;
-
       afterEach(() => {
         mockFolderRepo.finalize(); // Get rid of overridden stubs
         mockFolderRepo.initialize();
-
-        if (linkToParentStub) {
-          linkToParentStub.reset();
-        }
       });
 
       it("should return 400 if repository throws an exception", async () => {
@@ -358,7 +362,7 @@ describe.only("folders.ctrl", () => {
           "Folder with parentId=beefbeefbeefbeefbeefbeef not found."
         ]);
       });
-  
+
       it("should return 400 if additional cleanup fails, after create fails", async () => {
         linkToParentStub = sinon
           .stub(folderModel.folderRepository, "linkToParent")
@@ -382,4 +386,393 @@ describe.only("folders.ctrl", () => {
       });
     });
   });
+
+  describe("putFolder", () => {
+    beforeEach(() => {
+      mockFolderRepo.reset();
+    });
+
+    it("should update basic properties on an existing folder", async () => {
+      const doc = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.externalTodoId, mockUserRepo.constants.adminUserId);
+      doc.updatedby = "??";
+
+      const result = await executeMiddlewareAsync({
+          user: {...mockUserRepo.credentials.adminCreds},
+          params: {id: mockFolderRepo.constants.externalTodoId},
+          body: {
+            name: "New name",
+            isActive: false,
+          }
+        },
+        foldersCtrl.putFolder
+      );
+
+      const { data } = result.body;
+      expect(result.body.success).to.be.true;
+      expect(result.status).to.equal(200);
+      expect(regex.objectId.test(data.id)).to.be.true;
+      expect(data.name).to.equal("New name");
+      expect(data.parentId).to.be.null;
+      expect(data.projectIds).to.deep.equal([]);
+      expect(data.isActive).to.be.false;
+      expect(data.childrenIds).to.deep.equal([]);
+      expect(data.userId).to.equal(mockUserRepo.constants.adminUserId);
+      expect(data.createdBy).to.equal(mockUserRepo.constants.adminUserId);
+      expect(data.updatedBy).to.equal(mockUserRepo.constants.adminUserId);
+    });
+
+    it("should move a top-level folder to a designated parent folder", async () => {
+      const doc = mockFolderRepo.documents.externalTodo;
+
+      const result = await executeMiddlewareAsync({
+          user: {...mockUserRepo.credentials.adminCreds},
+          params: {id: doc._id},
+          body: {
+            name: doc.name,
+            parentId: mockFolderRepo.constants.sprintsId
+          }
+        },
+        foldersCtrl.putFolder
+      );
+
+      const { data } = result.body;
+
+      expect(result.body.success).to.be.true;
+      expect(result.status).to.equal(200);
+      expect(data.name).to.equal(doc.name);
+      expect(data.id).to.equal(doc._id);
+      expect(data.parentId).to.equal(mockFolderRepo.constants.sprintsId);
+      expect(data.isActive).to.be.true;
+
+      // Make sure the parent knows
+      const parentDoc = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.sprintsId, mockUserRepo.constants.adminUserId);
+      expect(parentDoc.childrenIds).to.contain(doc._id);
+    });
+
+    it("should move a child folder to the top level", async () => {
+      const doc = mockFolderRepo.documents.sprintTwo;
+
+      const result = await executeMiddlewareAsync({
+          user: {...mockUserRepo.credentials.adminCreds},
+          params: {id: doc._id},
+          body: {
+            name: doc.name,
+            parentId: null
+          }
+        },
+        foldersCtrl.putFolder
+      );
+
+      const { data } = result.body;
+
+      expect(result.body.success).to.be.true;
+      expect(result.status).to.equal(200);
+      expect(data.name).to.equal(doc.name);
+      expect(data.id).to.equal(doc._id);
+      expect(data.parentId).to.be.null;
+      expect(data.isActive).to.be.true;
+
+      // Make sure the parent knows
+      const parentDoc = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.sprintsId, mockUserRepo.constants.adminUserId);
+      expect(parentDoc.childrenIds).to.not.contain(doc._id);
+    });
+
+    it("should move a child folder to the top level", async () => {
+      const doc = mockFolderRepo.documents.sprintTwo;
+
+      const result = await executeMiddlewareAsync({
+          user: {...mockUserRepo.credentials.adminCreds},
+          params: {id: doc._id},
+          body: {
+            name: doc.name,
+            parentId: mockFolderRepo.constants.sprintOneId
+          }
+        },
+        foldersCtrl.putFolder
+      );
+
+      const { data } = result.body;
+
+      expect(result.body.success).to.be.true;
+      expect(result.status).to.equal(200);
+      expect(data.name).to.equal(doc.name);
+      expect(data.id).to.equal(doc._id);
+      expect(data.parentId).to.equal(mockFolderRepo.constants.sprintOneId);
+      expect(data.isActive).to.be.true;
+
+      // Make sure the old parent knows
+      const oldParentDoc = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.sprintsId, mockUserRepo.constants.adminUserId);
+      expect(oldParentDoc.childrenIds).to.not.contain(doc._id);
+
+      // Make sure the new parent knows
+      const newParentDoc = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.sprintOneId, mockUserRepo.constants.adminUserId);
+      expect(newParentDoc.childrenIds).to.contain(doc._id);
+    });
+
+    it("should return a 404 if you try to update a folder you don't own", async () => {
+      const doc = mockFolderRepo.documents.sprintTwo;
+
+      const result = await executeMiddlewareAsync({
+          user: {...mockUserRepo.credentials.normalCreds},
+          params: {id: doc._id},
+          body: {
+            name: "foobar"
+          }
+        },
+        foldersCtrl.putFolder
+      );
+
+      expect(result.body.success).to.be.false;
+      expect(result.status).to.equal(404);
+      expect(result.body.message).to.contain("Unable to find folder");
+    });
+
+    it("should return a 404 if you try to update a folder that does not exist", async () => {
+      const doc = mockFolderRepo.documents.sprintTwo;
+
+      const result = await executeMiddlewareAsync({
+          user: {...mockUserRepo.credentials.normalCreds},
+          params: {id: "beefbeefbeefbeefbeefbeef"},
+          body: {
+            name: "foobar"
+          }
+        },
+        foldersCtrl.putFolder
+      );
+
+      expect(result.body.success).to.be.false;
+      expect(result.status).to.equal(404);
+      expect(result.body.message).to.contain("Unable to find folder");
+    });
+
+    describe("error handling", () => {
+      it("should not let a folder become its own parent", async () => {
+        const doc = mockFolderRepo.documents.sprintTwo;
+  
+        const result = await executeMiddlewareAsync({
+            user: {...mockUserRepo.credentials.adminCreds},
+            params: {id: doc._id},
+            body: {
+              name: doc.name,
+              parentId: doc._id
+            }
+          },
+          foldersCtrl.putFolder
+        );
+
+        expect(result.body.success).to.be.false;
+        expect(result.status).to.equal(400);
+        expect(result.body.message).to.contain("Error updating folder");
+        expect(result.body.errors).to.deep.equal([ "Cannot make a folder be its own parent." ]);
+      });
+
+      it("should not let a folder become a child of another user's folder", async () => {
+        const doc = mockFolderRepo.documents.sprintTwo;
+  
+        const result = await executeMiddlewareAsync({
+            user: {...mockUserRepo.credentials.adminCreds},
+            params: {id: doc._id},
+            body: {
+              name: doc.name,
+              parentId: mockFolderRepo.constants.myProjectsId
+            }
+          },
+          foldersCtrl.putFolder
+        );
+
+        expect(result.body.success).to.be.false;
+        expect(result.status).to.equal(400);
+        expect(result.body.message).to.contain("Error updating folder");
+        expect(result.body.errors[0]).to.deep.contain("not found");
+      });
+
+      it("should not let a folder become a child of a folder that does not exist", async () => {
+        const doc = mockFolderRepo.documents.sprintTwo;
+  
+        const result = await executeMiddlewareAsync({
+            user: {...mockUserRepo.credentials.adminCreds},
+            params: {id: doc._id},
+            body: {
+              name: doc.name,
+              parentId: "beefbeefbeefbeefbeefbeef"
+            }
+          },
+          foldersCtrl.putFolder
+        );
+
+        expect(result.body.success).to.be.false;
+        expect(result.status).to.equal(400);
+        expect(result.body.message).to.contain("Error updating folder");
+        expect(result.body.errors[0]).to.deep.contain("not found");
+      });
+
+      it("should handle if linking/unlinking throws an exception", async () => {
+        linkToParentStub = sinon
+          .stub(folderModel.folderRepository, "linkToParent")
+          .throws(new Error("Yeeet!"));
+
+        const doc = mockFolderRepo.documents.externalTodo;
+  
+        const result = await executeMiddlewareAsync({
+            user: {...mockUserRepo.credentials.adminCreds},
+            params: {id: doc._id},
+            body: {
+              name: doc.name,
+              parentId: mockFolderRepo.constants.sprintsId
+            }
+          },
+          foldersCtrl.putFolder
+        );
+
+        expect(result.body.success).to.be.false;
+        expect(result.status).to.equal(400);
+        expect(result.body.message).to.contain("Error updating folder");
+        expect(result.body.errors[0]).to.deep.contain("Yeeet!");
+      });
+    });
+  });
+
+  describe("deleteFolder", () => {
+    beforeEach(() => {
+      mockFolderRepo.reset();
+    });
+
+    it("should delete an inactive, top-level folder, that has no children", async () => {
+      const doc = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.externalTodoId, mockUserRepo.constants.adminUserId);
+      doc.isActive = false;
+
+      const result = await executeMiddlewareAsync({
+          user: {...mockUserRepo.credentials.adminCreds},
+          params: {id: doc._id}
+        },
+        foldersCtrl.deleteFolder
+      );
+
+      const { data } = result.body;
+      expect(result.body.success).to.be.true;
+      expect(result.status).to.equal(200);
+      expect(data.count).to.equal(1);
+
+      // Make sure it's really gone
+      const doc2 = mockFolderRepo.stubs.readOneFolder(doc._id, mockUserRepo.constants.adminUserId);
+      expect(!!doc2).to.be.false;
+    });
+
+    it("should delete an inactive, child folder", async () => {
+      const doc = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.sprintTwoId, mockUserRepo.constants.adminUserId);
+      doc.isActive = false;
+
+      const result = await executeMiddlewareAsync({
+          user: {...mockUserRepo.credentials.adminCreds},
+          params: {id: doc._id}
+        },
+        foldersCtrl.deleteFolder
+      );
+
+      const { data } = result.body;
+      expect(result.body.success).to.be.true;
+      expect(result.status).to.equal(200);
+      expect(data.count).to.equal(1);
+
+      // Make sure it's really gone
+      const doc2 = mockFolderRepo.stubs.readOneFolder(doc._id, mockUserRepo.constants.adminUserId);
+      expect(!!doc2).to.be.false;
+
+      // Make sure the parent knows
+      const parentDoc = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.sprintsId, mockUserRepo.constants.adminUserId);
+      expect(parentDoc.childrenIds).to.not.contain(doc._id);
+    });
+
+    it("should delete an inactive, parent folder and all all children", async () => {
+      const doc = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.sprintsId, mockUserRepo.constants.adminUserId);
+      doc.isActive = false;
+
+      const result = await executeMiddlewareAsync({
+          user: {...mockUserRepo.credentials.adminCreds},
+          params: {id: doc._id}
+        },
+        foldersCtrl.deleteFolder
+      );
+
+      const { data } = result.body;
+      expect(result.body.success).to.be.true;
+      expect(result.status).to.equal(200);
+      expect(data.count).to.equal(3);
+
+      // Make sure it's really gone
+      let doc2 = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.sprintsId, mockUserRepo.constants.adminUserId);
+      expect(!!doc2).to.be.false;
+      doc2 = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.sprintOneId, mockUserRepo.constants.adminUserId);
+      expect(!!doc2).to.be.false;
+      doc2 = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.sprintTwoId, mockUserRepo.constants.adminUserId);
+      expect(!!doc2).to.be.false;
+    });
+
+    it("should not delete a folder that belongs to another user", async () => {
+      const result = await executeMiddlewareAsync({
+          user: {...mockUserRepo.credentials.adminCreds},
+          params: {id: mockFolderRepo.constants.myProjectsId}
+        },
+        foldersCtrl.deleteFolder
+      );
+
+      expect(result.body.success).to.be.false;
+      expect(result.status).to.equal(404);
+      expect(result.body.message).to.contain("Unable to find folder");
+    });
+
+    it("should not delete a folder that does not exist", async () => {
+      const result = await executeMiddlewareAsync({
+          user: {...mockUserRepo.credentials.adminCreds},
+          params: {id: "beefbeefbeefbeefbeefbeef"}
+        },
+        foldersCtrl.deleteFolder
+      );
+
+      expect(result.body.success).to.be.false;
+      expect(result.status).to.equal(404);
+      expect(result.body.message).to.contain("Unable to find folder");
+    });
+
+    it("should not delete a folder that is not marked inactive", async () => {
+      const result = await executeMiddlewareAsync({
+          user: {...mockUserRepo.credentials.adminCreds},
+          params: {id: mockFolderRepo.constants.externalTodoId}
+        },
+        foldersCtrl.deleteFolder
+      );
+
+      const { success, message, errors } = result.body;
+      expect(success).to.be.false;
+      expect(result.status).to.equal(400);
+      expect(message).to.equal("Error deleting folder");
+      expect(errors).to.deep.equal(["Cannot delete a folder unless it is marked as inactive"]);
+    });
+
+    describe("error handling", () => {
+      it("should return a 400 if there is an error unlinking from parent", async () => {
+        const doc = mockFolderRepo.stubs.readOneFolder(mockFolderRepo.constants.externalTodoId, mockUserRepo.constants.adminUserId);
+        doc.isActive = false;
+    
+        unlinkFromParentStub = sinon
+          .stub(folderModel.folderRepository, "unlinkFromParent")
+          .throws(new Error("Yeeet!"));
+    
+        const result = await executeMiddlewareAsync({
+            user: {...mockUserRepo.credentials.adminCreds},
+            params: {id: doc._id}
+          },
+          foldersCtrl.deleteFolder
+        );
+    
+        const { success, message, errors } = result.body;
+        expect(success).to.be.false;
+        expect(result.status).to.equal(400);
+        expect(message).to.equal("Error deleting folder");
+        expect(errors).to.deep.equal(["Yeeet!"]);
+      });
+    });
+  });
 });
+
+
