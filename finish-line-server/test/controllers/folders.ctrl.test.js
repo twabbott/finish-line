@@ -14,7 +14,7 @@ const foldersCtrl = require("../../controllers/folders.ctrl");
 const folderService = require("../../services/folder.service");
 const folderModel = require("../../models/folder.model");
 
-describe.only("folders.ctrl", () => {
+describe("folders.ctrl", () => {
   before(() => {
     // restFactory.init({ 
     //   traceOn: true,
