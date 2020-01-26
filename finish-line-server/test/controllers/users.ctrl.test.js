@@ -12,7 +12,7 @@ const regex = require("../../shared/regex");
 // Module under test
 const usersCtrl = require("../../controllers/users.ctrl");
 
-describe.only("users.ctrl", () => {
+describe("users.ctrl", () => {
   before(async () => {
     await mockDb.initialize();    
   });

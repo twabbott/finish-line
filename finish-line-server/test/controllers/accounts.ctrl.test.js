@@ -5,35 +5,32 @@ const { expect, assert } = require("chai");
 // Dependencies
 const restFactory = require("../../middleware/restFactory");
 const { executeMiddleware, executeMiddlewareAsync, trace } = require("../test-utils/express-shim");
-const mockUserRepo = require("../mockRepositories/users.model.mock");
+const { userRepository } = require("../../models/user.model");
+const mockDb = require("../mockRepositories/mock-db");
+const usersSeed = require("../mockRepositories/users.seed");
 const regex = require("../../shared/regex");
 
 // Module under test
 const accountsCtrl = require("../../controllers/accounts.ctrl");
 
 describe("accounts.ctrl", () => {
-  before(() => {
-    // restFactory.init({ 
-    //   traceOn: true,
-    //   errorLogger: err => console.trace(err) 
-    // });
-
-    mockUserRepo.initialize();
+  before(async () => {
+    await mockDb.initialize();
   });
 
-  after(() => {
-    mockUserRepo.finalize();
+  beforeEach(async () => {
+    await usersSeed.resetAll();
   });
 
-  beforeEach(() => {
-    mockUserRepo.reset();
+  after(async () => {
+    await mockDb.finalize();
   });
 
   it("should sign in with valid username and password", async () => {
     const result = await executeMiddlewareAsync({
         body: {
           email: "barney@gmail.com",
-          password: mockUserRepo.constants.password
+          password: usersSeed.credentials.password
         },
       },
       accountsCtrl.signin
@@ -48,7 +45,7 @@ describe("accounts.ctrl", () => {
     const result = await executeMiddlewareAsync({
         body: {
           email: "foo@nowhere.com",
-          password: mockUserRepo.constants.password
+          password: usersSeed.credentials.password
         },
       },
       accountsCtrl.signin
@@ -77,14 +74,14 @@ describe("accounts.ctrl", () => {
   });
 
   it("should not sign in if user has been deactivated", async () => {
-    const normie = mockUserRepo.stubs.readOneUser(mockUserRepo.constants.normalUserId);
+    const normie = await userRepository.readOneUser(usersSeed.keys.normalUserId);
     normie.isActive = false;
-    normie.save();
+    await normie.save();
 
     const result = await executeMiddlewareAsync({
         body: {
           email: "barney@gmail.com",
-          password: mockUserRepo.constants.password
+          password: usersSeed.credentials.password
         },
       },
       accountsCtrl.signin

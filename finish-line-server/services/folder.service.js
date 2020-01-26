@@ -24,7 +24,7 @@ async function createFolder(req, ctrl) {
 
   let folder = null;
   try {
-    folder = folderRepository.createFolder({
+    folder = await folderRepository.createFolder({
       name,
       userId,
       parentId: parentFolder && parentFolder._id,
@@ -54,7 +54,7 @@ async function createFolder(req, ctrl) {
     throw new RequestError(errorMessages.create, 400, errors);
   }
 
-  ctrl.setLocationId(folder._id);
+  ctrl.setLocationId(folder._id.toString());
 
   return folder;
 }
@@ -95,7 +95,7 @@ async function readFolderTree(req) {
 }
 
 async function readOneFolder(req) {
-  const folder = folderRepository.readOneFolder(req.params.id, req.user.userId);
+  const folder = await folderRepository.readOneFolder(req.params.id, req.user.userId);
   if (!folder) {
     throw new NotFoundError(`Unable to find folder ${req.params.id}`);
   }
@@ -189,7 +189,7 @@ async function deleteFolder(req) {
   // TODO: Unlink all projects
 
   // Delete all
-  const count = folderRepository.deleteMany(userId, idList);
+  const count = await folderRepository.deleteMany(userId, idList);
   return {
     count
   };
