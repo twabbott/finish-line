@@ -33,7 +33,7 @@ async function createUser(req, ctrl) {
     isActive
   });
 
-  ctrl.setLocationId(user._id);
+  ctrl.setLocationId(user._id.toString());
 
   return user;
 }

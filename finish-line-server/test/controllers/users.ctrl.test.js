@@ -4,24 +4,25 @@ const { expect } = require("chai");
 
 // Dependencies
 const { executeMiddleware, executeMiddlewareAsync, trace } = require("../test-utils/express-shim");
-const mockUserRepo = require("../mockRepositories/users.model.mock");
+const { userRepository } = require("../../models/user.model");
+const mockDb = require("../mockRepositories/mock-db");
+const usersSeed = require("../mockRepositories/users.seed");
 const regex = require("../../shared/regex");
 
 // Module under test
 const usersCtrl = require("../../controllers/users.ctrl");
 
-describe("users.ctrl", () => {
-  before(() => {
-    // restFactory.init({ 
-    //   traceOn: true,
-    //   errorLogger: err => console.trace(err) 
-    // });
-
-    mockUserRepo.initialize();
+describe.only("users.ctrl", () => {
+  before(async () => {
+    await mockDb.initialize();    
   });
 
-  after(() => {
-    mockUserRepo.finalize();
+  beforeEach(async () => {
+    await usersSeed.resetAll();
+  });
+
+  after(async () => {
+    await mockDb.finalize();
   });
 
   const mockNewUser = Object.freeze({
@@ -33,16 +34,10 @@ describe("users.ctrl", () => {
   });
 
   describe("getAllUsers", () => {
-    before(() => {
-      mockUserRepo.reset();
-    });
-
     describe("with admin credentials", async () => {
-
-
       it("should read all users", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...mockUserRepo.credentials.adminCreds},
+            user: {...usersSeed.credentials.adminCreds},
           },
           usersCtrl.getAllUsers
         );
@@ -51,15 +46,15 @@ describe("users.ctrl", () => {
         expect(result.status).to.equal(200);
         expect(Array.isArray(result.body.data)).to.be.true;
         expect(result.body.data.length).to.equal(2);
-        expect(result.body.data[0].id).to.equal(mockUserRepo.constants.adminUserId);
-        expect(result.body.data[1].id).to.equal(mockUserRepo.constants.normalUserId);
+        expect(result.body.data[0].id).to.deep.equal(usersSeed.keys.adminUserId);
+        expect(result.body.data[1].id).to.deep.equal(usersSeed.keys.normalUserId);
       });
     });
 
     describe("with normal credentials", () => {
       it("should read just the user's info.", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...mockUserRepo.credentials.normalCreds}
+            user: {...usersSeed.credentials.normalCreds}
           },
           usersCtrl.getAllUsers
         );
@@ -68,12 +63,12 @@ describe("users.ctrl", () => {
         expect(result.status).to.equal(200);
         expect(Array.isArray(result.body.data)).to.be.true;
         expect(result.body.data.length).to.equal(1);
-        expect(result.body.data[0].id).to.equal(mockUserRepo.constants.normalUserId);
+        expect(result.body.data[0].id).to.deep.equal(usersSeed.keys.normalUserId);
       });
     });
 
     describe("with anonymous credentials", () => {
-      it("should read just the user's info.", async () => {
+      it("should return 403.", async () => {
         const result = await executeMiddlewareAsync(
           {},
           usersCtrl.getAllUsers
@@ -87,41 +82,37 @@ describe("users.ctrl", () => {
   });
 
   describe("getOneUser", () => {
-    before(() => {
-      mockUserRepo.reset();
-    });
-
     describe("with admin credentials", () => {
       it("should read own user info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.adminUserId },
-            user: {...mockUserRepo.credentials.adminCreds}
+            params: { id: usersSeed.keys.adminUserId },
+            user: {...usersSeed.credentials.adminCreds}
           },
           usersCtrl.getOneUser
         );
-  
+
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.equal(mockUserRepo.constants.adminUserId);
+        expect(result.body.data.id).to.deep.equal(usersSeed.keys.adminUserId);
       });
 
       it("should read any other user's info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.normalUserId },
-            user: {...mockUserRepo.credentials.adminCreds}
+            params: { id: usersSeed.keys.normalUserId },
+            user: {...usersSeed.credentials.adminCreds}
           },
           usersCtrl.getOneUser
         );
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.equal(mockUserRepo.constants.normalUserId);
+        expect(result.body.data.id).to.deep.equal(usersSeed.keys.normalUserId);
       });
 
       it("should return 404 if user is not found", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: "111222333444555666777888" },
-            user: {...mockUserRepo.credentials.adminCreds}
+            user: {...usersSeed.credentials.adminCreds}
           },
           usersCtrl.getOneUser
         );
@@ -134,22 +125,22 @@ describe("users.ctrl", () => {
     describe("with normal credentials", () => {
       it("should read own user info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.normalUserId },
-            user: {...mockUserRepo.credentials.normalCreds}
+            params: { id: usersSeed.keys.normalUserId },
+            user: {...usersSeed.credentials.normalCreds}
           },
           usersCtrl.getOneUser
         );
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.equal(mockUserRepo.constants.normalUserId);
+        expect(result.body.data.id).to.deep.equal(usersSeed.keys.normalUserId);
       });
 
       it("should not be able to read another user's info", async () => {
         const result = await executeMiddlewareAsync(
           {
-            params: { id: mockUserRepo.constants.adminUserId },
-            user: {...mockUserRepo.credentials.normalCreds}
+            params: { id: usersSeed.keys.adminUserId },
+            user: {...usersSeed.credentials.normalCreds}
           },
           usersCtrl.getOneUser
         );
@@ -164,7 +155,7 @@ describe("users.ctrl", () => {
       it("should not be able to read any user's info", async () => {
         const result = await executeMiddlewareAsync(
           {
-            params: { id: mockUserRepo.constants.normalUserId }
+            params: { id: usersSeed.keys.normalUserId }
           },
           usersCtrl.getOneUser
         );
@@ -177,17 +168,10 @@ describe("users.ctrl", () => {
   });
 
   describe("postUser", () => {
-    before(() => {
-      mockUserRepo.reset();
-    });
-
-    after(() => {
-    });
-
     describe("with admin credentials", () => {
       it("should allow creating a new user", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...mockUserRepo.credentials.adminCreds},
+            user: {...usersSeed.credentials.adminCreds},
             body: {...mockNewUser}
           },
           usersCtrl.postUser
@@ -211,7 +195,7 @@ describe("users.ctrl", () => {
     describe("with normal credentials", () => {
       it("should allow creating a new user", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...mockUserRepo.credentials.normalCreds},
+            user: {...usersSeed.credentials.normalCreds},
             body: {...mockNewUser}
           },
           usersCtrl.postUser
@@ -233,7 +217,7 @@ describe("users.ctrl", () => {
 
       it("should not allow creating an admin user", async () => {
         const result = await executeMiddlewareAsync({
-          user: {...mockUserRepo.credentials.normalCreds},
+          user: {...usersSeed.credentials.normalCreds},
             body: {
               ...mockNewUser,
               isAdmin: true
@@ -292,18 +276,14 @@ describe("users.ctrl", () => {
   });
 
   describe("putUser", () => {
-    beforeEach(() => {
-      mockUserRepo.reset();
-    });
-
     describe("with admin credentials", () => {
       const newName = "John Doe";
       const newEmail = "john.doe@gmail.com";
 
       it("should allow updating a user's own info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.adminUserId },
-            user: {...mockUserRepo.credentials.adminCreds},
+            params: { id: usersSeed.keys.adminUserId },
+            user: {...usersSeed.credentials.adminCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -316,7 +296,7 @@ describe("users.ctrl", () => {
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.be.equal(mockUserRepo.constants.adminUserId);
+        expect(result.body.data.id).to.deep.equal(usersSeed.keys.adminUserId);
         expect(result.body.data.name).to.equal(newName);
         expect(result.body.data.email).to.equal(newEmail);
         expect(result.body.data.isAdmin).to.equal(false);
@@ -325,8 +305,8 @@ describe("users.ctrl", () => {
 
       it("should allow updating another user's info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.normalUserId },
-            user: {...mockUserRepo.credentials.adminCreds},
+            params: { id: usersSeed.keys.normalUserId },
+            user: {...usersSeed.credentials.adminCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -339,7 +319,7 @@ describe("users.ctrl", () => {
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.be.equal(mockUserRepo.constants.normalUserId);
+        expect(result.body.data.id).to.deep.equal(usersSeed.keys.normalUserId);
         expect(result.body.data.name).to.equal(newName);
         expect(result.body.data.email).to.equal(newEmail);
         expect(result.body.data.isAdmin).to.equal(false);
@@ -348,8 +328,8 @@ describe("users.ctrl", () => {
 
       it("should allow resetting another user's password", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.normalUserId },
-            user: {...mockUserRepo.credentials.adminCreds},
+            params: { id: usersSeed.keys.normalUserId },
+            user: {...usersSeed.credentials.adminCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -363,7 +343,7 @@ describe("users.ctrl", () => {
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.be.equal(mockUserRepo.constants.normalUserId);
+        expect(result.body.data.id).to.deep.equal(usersSeed.keys.normalUserId);
         expect(result.body.data.name).to.equal(newName);
         expect(result.body.data.email).to.equal(newEmail);
         expect(result.body.data.isAdmin).to.equal(false);
@@ -377,12 +357,12 @@ describe("users.ctrl", () => {
   
       it("should allow updating a user's own info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.normalUserId },
-            user: {...mockUserRepo.credentials.normalCreds},
+            params: { id: usersSeed.keys.normalUserId },
+            user: {...usersSeed.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
-              password: mockUserRepo.constants.password,
+              password: usersSeed.credentials.password,
               isAdmin: false,
               isActive: false,
             }
@@ -392,7 +372,7 @@ describe("users.ctrl", () => {
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.be.equal(mockUserRepo.constants.normalUserId);
+        expect(result.body.data.id).to.deep.equal(usersSeed.keys.normalUserId);
         expect(result.body.data.name).to.equal(newName);
         expect(result.body.data.email).to.equal(newEmail);
         expect(result.body.data.isAdmin).to.equal(false);
@@ -401,13 +381,13 @@ describe("users.ctrl", () => {
   
       it("should allow resetting user's own password", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.normalUserId },
-            user: {...mockUserRepo.credentials.normalCreds},
+            params: { id: usersSeed.keys.normalUserId },
+            user: {...usersSeed.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
               newPassword: "blarggg",
-              password: mockUserRepo.constants.password,
+              password: usersSeed.credentials.password,
               isAdmin: false,
               isActive: false,
             }
@@ -417,7 +397,7 @@ describe("users.ctrl", () => {
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.be.equal(mockUserRepo.constants.normalUserId);
+        expect(result.body.data.id).to.deep.equal(usersSeed.keys.normalUserId);
         expect(result.body.data.name).to.equal(newName);
         expect(result.body.data.email).to.equal(newEmail);
         expect(result.body.data.isAdmin).to.equal(false);
@@ -426,12 +406,12 @@ describe("users.ctrl", () => {
   
       it("should forbid user from promoting themselves to admin", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.normalUserId },
-            user: {...mockUserRepo.credentials.normalCreds},
+            params: { id: usersSeed.keys.normalUserId },
+            user: {...usersSeed.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
-              password: mockUserRepo.constants.password,
+              password: usersSeed.credentials.password,
               isAdmin: true,
               isActive: false,
             }
@@ -447,8 +427,8 @@ describe("users.ctrl", () => {
   
       it("should forbid updating user's own info if no password given", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.normalUserId },
-            user: {...mockUserRepo.credentials.normalCreds},
+            params: { id: usersSeed.keys.normalUserId },
+            user: {...usersSeed.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -467,8 +447,8 @@ describe("users.ctrl", () => {
 
       it("should forbid updating user's own info if password does not match", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.normalUserId },
-            user: {...mockUserRepo.credentials.normalCreds},
+            params: { id: usersSeed.keys.normalUserId },
+            user: {...usersSeed.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -488,12 +468,12 @@ describe("users.ctrl", () => {
 
       it("should forbid updating another user's info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.adminUserId },
-            user: {...mockUserRepo.credentials.normalCreds},
+            params: { id: usersSeed.keys.adminUserId },
+            user: {...usersSeed.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
-              password: mockUserRepo.constants.password,
+              password: usersSeed.credentials.password,
               isAdmin: false,
               isActive: false,
             }
@@ -513,11 +493,11 @@ describe("users.ctrl", () => {
 
       it("should forbid updating any user's info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.normalUserId },
+            params: { id: usersSeed.keys.normalUserId },
             body: {    
               name: newName,
               email: newEmail,
-              password: mockUserRepo.constants.password,
+              password: usersSeed.credentials.password,
               isAdmin: false,
               isActive: false,
             }
@@ -533,19 +513,15 @@ describe("users.ctrl", () => {
   });
 
   describe("deleteUser", () => {
-    beforeEach(() => {
-      mockUserRepo.reset();
-    });
-
     describe("with admin credentials", () => {
       it("should allow deleting another deactivated user", async () => {
-        const normie = mockUserRepo.stubs.readOneUser(mockUserRepo.constants.normalUserId);
+        const normie = await userRepository.readOneUser(usersSeed.keys.normalUserId);
         normie.isActive = false;
-        normie.save();
+        await normie.save();
 
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.normalUserId },
-            user: {...mockUserRepo.credentials.adminCreds}
+            params: { id: usersSeed.keys.normalUserId },
+            user: {...usersSeed.credentials.adminCreds}
           },
           usersCtrl.deleteUser
         );
@@ -558,13 +534,13 @@ describe("users.ctrl", () => {
       });
 
       it("should not allow a user to delete theirself", async () => {
-        const admin = mockUserRepo.stubs.readOneUser(mockUserRepo.constants.adminUserId);
+        const admin = await userRepository.readOneUser(usersSeed.keys.adminUserId);
         admin.isActive = false;
-        admin.save();
+        await admin.save();
 
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.adminUserId },
-            user: {...mockUserRepo.credentials.adminCreds}
+            params: { id: usersSeed.keys.adminUserId },
+            user: {...usersSeed.credentials.adminCreds}
           },
           usersCtrl.deleteUser
         );
@@ -578,8 +554,8 @@ describe("users.ctrl", () => {
 
       it("should allow deleting a user that is not deactivated", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.normalUserId },
-            user: {...mockUserRepo.credentials.adminCreds}
+            params: { id: usersSeed.keys.normalUserId },
+            user: {...usersSeed.credentials.adminCreds}
           },
           usersCtrl.deleteUser
         );
@@ -594,7 +570,7 @@ describe("users.ctrl", () => {
       it("should return an error if you delete a user that does not exist", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: "aaaabbbbccccddddeeeeffff" },
-            user: {...mockUserRepo.credentials.adminCreds}
+            user: {...usersSeed.credentials.adminCreds}
           },
           usersCtrl.deleteUser
         );
@@ -607,13 +583,13 @@ describe("users.ctrl", () => {
 
     describe("with normal credentials", () => {
       it("should not allow a user to delete another user", async () => {
-        const admin = mockUserRepo.stubs.readOneUser(mockUserRepo.constants.adminUserId);
+        const admin = await userRepository.readOneUser(usersSeed.keys.adminUserId);
         admin.isActive = false;
-        admin.save();
+        await admin.save();
 
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.adminUserId },
-            user: {...mockUserRepo.credentials.normalCreds}
+            params: { id: usersSeed.keys.adminUserId },
+            user: {...usersSeed.credentials.normalCreds}
           },
           usersCtrl.deleteUser
         );
@@ -626,12 +602,12 @@ describe("users.ctrl", () => {
 
     describe("with anonymous credentials", () => {
       it("should not allow anonymous user to delete any user", async () => {
-        const admin = mockUserRepo.stubs.readOneUser(mockUserRepo.constants.adminUserId);
+        const admin = await userRepository.readOneUser(usersSeed.keys.adminUserId);
         admin.isActive = false;
-        admin.save();
+        await admin.save();
 
         const result = await executeMiddlewareAsync({
-            params: { id: mockUserRepo.constants.adminUserId },
+            params: { id: usersSeed.keys.adminUserId },
           },
           usersCtrl.deleteUser
         );
