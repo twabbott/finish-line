@@ -7,8 +7,8 @@ const sinon = require("sinon");
 const { executeMiddleware, executeMiddlewareAsync, trace } = require("../test-utils/express-shim");
 const { folderRepository } = require("../../models/folder.model");
 const mockDb = require("../mockRepositories/mock-db");
-const usersSeed = require("../mockRepositories/users.seed");
-const foldersSeed = require("../mockRepositories/folders.seed");
+const userSeed = require("../mockRepositories/user.seed");
+const folderSeed = require("../mockRepositories/folder.seed");
 const regex = require("../../shared/regex");
 
 // Module under test
@@ -22,11 +22,11 @@ describe("folders.ctrl", () => {
 
   before(async () => {
     await mockDb.initialize();
-    await usersSeed.resetAll();
+    await userSeed.resetAll();
   });
 
   beforeEach(async () => {
-    await foldersSeed.resetAll(usersSeed.keys);
+    await folderSeed.resetAll(userSeed.keys);
   });
 
   afterEach(() => {
@@ -59,7 +59,7 @@ describe("folders.ctrl", () => {
   describe("getAllFolders", () => {
     it("should read all folders belonging to user 1", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
         },
         foldersCtrl.getAllFolders
       );
@@ -68,7 +68,7 @@ describe("folders.ctrl", () => {
       expect(result.status).to.equal(200);
       expect(result.body.data).to.deep.equal([
         {
-          "id": foldersSeed.keys.externalTodoId,
+          "id": folderSeed.keys.externalTodoId,
           "name": "External TODO",
           "parentId": null,
           "projectIds": [],
@@ -76,24 +76,24 @@ describe("folders.ctrl", () => {
           "children": []
         },
         {
-          "id": foldersSeed.keys.sprintsId,
+          "id": folderSeed.keys.sprintsId,
           "name": "Sprints",
           "parentId": null,
           "projectIds": [],
           "isActive": true,
           "children": [
             {
-              "id": foldersSeed.keys.sprintOneId,
+              "id": folderSeed.keys.sprintOneId,
               "name": "Q4 Sprint 3 (3.53) – October 30, 2019",
-              "parentId": foldersSeed.keys.sprintsId,
+              "parentId": folderSeed.keys.sprintsId,
               "projectIds": [],
               "isActive": true,
               "children": []
             },
             {
-              "id": foldersSeed.keys.sprintTwoId,
+              "id": folderSeed.keys.sprintTwoId,
               "name": "Q4 Sprint 4 (3.54) – November 13, 2019",
-              "parentId": foldersSeed.keys.sprintsId,
+              "parentId": folderSeed.keys.sprintsId,
               "projectIds": [],
               "isActive": true,
               "children": []
@@ -105,7 +105,7 @@ describe("folders.ctrl", () => {
 
     it("should read all folders belonging to user 2", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.normalCreds},
+          user: {...userSeed.credentials.normalCreds},
         },
         foldersCtrl.getAllFolders
       );
@@ -114,7 +114,7 @@ describe("folders.ctrl", () => {
       expect(result.status).to.equal(200);
       expect(result.body.data).to.deep.equal([
         {
-          "id": foldersSeed.keys.myProjectsId,
+          "id": folderSeed.keys.myProjectsId,
           "name": "My Projects",
           "parentId": null,
           "projectIds": [],
@@ -128,8 +128,8 @@ describe("folders.ctrl", () => {
   describe("getOneFolder", () => {
     it("should read one folder by folderId for user1", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
-          params: { id: foldersSeed.keys.sprintsId }
+          user: {...userSeed.credentials.adminCreds},
+          params: { id: folderSeed.keys.sprintsId }
         },
         foldersCtrl.getOneFolder
       );
@@ -137,25 +137,25 @@ describe("folders.ctrl", () => {
       expect(result.body.success).to.be.true;
       expect(result.status).to.equal(200);
       expect(result.body.data).to.deep.include({
-        id: foldersSeed.keys.sprintsId,
+        id: folderSeed.keys.sprintsId,
         name: "Sprints",
         parentId: null,
         projectIds: [],
         isActive: true,
         childrenIds: [
-          foldersSeed.keys.sprintOneId,
-          foldersSeed.keys.sprintTwoId
+          folderSeed.keys.sprintOneId,
+          folderSeed.keys.sprintTwoId
         ],
-        userId: usersSeed.keys.adminUserId,
-        createdBy: usersSeed.keys.adminUserId,
-        updatedBy: usersSeed.keys.adminUserId,
+        userId: userSeed.keys.adminUserId,
+        createdBy: userSeed.keys.adminUserId,
+        updatedBy: userSeed.keys.adminUserId,
       });
     });
 
     it("should read one folder by folderId for user2", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.normalCreds},
-          params: { id: foldersSeed.keys.myProjectsId }
+          user: {...userSeed.credentials.normalCreds},
+          params: { id: folderSeed.keys.myProjectsId }
         },
         foldersCtrl.getOneFolder
       );
@@ -163,22 +163,22 @@ describe("folders.ctrl", () => {
       expect(result.body.success).to.be.true;
       expect(result.status).to.equal(200);
       expect(result.body.data).to.deep.include({
-        id: foldersSeed.keys.myProjectsId,
+        id: folderSeed.keys.myProjectsId,
         parentId: null,
         childrenIds: [],
         projectIds: [],
         name: "My Projects",
-        userId: usersSeed.keys.normalUserId,
-        createdBy: usersSeed.keys.normalUserId,
-        updatedBy: usersSeed.keys.normalUserId,
+        userId: userSeed.keys.normalUserId,
+        createdBy: userSeed.keys.normalUserId,
+        updatedBy: userSeed.keys.normalUserId,
         isActive: true
       });
     });
 
     it("should return a 404 for a folder that exists, but does not belong to the user", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
-          params: { id: foldersSeed.keys.myProjectsId }
+          user: {...userSeed.credentials.adminCreds},
+          params: { id: folderSeed.keys.myProjectsId }
         },
         foldersCtrl.getOneFolder
       );
@@ -189,7 +189,7 @@ describe("folders.ctrl", () => {
 
     it("should return a 404 for a folder that does not exist", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
           params: { id: "beefbeefbeefbeefbeefbeef" }
         },
         foldersCtrl.getOneFolder
@@ -203,7 +203,7 @@ describe("folders.ctrl", () => {
   describe("postFolder", () => {
     it("should create a new top-level folder", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
           body: {...mockNewFolder}
         },
         foldersCtrl.postFolder
@@ -220,19 +220,19 @@ describe("folders.ctrl", () => {
       expect(data.projectIds).to.deep.equal([]);
       expect(data.isActive).to.be.true;
       expect(data.childrenIds).to.deep.equal([]);
-      expect(data.userId).to.equal(usersSeed.keys.adminUserId);
-      expect(data.createdBy).to.equal(usersSeed.keys.adminUserId);
-      expect(data.updatedBy).to.equal(usersSeed.keys.adminUserId);
+      expect(data.userId).to.equal(userSeed.keys.adminUserId);
+      expect(data.createdBy).to.equal(userSeed.keys.adminUserId);
+      expect(data.updatedBy).to.equal(userSeed.keys.adminUserId);
       expect(isNaN(Date.parse(data.createdAt))).to.be.false;
       expect(isNaN(Date.parse(data.updatedAt))).to.be.false;
     });
 
     it("should create a new child folder", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
           body: {
             ...mockNewFolder, 
-            parentId: foldersSeed.keys.sprintsId.toString()
+            parentId: folderSeed.keys.sprintsId.toString()
           }
         },
         foldersCtrl.postFolder
@@ -243,24 +243,24 @@ describe("folders.ctrl", () => {
       expect(result.status).to.equal(201);
       expect(regex.objectId.test(data.id)).to.be.true;
       expect(data.name).to.equal(mockNewFolder.name);
-      expect(data.parentId).to.deep.equal(foldersSeed.keys.sprintsId);
+      expect(data.parentId).to.deep.equal(folderSeed.keys.sprintsId);
       expect(data.projectIds).to.deep.equal([]);
       expect(data.isActive).to.be.true;
       expect(data.childrenIds).to.deep.equal([]);
-      expect(data.userId).to.equal(usersSeed.keys.adminUserId);
-      expect(data.createdBy).to.equal(usersSeed.keys.adminUserId);
-      expect(data.updatedBy).to.equal(usersSeed.keys.adminUserId);
+      expect(data.userId).to.equal(userSeed.keys.adminUserId);
+      expect(data.createdBy).to.equal(userSeed.keys.adminUserId);
+      expect(data.updatedBy).to.equal(userSeed.keys.adminUserId);
       expect(isNaN(Date.parse(data.createdAt))).to.be.false;
       expect(isNaN(Date.parse(data.updatedAt))).to.be.false;
 
       // Make sure that linkToParent did its thing
-      const parentDoc = await folderRepository.readOneFolder(foldersSeed.keys.sprintsId, usersSeed.keys.adminUserId);
+      const parentDoc = await folderRepository.readOneFolder(folderSeed.keys.sprintsId, userSeed.keys.adminUserId);
       expect(parentDoc.childrenIds).to.contain(data.id);
     });
 
     it("should fail validation for missing required parameters", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
           body: {}
         },
         foldersCtrl.postFolder
@@ -275,7 +275,7 @@ describe("folders.ctrl", () => {
 
     it("should supply defalut values for missing parameters that are not required", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
           body: {
             name: "foo"
           }
@@ -292,9 +292,9 @@ describe("folders.ctrl", () => {
       expect(data.projectIds).to.deep.equal([]);
       expect(data.isActive).to.be.true;
       expect(data.childrenIds).to.deep.equal([]);
-      expect(data.userId).to.equal(usersSeed.keys.adminUserId);
-      expect(data.createdBy).to.equal(usersSeed.keys.adminUserId);
-      expect(data.updatedBy).to.equal(usersSeed.keys.adminUserId);
+      expect(data.userId).to.equal(userSeed.keys.adminUserId);
+      expect(data.createdBy).to.equal(userSeed.keys.adminUserId);
+      expect(data.updatedBy).to.equal(userSeed.keys.adminUserId);
       expect(isNaN(Date.parse(data.createdAt))).to.be.false;
       expect(isNaN(Date.parse(data.updatedAt))).to.be.false;
     });
@@ -306,7 +306,7 @@ describe("folders.ctrl", () => {
           .throws(new Error("foobar!"));
   
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.adminCreds},
+            user: {...userSeed.credentials.adminCreds},
             body: {...mockNewFolder}
           },
           foldersCtrl.postFolder
@@ -322,10 +322,10 @@ describe("folders.ctrl", () => {
   
       it("should return 400 if you try to link to a parent that is not yours", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.adminCreds},
+            user: {...userSeed.credentials.adminCreds},
             body: {
               ...mockNewFolder,
-              parentId: foldersSeed.keys.myProjectsId.toString()
+              parentId: folderSeed.keys.myProjectsId.toString()
             }
           },
           foldersCtrl.postFolder
@@ -335,13 +335,13 @@ describe("folders.ctrl", () => {
         expect(result.status).to.equal(400);
         expect(result.body.message).to.equal(folderService.errorMessages.create);
         expect(result.body.errors).to.deep.equal([
-          `Folder with parentId=${foldersSeed.keys.myProjectsId.toString()} not found.`
+          `Folder with parentId=${folderSeed.keys.myProjectsId.toString()} not found.`
         ]);
       });
   
       it("should return 400 if you try to link to a parent that doesn't exist", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.adminCreds},
+            user: {...userSeed.credentials.adminCreds},
             body: {
               ...mockNewFolder,
               parentId: "beefbeefbeefbeefbeefbeef"
@@ -364,10 +364,10 @@ describe("folders.ctrl", () => {
           .throws(new Error("Yeeet!"));
 
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.adminCreds},
+            user: {...userSeed.credentials.adminCreds},
             body: {
               ...mockNewFolder,
-              parentId: foldersSeed.keys.sprintsId.toString()
+              parentId: folderSeed.keys.sprintsId.toString()
             }
           },
           foldersCtrl.postFolder
@@ -383,13 +383,13 @@ describe("folders.ctrl", () => {
 
   describe("putFolder", () => {
     it("should update basic properties on an existing folder", async () => {
-      const doc = await folderRepository.readOneFolder(foldersSeed.keys.externalTodoId, usersSeed.keys.adminUserId);
+      const doc = await folderRepository.readOneFolder(folderSeed.keys.externalTodoId, userSeed.keys.adminUserId);
       doc.updatedby = "??";
       await doc.save();
 
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
-          params: {id: foldersSeed.keys.externalTodoId},
+          user: {...userSeed.credentials.adminCreds},
+          params: {id: folderSeed.keys.externalTodoId},
           body: {
             name: "New name",
             isActive: false,
@@ -404,30 +404,30 @@ describe("folders.ctrl", () => {
       expect(regex.objectId.test(data.id)).to.be.true;
 
       expect(data).to.deep.include({
-        id: foldersSeed.keys.externalTodoId,
+        id: folderSeed.keys.externalTodoId,
         name: "New name",
         parentId: null,
         childrenIds: [],
         projectIds: [],
-        userId: usersSeed.keys.adminUserId,
+        userId: userSeed.keys.adminUserId,
         isActive: false,
-        createdBy: usersSeed.keys.adminUserId,
-        updatedBy: usersSeed.keys.adminUserId
+        createdBy: userSeed.keys.adminUserId,
+        updatedBy: userSeed.keys.adminUserId
       });
     });
 
     it("should move a top-level folder to a designated parent folder", async () => {
       const doc = await folderRepository.readOneFolder(
-        foldersSeed.keys.externalTodoId,
-        usersSeed.keys.adminUserId
+        folderSeed.keys.externalTodoId,
+        userSeed.keys.adminUserId
       );
 
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
           params: {id: doc._id},
           body: {
             name: doc.name,
-            parentId: foldersSeed.keys.sprintsId.toString()
+            parentId: folderSeed.keys.sprintsId.toString()
           }
         },
         foldersCtrl.putFolder
@@ -440,28 +440,28 @@ describe("folders.ctrl", () => {
       expect(data).to.deep.include({
         id: doc._id,
         name: "External TODO",
-        parentId: foldersSeed.keys.sprintsId,
+        parentId: folderSeed.keys.sprintsId,
         childrenIds: [],
         projectIds: [],
-        userId: usersSeed.keys.adminUserId,
+        userId: userSeed.keys.adminUserId,
         isActive: true,
-        createdBy: usersSeed.keys.adminUserId,
-        updatedBy: usersSeed.keys.adminUserId
+        createdBy: userSeed.keys.adminUserId,
+        updatedBy: userSeed.keys.adminUserId
       });
 
       // Make sure the parent knows
-      const parentDoc = await folderRepository.readOneFolder(foldersSeed.keys.sprintsId, usersSeed.keys.adminUserId);
+      const parentDoc = await folderRepository.readOneFolder(folderSeed.keys.sprintsId, userSeed.keys.adminUserId);
       expect(parentDoc.childrenIds).to.contain(doc._id);
     });
 
     it("should move a child folder to the top level", async () => {
       const doc = await folderRepository.readOneFolder(
-        foldersSeed.keys.sprintTwoId,
-        usersSeed.keys.adminUserId
+        folderSeed.keys.sprintTwoId,
+        userSeed.keys.adminUserId
       );
 
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
           params: {id: doc._id},
           body: {
             name: doc.name,
@@ -481,29 +481,29 @@ describe("folders.ctrl", () => {
         parentId: null,
         childrenIds: [],
         projectIds: [],
-        userId: usersSeed.keys.adminUserId,
+        userId: userSeed.keys.adminUserId,
         isActive: true,
-        createdBy: usersSeed.keys.adminUserId,
-        updatedBy: usersSeed.keys.adminUserId
+        createdBy: userSeed.keys.adminUserId,
+        updatedBy: userSeed.keys.adminUserId
       });
 
       // Make sure the parent knows
-      const parentDoc = await folderRepository.readOneFolder(foldersSeed.keys.sprintsId, usersSeed.keys.adminUserId);
+      const parentDoc = await folderRepository.readOneFolder(folderSeed.keys.sprintsId, userSeed.keys.adminUserId);
       expect(parentDoc.childrenIds).to.not.contain(doc._id);
     });
 
     it("should move a child folder to the top level", async () => {
       const doc = await folderRepository.readOneFolder(
-        foldersSeed.keys.sprintTwoId,
-        usersSeed.keys.adminUserId
+        folderSeed.keys.sprintTwoId,
+        userSeed.keys.adminUserId
       );
 
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
           params: {id: doc._id},
           body: {
             name: doc.name,
-            parentId: foldersSeed.keys.sprintOneId.toString()
+            parentId: folderSeed.keys.sprintOneId.toString()
           }
         },
         foldersCtrl.putFolder
@@ -516,32 +516,32 @@ describe("folders.ctrl", () => {
       expect(data).to.deep.include({
         id: doc._id,
         name: "Q4 Sprint 4 (3.54) – November 13, 2019",
-        parentId: foldersSeed.keys.sprintOneId,
+        parentId: folderSeed.keys.sprintOneId,
         childrenIds: [],
         projectIds: [],
-        userId: usersSeed.keys.adminUserId,
+        userId: userSeed.keys.adminUserId,
         isActive: true,
-        createdBy: usersSeed.keys.adminUserId,
-        updatedBy: usersSeed.keys.adminUserId
+        createdBy: userSeed.keys.adminUserId,
+        updatedBy: userSeed.keys.adminUserId
       });
 
       // Make sure the old parent knows
-      const oldParentDoc = await folderRepository.readOneFolder(foldersSeed.keys.sprintsId, usersSeed.keys.adminUserId);
+      const oldParentDoc = await folderRepository.readOneFolder(folderSeed.keys.sprintsId, userSeed.keys.adminUserId);
       expect(oldParentDoc.childrenIds).to.not.contain(doc._id);
 
       // Make sure the new parent knows
-      const newParentDoc = await folderRepository.readOneFolder(foldersSeed.keys.sprintOneId, usersSeed.keys.adminUserId);
+      const newParentDoc = await folderRepository.readOneFolder(folderSeed.keys.sprintOneId, userSeed.keys.adminUserId);
       expect(newParentDoc.childrenIds).to.contain(doc._id);
     });
 
     it("should return a 404 if you try to update a folder you don't own", async () => {
       const doc = await folderRepository.readOneFolder(
-        foldersSeed.keys.sprintTwoId,
-        usersSeed.keys.adminUserId
+        folderSeed.keys.sprintTwoId,
+        userSeed.keys.adminUserId
       );
 
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.normalCreds},
+          user: {...userSeed.credentials.normalCreds},
           params: {id: doc._id},
           body: {
             name: "foobar"
@@ -557,12 +557,12 @@ describe("folders.ctrl", () => {
 
     it("should return a 404 if you try to update a folder that does not exist", async () => {
       const doc = await folderRepository.readOneFolder(
-        foldersSeed.keys.sprintTwoId,
-        usersSeed.keys.adminUserId
+        folderSeed.keys.sprintTwoId,
+        userSeed.keys.adminUserId
       );
 
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.normalCreds},
+          user: {...userSeed.credentials.normalCreds},
           params: {id: "beefbeefbeefbeefbeefbeef"},
           body: {
             name: "foobar"
@@ -579,12 +579,12 @@ describe("folders.ctrl", () => {
     describe("error handling", () => {
       it("should not let a folder become its own parent", async () => {
         const doc = await folderRepository.readOneFolder(
-          foldersSeed.keys.sprintTwoId,
-          usersSeed.keys.adminUserId
+          folderSeed.keys.sprintTwoId,
+          userSeed.keys.adminUserId
         );
     
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.adminCreds},
+            user: {...userSeed.credentials.adminCreds},
             params: {id: doc._id},
             body: {
               name: doc.name,
@@ -602,16 +602,16 @@ describe("folders.ctrl", () => {
 
       it("should not let a folder become a child of another user's folder", async () => {
         const doc = await folderRepository.readOneFolder(
-          foldersSeed.keys.sprintTwoId,
-          usersSeed.keys.adminUserId
+          folderSeed.keys.sprintTwoId,
+          userSeed.keys.adminUserId
         );
     
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.adminCreds},
+            user: {...userSeed.credentials.adminCreds},
             params: {id: doc._id},
             body: {
               name: doc.name,
-              parentId: foldersSeed.keys.myProjectsId.toString()
+              parentId: folderSeed.keys.myProjectsId.toString()
             }
           },
           foldersCtrl.putFolder
@@ -625,12 +625,12 @@ describe("folders.ctrl", () => {
 
       it("should not let a folder become a child of a folder that does not exist", async () => {
         const doc = await folderRepository.readOneFolder(
-          foldersSeed.keys.sprintTwoId,
-          usersSeed.keys.adminUserId
+          folderSeed.keys.sprintTwoId,
+          userSeed.keys.adminUserId
         );
     
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.adminCreds},
+            user: {...userSeed.credentials.adminCreds},
             params: {id: doc._id},
             body: {
               name: doc.name,
@@ -652,16 +652,16 @@ describe("folders.ctrl", () => {
           .throws(new Error("Yeeet!"));
 
         const doc = await folderRepository.readOneFolder(
-          foldersSeed.keys.sprintTwoId,
-          usersSeed.keys.adminUserId
+          folderSeed.keys.sprintTwoId,
+          userSeed.keys.adminUserId
         );
   
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.adminCreds},
+            user: {...userSeed.credentials.adminCreds},
             params: {id: doc._id},
             body: {
               name: doc.name,
-              parentId: foldersSeed.keys.sprintOneId.toString()
+              parentId: folderSeed.keys.sprintOneId.toString()
             }
           },
           foldersCtrl.putFolder
@@ -678,14 +678,14 @@ describe("folders.ctrl", () => {
   describe("deleteFolder", () => {
     it("should delete an inactive, top-level folder, that has no children", async () => {
       const doc = await folderRepository.readOneFolder(
-        foldersSeed.keys.externalTodoId,
-        usersSeed.keys.adminUserId
+        folderSeed.keys.externalTodoId,
+        userSeed.keys.adminUserId
       );
       doc.isActive = false;
       await doc.save();
 
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
           params: {id: doc._id}
         },
         foldersCtrl.deleteFolder
@@ -697,20 +697,20 @@ describe("folders.ctrl", () => {
       expect(data.count).to.equal(1);
 
       // Make sure it's really gone
-      const doc2 = await folderRepository.readOneFolder(doc._id, usersSeed.keys.adminUserId);
+      const doc2 = await folderRepository.readOneFolder(doc._id, userSeed.keys.adminUserId);
       expect(!!doc2).to.be.false;
     });
 
     it("should delete an inactive, child folder", async () => {
       const doc = await folderRepository.readOneFolder(
-        foldersSeed.keys.sprintTwoId,
-        usersSeed.keys.adminUserId
+        folderSeed.keys.sprintTwoId,
+        userSeed.keys.adminUserId
       );
       doc.isActive = false;
       await doc.save();
 
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
           params: {id: doc._id}
         },
         foldersCtrl.deleteFolder
@@ -722,24 +722,24 @@ describe("folders.ctrl", () => {
       expect(data.count).to.equal(1);
 
       // Make sure it's really gone
-      const doc2 = await folderRepository.readOneFolder(doc._id, usersSeed.keys.adminUserId);
+      const doc2 = await folderRepository.readOneFolder(doc._id, userSeed.keys.adminUserId);
       expect(!!doc2).to.be.false;
 
       // Make sure the parent knows
-      const parentDoc = await folderRepository.readOneFolder(foldersSeed.keys.sprintsId, usersSeed.keys.adminUserId);
+      const parentDoc = await folderRepository.readOneFolder(folderSeed.keys.sprintsId, userSeed.keys.adminUserId);
       expect(parentDoc.childrenIds).to.not.contain(doc._id);
     });
 
     it("should delete an inactive, parent folder and all all children", async () => {
       const doc = await folderRepository.readOneFolder(
-        foldersSeed.keys.sprintsId,
-        usersSeed.keys.adminUserId
+        folderSeed.keys.sprintsId,
+        userSeed.keys.adminUserId
       );
       doc.isActive = false;
       await doc.save();
 
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
           params: {id: doc._id}
         },
         foldersCtrl.deleteFolder
@@ -751,18 +751,18 @@ describe("folders.ctrl", () => {
       expect(data.count).to.equal(3);
 
       // Make sure it's really gone
-      let doc2 = await folderRepository.readOneFolder(foldersSeed.keys.sprintsId, usersSeed.keys.adminUserId);
+      let doc2 = await folderRepository.readOneFolder(folderSeed.keys.sprintsId, userSeed.keys.adminUserId);
       expect(!!doc2).to.be.false;
-      doc2 = await folderRepository.readOneFolder(foldersSeed.keys.sprintOneId, usersSeed.keys.adminUserId);
+      doc2 = await folderRepository.readOneFolder(folderSeed.keys.sprintOneId, userSeed.keys.adminUserId);
       expect(!!doc2).to.be.false;
-      doc2 = await folderRepository.readOneFolder(foldersSeed.keys.sprintTwoId, usersSeed.keys.adminUserId);
+      doc2 = await folderRepository.readOneFolder(folderSeed.keys.sprintTwoId, userSeed.keys.adminUserId);
       expect(!!doc2).to.be.false;
     });
 
     it("should not delete a folder that belongs to another user", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
-          params: {id: foldersSeed.keys.myProjectsId}
+          user: {...userSeed.credentials.adminCreds},
+          params: {id: folderSeed.keys.myProjectsId}
         },
         foldersCtrl.deleteFolder
       );
@@ -774,7 +774,7 @@ describe("folders.ctrl", () => {
 
     it("should not delete a folder that does not exist", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
+          user: {...userSeed.credentials.adminCreds},
           params: {id: "beefbeefbeefbeefbeefbeef"}
         },
         foldersCtrl.deleteFolder
@@ -787,8 +787,8 @@ describe("folders.ctrl", () => {
 
     it("should not delete a folder that is not marked inactive", async () => {
       const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.adminCreds},
-          params: {id: foldersSeed.keys.externalTodoId}
+          user: {...userSeed.credentials.adminCreds},
+          params: {id: folderSeed.keys.externalTodoId}
         },
         foldersCtrl.deleteFolder
       );
@@ -803,8 +803,8 @@ describe("folders.ctrl", () => {
     describe("error handling", () => {
       it("should return a 400 if there is an error unlinking from parent", async () => {
         const doc = await folderRepository.readOneFolder(
-          foldersSeed.keys.sprintTwoId,
-          usersSeed.keys.adminUserId
+          folderSeed.keys.sprintTwoId,
+          userSeed.keys.adminUserId
         );
         doc.isActive = false;
         await doc.save();
@@ -814,7 +814,7 @@ describe("folders.ctrl", () => {
           .throws(new Error("Yeeet!"));
     
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.adminCreds},
+            user: {...userSeed.credentials.adminCreds},
             params: {id: doc._id}
           },
           foldersCtrl.deleteFolder

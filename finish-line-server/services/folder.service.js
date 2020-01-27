@@ -10,9 +10,8 @@ const errorMessages = {
 };
 
 async function createFolder(req, ctrl) {
-  const name = req.body.name;
   const userId = req.user.userId;
-  const parentId = req.body.parentId;
+  const { name, parentId } = req.body;
 
   let parentFolder = null; 
   if (parentId) {

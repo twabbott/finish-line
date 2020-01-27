@@ -6,7 +6,7 @@ const { expect } = require("chai");
 const { executeMiddleware, executeMiddlewareAsync, trace } = require("../test-utils/express-shim");
 const { userRepository } = require("../../models/user.model");
 const mockDb = require("../mockRepositories/mock-db");
-const usersSeed = require("../mockRepositories/users.seed");
+const userSeed = require("../mockRepositories/user.seed");
 const regex = require("../../shared/regex");
 
 // Module under test
@@ -18,7 +18,7 @@ describe("users.ctrl", () => {
   });
 
   beforeEach(async () => {
-    await usersSeed.resetAll();
+    await userSeed.resetAll();
   });
 
   after(async () => {
@@ -37,7 +37,7 @@ describe("users.ctrl", () => {
     describe("with admin credentials", async () => {
       it("should read all users", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.adminCreds},
+            user: {...userSeed.credentials.adminCreds},
           },
           usersCtrl.getAllUsers
         );
@@ -46,15 +46,15 @@ describe("users.ctrl", () => {
         expect(result.status).to.equal(200);
         expect(Array.isArray(result.body.data)).to.be.true;
         expect(result.body.data.length).to.equal(2);
-        expect(result.body.data[0].id).to.deep.equal(usersSeed.keys.adminUserId);
-        expect(result.body.data[1].id).to.deep.equal(usersSeed.keys.normalUserId);
+        expect(result.body.data[0].id).to.deep.equal(userSeed.keys.adminUserId);
+        expect(result.body.data[1].id).to.deep.equal(userSeed.keys.normalUserId);
       });
     });
 
     describe("with normal credentials", () => {
       it("should read just the user's info.", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.normalCreds}
+            user: {...userSeed.credentials.normalCreds}
           },
           usersCtrl.getAllUsers
         );
@@ -63,7 +63,7 @@ describe("users.ctrl", () => {
         expect(result.status).to.equal(200);
         expect(Array.isArray(result.body.data)).to.be.true;
         expect(result.body.data.length).to.equal(1);
-        expect(result.body.data[0].id).to.deep.equal(usersSeed.keys.normalUserId);
+        expect(result.body.data[0].id).to.deep.equal(userSeed.keys.normalUserId);
       });
     });
 
@@ -85,34 +85,34 @@ describe("users.ctrl", () => {
     describe("with admin credentials", () => {
       it("should read own user info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.adminUserId },
-            user: {...usersSeed.credentials.adminCreds}
+            params: { id: userSeed.keys.adminUserId },
+            user: {...userSeed.credentials.adminCreds}
           },
           usersCtrl.getOneUser
         );
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.deep.equal(usersSeed.keys.adminUserId);
+        expect(result.body.data.id).to.deep.equal(userSeed.keys.adminUserId);
       });
 
       it("should read any other user's info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.normalUserId },
-            user: {...usersSeed.credentials.adminCreds}
+            params: { id: userSeed.keys.normalUserId },
+            user: {...userSeed.credentials.adminCreds}
           },
           usersCtrl.getOneUser
         );
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.deep.equal(usersSeed.keys.normalUserId);
+        expect(result.body.data.id).to.deep.equal(userSeed.keys.normalUserId);
       });
 
       it("should return 404 if user is not found", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: "111222333444555666777888" },
-            user: {...usersSeed.credentials.adminCreds}
+            user: {...userSeed.credentials.adminCreds}
           },
           usersCtrl.getOneUser
         );
@@ -125,22 +125,22 @@ describe("users.ctrl", () => {
     describe("with normal credentials", () => {
       it("should read own user info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.normalUserId },
-            user: {...usersSeed.credentials.normalCreds}
+            params: { id: userSeed.keys.normalUserId },
+            user: {...userSeed.credentials.normalCreds}
           },
           usersCtrl.getOneUser
         );
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.deep.equal(usersSeed.keys.normalUserId);
+        expect(result.body.data.id).to.deep.equal(userSeed.keys.normalUserId);
       });
 
       it("should not be able to read another user's info", async () => {
         const result = await executeMiddlewareAsync(
           {
-            params: { id: usersSeed.keys.adminUserId },
-            user: {...usersSeed.credentials.normalCreds}
+            params: { id: userSeed.keys.adminUserId },
+            user: {...userSeed.credentials.normalCreds}
           },
           usersCtrl.getOneUser
         );
@@ -155,7 +155,7 @@ describe("users.ctrl", () => {
       it("should not be able to read any user's info", async () => {
         const result = await executeMiddlewareAsync(
           {
-            params: { id: usersSeed.keys.normalUserId }
+            params: { id: userSeed.keys.normalUserId }
           },
           usersCtrl.getOneUser
         );
@@ -171,45 +171,58 @@ describe("users.ctrl", () => {
     describe("with admin credentials", () => {
       it("should allow creating a new user", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.adminCreds},
+            user: {...userSeed.credentials.adminCreds},
             body: {...mockNewUser}
           },
           usersCtrl.postUser
         );
 
+        const now = new Date;
+        const { data } = result.body;
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(201);
-        expect(regex.objectId.test(result.body.data.id)).to.be.true;
-        expect(result.body.data.name).to.equal("Fred Flintstone");
-        expect(result.body.data.email).to.equal("fred.flintstone@hb.com");
-        expect(result.body.data.isAdmin).to.equal(false);
-        expect(result.body.data.isActive).to.equal(true);
-        expect(isNaN(Date.parse(result.body.data.createdAt))).to.be.false;
-        expect(isNaN(Date.parse(result.body.data.updatedAt))).to.be.false;
-        expect(result.headers).to.deep.equal({ 
-          Location: `http://blah.com//${result.body.data.id}` 
+        expect(regex.objectId.test(data.id.toString())).to.be.true;
+        expect(data).to.deep.include({
+          name: 'Fred Flintstone',
+          email: 'fred.flintstone@hb.com',
+          isAdmin: false,
+          isActive: true
         });
+        expect(now - data.createdAt).to.be.lt(10000);
+        expect(now - data.updatedAt).to.be.lt(10000);
+        expect(result.headers).to.deep.equal({ 
+          Location: `http://blah.com//${data.id}` 
+        });
+
+        // Read back the new user and make sure it exists
+        const newUser = await userRepository.readOneUser(data.id);
+        expect(newUser).to.be.ok;
+        expect(newUser.name).to.equal(data.name);
       });
     });
 
     describe("with normal credentials", () => {
       it("should allow creating a new user", async () => {
         const result = await executeMiddlewareAsync({
-            user: {...usersSeed.credentials.normalCreds},
+            user: {...userSeed.credentials.normalCreds},
             body: {...mockNewUser}
           },
           usersCtrl.postUser
         );
 
+        const now = new Date;
+        const { data } = result.body;
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(201);
-        expect(regex.objectId.test(result.body.data.id)).to.be.true;
-        expect(result.body.data.name).to.equal("Fred Flintstone");
-        expect(result.body.data.email).to.equal("fred.flintstone@hb.com");
-        expect(result.body.data.isAdmin).to.equal(false);
-        expect(result.body.data.isActive).to.equal(true);
-        expect(isNaN(Date.parse(result.body.data.createdAt))).to.be.false;
-        expect(isNaN(Date.parse(result.body.data.updatedAt))).to.be.false;
+        expect(regex.objectId.test(data.id.toString())).to.be.true;
+        expect(data).to.deep.include({
+          name: 'Fred Flintstone',
+          email: 'fred.flintstone@hb.com',
+          isAdmin: false,
+          isActive: true
+        });
+        expect(now - data.createdAt).to.be.lt(10000);
+        expect(now - data.updatedAt).to.be.lt(10000);
         expect(result.headers).to.deep.equal({ 
           Location: `http://blah.com//${result.body.data.id}` 
         });
@@ -217,7 +230,7 @@ describe("users.ctrl", () => {
 
       it("should not allow creating an admin user", async () => {
         const result = await executeMiddlewareAsync({
-          user: {...usersSeed.credentials.normalCreds},
+          user: {...userSeed.credentials.normalCreds},
             body: {
               ...mockNewUser,
               isAdmin: true
@@ -282,8 +295,8 @@ describe("users.ctrl", () => {
 
       it("should allow updating a user's own info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.adminUserId },
-            user: {...usersSeed.credentials.adminCreds},
+            params: { id: userSeed.keys.adminUserId },
+            user: {...userSeed.credentials.adminCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -296,7 +309,7 @@ describe("users.ctrl", () => {
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.deep.equal(usersSeed.keys.adminUserId);
+        expect(result.body.data.id).to.deep.equal(userSeed.keys.adminUserId);
         expect(result.body.data.name).to.equal(newName);
         expect(result.body.data.email).to.equal(newEmail);
         expect(result.body.data.isAdmin).to.equal(false);
@@ -305,8 +318,8 @@ describe("users.ctrl", () => {
 
       it("should allow updating another user's info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.normalUserId },
-            user: {...usersSeed.credentials.adminCreds},
+            params: { id: userSeed.keys.normalUserId },
+            user: {...userSeed.credentials.adminCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -319,7 +332,7 @@ describe("users.ctrl", () => {
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.deep.equal(usersSeed.keys.normalUserId);
+        expect(result.body.data.id).to.deep.equal(userSeed.keys.normalUserId);
         expect(result.body.data.name).to.equal(newName);
         expect(result.body.data.email).to.equal(newEmail);
         expect(result.body.data.isAdmin).to.equal(false);
@@ -328,8 +341,8 @@ describe("users.ctrl", () => {
 
       it("should allow resetting another user's password", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.normalUserId },
-            user: {...usersSeed.credentials.adminCreds},
+            params: { id: userSeed.keys.normalUserId },
+            user: {...userSeed.credentials.adminCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -343,7 +356,7 @@ describe("users.ctrl", () => {
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.deep.equal(usersSeed.keys.normalUserId);
+        expect(result.body.data.id).to.deep.equal(userSeed.keys.normalUserId);
         expect(result.body.data.name).to.equal(newName);
         expect(result.body.data.email).to.equal(newEmail);
         expect(result.body.data.isAdmin).to.equal(false);
@@ -357,12 +370,12 @@ describe("users.ctrl", () => {
   
       it("should allow updating a user's own info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.normalUserId },
-            user: {...usersSeed.credentials.normalCreds},
+            params: { id: userSeed.keys.normalUserId },
+            user: {...userSeed.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
-              password: usersSeed.credentials.password,
+              password: userSeed.credentials.password,
               isAdmin: false,
               isActive: false,
             }
@@ -372,7 +385,7 @@ describe("users.ctrl", () => {
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.deep.equal(usersSeed.keys.normalUserId);
+        expect(result.body.data.id).to.deep.equal(userSeed.keys.normalUserId);
         expect(result.body.data.name).to.equal(newName);
         expect(result.body.data.email).to.equal(newEmail);
         expect(result.body.data.isAdmin).to.equal(false);
@@ -381,13 +394,13 @@ describe("users.ctrl", () => {
   
       it("should allow resetting user's own password", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.normalUserId },
-            user: {...usersSeed.credentials.normalCreds},
+            params: { id: userSeed.keys.normalUserId },
+            user: {...userSeed.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
               newPassword: "blarggg",
-              password: usersSeed.credentials.password,
+              password: userSeed.credentials.password,
               isAdmin: false,
               isActive: false,
             }
@@ -397,7 +410,7 @@ describe("users.ctrl", () => {
 
         expect(result.body.success).to.be.true;
         expect(result.status).to.equal(200);
-        expect(result.body.data.id).to.deep.equal(usersSeed.keys.normalUserId);
+        expect(result.body.data.id).to.deep.equal(userSeed.keys.normalUserId);
         expect(result.body.data.name).to.equal(newName);
         expect(result.body.data.email).to.equal(newEmail);
         expect(result.body.data.isAdmin).to.equal(false);
@@ -406,12 +419,12 @@ describe("users.ctrl", () => {
   
       it("should forbid user from promoting themselves to admin", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.normalUserId },
-            user: {...usersSeed.credentials.normalCreds},
+            params: { id: userSeed.keys.normalUserId },
+            user: {...userSeed.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
-              password: usersSeed.credentials.password,
+              password: userSeed.credentials.password,
               isAdmin: true,
               isActive: false,
             }
@@ -427,8 +440,8 @@ describe("users.ctrl", () => {
   
       it("should forbid updating user's own info if no password given", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.normalUserId },
-            user: {...usersSeed.credentials.normalCreds},
+            params: { id: userSeed.keys.normalUserId },
+            user: {...userSeed.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -447,8 +460,8 @@ describe("users.ctrl", () => {
 
       it("should forbid updating user's own info if password does not match", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.normalUserId },
-            user: {...usersSeed.credentials.normalCreds},
+            params: { id: userSeed.keys.normalUserId },
+            user: {...userSeed.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
@@ -468,12 +481,12 @@ describe("users.ctrl", () => {
 
       it("should forbid updating another user's info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.adminUserId },
-            user: {...usersSeed.credentials.normalCreds},
+            params: { id: userSeed.keys.adminUserId },
+            user: {...userSeed.credentials.normalCreds},
             body: {    
               name: newName,
               email: newEmail,
-              password: usersSeed.credentials.password,
+              password: userSeed.credentials.password,
               isAdmin: false,
               isActive: false,
             }
@@ -493,11 +506,11 @@ describe("users.ctrl", () => {
 
       it("should forbid updating any user's info", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.normalUserId },
+            params: { id: userSeed.keys.normalUserId },
             body: {    
               name: newName,
               email: newEmail,
-              password: usersSeed.credentials.password,
+              password: userSeed.credentials.password,
               isAdmin: false,
               isActive: false,
             }
@@ -515,13 +528,13 @@ describe("users.ctrl", () => {
   describe("deleteUser", () => {
     describe("with admin credentials", () => {
       it("should allow deleting another deactivated user", async () => {
-        const normie = await userRepository.readOneUser(usersSeed.keys.normalUserId);
+        const normie = await userRepository.readOneUser(userSeed.keys.normalUserId);
         normie.isActive = false;
         await normie.save();
 
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.normalUserId },
-            user: {...usersSeed.credentials.adminCreds}
+            params: { id: userSeed.keys.normalUserId },
+            user: {...userSeed.credentials.adminCreds}
           },
           usersCtrl.deleteUser
         );
@@ -534,13 +547,13 @@ describe("users.ctrl", () => {
       });
 
       it("should not allow a user to delete theirself", async () => {
-        const admin = await userRepository.readOneUser(usersSeed.keys.adminUserId);
+        const admin = await userRepository.readOneUser(userSeed.keys.adminUserId);
         admin.isActive = false;
         await admin.save();
 
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.adminUserId },
-            user: {...usersSeed.credentials.adminCreds}
+            params: { id: userSeed.keys.adminUserId },
+            user: {...userSeed.credentials.adminCreds}
           },
           usersCtrl.deleteUser
         );
@@ -554,8 +567,8 @@ describe("users.ctrl", () => {
 
       it("should allow deleting a user that is not deactivated", async () => {
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.normalUserId },
-            user: {...usersSeed.credentials.adminCreds}
+            params: { id: userSeed.keys.normalUserId },
+            user: {...userSeed.credentials.adminCreds}
           },
           usersCtrl.deleteUser
         );
@@ -570,7 +583,7 @@ describe("users.ctrl", () => {
       it("should return an error if you delete a user that does not exist", async () => {
         const result = await executeMiddlewareAsync({
             params: { id: "aaaabbbbccccddddeeeeffff" },
-            user: {...usersSeed.credentials.adminCreds}
+            user: {...userSeed.credentials.adminCreds}
           },
           usersCtrl.deleteUser
         );
@@ -583,13 +596,13 @@ describe("users.ctrl", () => {
 
     describe("with normal credentials", () => {
       it("should not allow a user to delete another user", async () => {
-        const admin = await userRepository.readOneUser(usersSeed.keys.adminUserId);
+        const admin = await userRepository.readOneUser(userSeed.keys.adminUserId);
         admin.isActive = false;
         await admin.save();
 
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.adminUserId },
-            user: {...usersSeed.credentials.normalCreds}
+            params: { id: userSeed.keys.adminUserId },
+            user: {...userSeed.credentials.normalCreds}
           },
           usersCtrl.deleteUser
         );
@@ -602,12 +615,12 @@ describe("users.ctrl", () => {
 
     describe("with anonymous credentials", () => {
       it("should not allow anonymous user to delete any user", async () => {
-        const admin = await userRepository.readOneUser(usersSeed.keys.adminUserId);
+        const admin = await userRepository.readOneUser(userSeed.keys.adminUserId);
         admin.isActive = false;
         await admin.save();
 
         const result = await executeMiddlewareAsync({
-            params: { id: usersSeed.keys.adminUserId },
+            params: { id: userSeed.keys.adminUserId },
           },
           usersCtrl.deleteUser
         );

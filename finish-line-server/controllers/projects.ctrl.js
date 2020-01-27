@@ -1,104 +1,94 @@
-// const {
-//   makeGetMany,
-//   makeGetOne,
-//   makePost,
-//   makePut,
-//   makeDelete,
-//   autoMapper
-// } = require("../middleware/restFactory");
+const { createProject, readManyProjects, errorMessages } = require("../services/project.service");
+const { createMap } = require("../middleware/automapper");
+const { serviceWrapper, getResponse, postResponse, putResponse, deleteResponse } = require("../middleware/restFactory");
+const { validateRequestBody, handleMongoErrors } = require("../middleware/errorHandlers");
 
-// const projectsService = require("../services/project.service");
+const cleanup = createMap([
+  ["_id", "id"],
+  "name",
+  "links",
+  "status",
+  "dueDate",
+  "parentFolderIds",
+  "todo",
+  "userId",
+  "isActive",
+  "createdAt", 
+  "createdBy", 
+  "updatedAt", 
+  "updatedBy", 
+]);
 
-// const mapper = {
-//   allDetails: autoMapper({
-//     id: "_id",
-//     name: true,
-//     links: true,
-//     order: true,
-//     status: true,
-//     dueDate: true,
-//     todo: true,
-//     parentIds: true,
-//     userId: true,
-//     isActive: true,
-//     createdAt: true,
-//     createdBy: true,
-//     updatedAt: true,
-//     updatedBy: true
-//   }),
-//   linkItem: autoMapper({
-//     url: true,
-//     text: true,
-//     groupName: true
-//   }),
-//   todoItem: autoMapper({
-//     title: true,
-//     status: true,
-//     details: true,
-//     dueDate: true
-//   })
-// };
+const projectInfoSchema = {
+  name: { 
+    type: String, 
+    required: true,
+    maxLength: 200
+  },
+  links: { 
+    type: Array,
+    ofType: Object,
+    schema: {
+      url: { type: String, required: true, maxLength: 200 },
+      text: { type: String, required: false, maxLength: 200, default: null }
+    }
+  },
+  status: {
+    type: String,
+    required: true,
+    values: ["Active", "Blocked", "On Hold", "Completed"],
+    default: "Active",
+    maxLength: 15
+  },
+  dueDate: {
+    type: Date,
+    required: false,
+    default: null
+  },
+  parentFolderIds: {
+    type: Array,
+    ofType: String,
+    minLength: 1
+  },
+  todo: {
+    type: Array,
+    ofType: Object,
+    schema: {
+      title: { type: String, required: true, maxLength: 200 },
+      status: {
+        type: String,
+        required: true,
+        values: ["Active", "Blocked", "On Hold", "Completed"],
+        maxLength: 200
+      },
+      details: { type: String, required: true, maxLength: 200 },
+      dueDate: { type: Date, required: false, default: null }
+    }
+  },
+  isActive: { 
+    type: Boolean,
+    required: true, 
+    default: true
+  },
+};
 
-// const createProject = makePost(async (params, body, credentials) => {
-//   const project = await projectsService.create(
-//     body.name,
-//     body.links,
-//     body.order,
-//     body.status,
-//     body.dueDate,
-//     body.todo,
-//     body.parentIds,
-//     credentials.userId
-//   );
+const validateProjectInfo = validateRequestBody(projectInfoSchema);
 
-//   return mapper.allDetails(project);
-// });
+module.exports = {
+  getManyProjects: [
+    serviceWrapper.callAsync(readManyProjects),
+    handleMongoErrors(errorMessages.read),
+    cleanup.mapArray,
+    getResponse
+  ],
+  getOneProject: [],
 
-// const readAllProjects = makeGetMany(async (params, credentials) => {
-//   const projects = await projectsService.readMany(params.parentId, credentials.userId);
+  postProject: [
+    validateProjectInfo,
+    serviceWrapper.callAsync(createProject),
+    handleMongoErrors(errorMessages.create),
+    cleanup.mapScalar,
+    postResponse
+  ]
+};
 
-//   return projects.map(project => mapper.allDetails(project));
-// });
-
-// const readProject = makeGetOne(async (params, credentials) => {
-//   const project = await projectsService.readOne(params.id, credentials.userId);
-
-//   return mapper.allDetails(project);
-// });
-
-// const updateProject = makePut(async (params, body, credentials) => {
-//   let links = [];
-//   if (body.links && Array.isArray(body.links)) {
-//     links = body.links.map(link=>mapper.linkItem(link));
-//   }
-
-//   let todos = [];
-//   if (body.todos && Array.isArray(body.todos)) {
-//     todos = body.todos.map(todo => mapper.todoItem(todo));
-//   }
-
-//   const project = await projectsService.update(
-//     body.name,
-//     links,
-//     body.order,
-//     body.status,
-//     body.dueDate,
-//     todos,
-//     body.parentIds,
-//     credentials.userId
-//   );
-
-//   return mapper.allDetails(project);
-// });
-
-// const deleteProject = makeDelete(async (params, credentials) => {
-//   return await projectsService.delete(params.id, credentials.userId);
-// });
-
-// module.exports = {
-//   createProject,
-//   readAllProjects,
-//   readProject,
-//   updateProject,
-//   deleteProject
-// };

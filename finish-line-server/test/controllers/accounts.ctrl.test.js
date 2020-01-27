@@ -7,7 +7,7 @@ const restFactory = require("../../middleware/restFactory");
 const { executeMiddleware, executeMiddlewareAsync, trace } = require("../test-utils/express-shim");
 const { userRepository } = require("../../models/user.model");
 const mockDb = require("../mockRepositories/mock-db");
-const usersSeed = require("../mockRepositories/users.seed");
+const userSeed = require("../mockRepositories/user.seed");
 const regex = require("../../shared/regex");
 
 // Module under test
@@ -19,7 +19,7 @@ describe("accounts.ctrl", () => {
   });
 
   beforeEach(async () => {
-    await usersSeed.resetAll();
+    await userSeed.resetAll();
   });
 
   after(async () => {
@@ -30,7 +30,7 @@ describe("accounts.ctrl", () => {
     const result = await executeMiddlewareAsync({
         body: {
           email: "barney@gmail.com",
-          password: usersSeed.credentials.password
+          password: userSeed.credentials.password
         },
       },
       accountsCtrl.signin
@@ -45,7 +45,7 @@ describe("accounts.ctrl", () => {
     const result = await executeMiddlewareAsync({
         body: {
           email: "foo@nowhere.com",
-          password: usersSeed.credentials.password
+          password: userSeed.credentials.password
         },
       },
       accountsCtrl.signin
@@ -74,14 +74,14 @@ describe("accounts.ctrl", () => {
   });
 
   it("should not sign in if user has been deactivated", async () => {
-    const normie = await userRepository.readOneUser(usersSeed.keys.normalUserId);
+    const normie = await userRepository.readOneUser(userSeed.keys.normalUserId);
     normie.isActive = false;
     await normie.save();
 
     const result = await executeMiddlewareAsync({
         body: {
           email: "barney@gmail.com",
-          password: usersSeed.credentials.password
+          password: userSeed.credentials.password
         },
       },
       accountsCtrl.signin

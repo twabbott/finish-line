@@ -1,74 +1,74 @@
-const mongoose = require("mongoose");
+const { ObjectId } = require("mongodb");
 
-const { projectSchema } = require("../models");
-const { AppError } = require("../shared");
+const { projectRepository } = require("../models/project.model");
+const { RequestError, BadRequestError, NotFoundError } = require("../middleware/restFactory");
 
-const ObjectId = mongoose.Types.ObjectId;
+const errorMessages = {
+  create: "Error creating project",
+  read: "Error reading project(s)",
+  update: "Error updating project",
+  delete: "Error deleting project",
+  general: "General error"
+};
 
-function assignAll(project, isCreate, name, links, order, status, dueDate, todo, parentIds, userId) {
-  project.name = name;
+async function createProject(req, ctrl) {
+  const userId = req.user.userId;
 
-  if (!links || !Array.isArray(links)) {
-    throw new AppError("Property links must be an array");
-  }
-  project.links = links.map(link => ({
-    url: link.url,
-    text: link.text,
-    groupName: link.groupName
-  }));
-  project.order = order;
-  project.status = status;
-  project.dueDate = dueDate;
-  if (!todo || !Array.isArray(todo)) {
-    throw new AppError("Property todo must be an array");
-  }
-  project.todo = todo.map(todo => {
-    const t = {
-      title: todo.title,
-      status: todo.status,
-      details: todo.details,
-      dueDate: todo.dueDate
-    };
+  const project = await projectRepository.createProject({
+    name: req.body.name, 
+    links: req.body.links,
+    status: req.body.status,
+    dueDate: req.body.dueDate,
+    parentFolderIds: req.body.parentFolderIds,
+    todo: req.body.todo,
+    userId,
+    isActive: req.body.isActive,
+    createdBy: userId,
+    updatedBy: userId
+  });
 
-    if (isCreate) {
-      t.todoId = new ObjectId();
+  let count = 0;
+  let errors = [];
+  for (let id of req.body.parentFolderIds) {
+    try {
+      await projectRepository.linkToParent(project, id, userId);
+      count++;
+    } catch (err) {
+      console.log(err)
+      errors.push(err.message);
+    }
+  };
+
+  if (count === 0) {
+    if (errors.length === 0) {
+      errors.push("General failure linking project to parent folder.");
     }
 
-    return t;
-  });
-  if (!parentIds || !Array.isArray(parentIds)) {
-    throw new AppError("Property parentIds must be an array");
-  }
-  project.parentIds = parentIds;
-  project.updatedBy = userId;
-}
+    try {
+      await folder.delete();
+    } catch (err) {
+      errors.push(`Error cleaning up stale project "${req.body.name}" _id=${project._id}`);
+    }
 
-async function create(name, links, order, status, dueDate, todo, parentIds, userId) {
-  const project = new projectSchema();
-
-  try {
-    assignAll(project, true, name, links, order, status, dueDate, todo, parentIds, userId);
-    project.userId = userId;
-    project.createdBy = userId;
-  
-    await project.save();
-  } catch(err) {
-    throw new AppError(`Error creating new project ${name}: ${err.message}`);
+    throw new RequestError(errorMessages.create, 400, errors);
   }
+
+  ctrl.setLocationId(project._id.toString());
 
   return project;
 }
 
-async function readMany(parentId, userId) {
-  let list;
+async function readManyProjects(req) {
+  const userId = req.user.userId;
 
-  try {
-    list = await projectSchema.find({ parentId: [parentId], userId });
-  } catch(err) {
-    throw new AppError(`Error reading projects for userId ${userId}: ${err.message}`);
+  const folderId = ObjectId(req.params.folderId);
+  const list = req.params.ids.split(",");
+  const results = await projectRepository.readManyProjects(userId, list);
+  if (!results || results.length < 1) {
+    throw new NotFoundError("No projects found.");
   }
 
-  return list;
+  return results.filter(prj => prj.parentFolderIds.findIndex(id => id.equals(folderId)) >= 0);
 }
 
 async function readOne(projectId, userId) {
@@ -130,9 +130,7 @@ async function $delete(projectId, userId) {
 }
 
 module.exports = {
-  create,
-  readMany,
-  readOne,
-  update,
-  delete: $delete
+  createProject,
+  readManyProjects,
+  errorMessages
 };
