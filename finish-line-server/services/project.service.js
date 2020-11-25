@@ -27,27 +27,29 @@ async function createProject(req, ctrl) {
     updatedBy: userId
   });
 
-  let count = 0;
   let errors = [];
   for (let id of req.body.parentFolderIds) {
     try {
       await projectRepository.linkToParent(project, id, userId);
-      count++;
     } catch (err) {
-      console.log(err)
       errors.push(err.message);
+      break;
     }
   };
 
-  if (count === 0) {
-    if (errors.length === 0) {
-      errors.push("General failure linking project to parent folder.");
-    }
-
+  if (errors.length > 0) {
+    for (let id of req.body.parentFolderIds) {
+      try {
+        await projectRepository.unlinkFromParent(project, id, userId);
+      } catch (err) {
+        errors.push(err.message);
+      }
+    };
+  
     try {
-      await folder.delete();
+      await project.delete();
     } catch (err) {
-      errors.push(`Error cleaning up stale project "${req.body.name}" _id=${project._id}`);
+      errors.push(`Error cleaning up stale project "${req.body.name}" id=${project._id}: ${err.message}`);
     }
 
     throw new RequestError(errorMessages.create, 400, errors);
@@ -71,16 +73,19 @@ async function readManyProjects(req) {
   return results.filter(prj => prj.parentFolderIds.findIndex(id => id.equals(folderId)) >= 0);
 }
 
-async function readOne(projectId, userId) {
+async function readOneProject(req) {
+  const userId = req.user.userId;
+  const projectId = req.params.projectId;
+
   if (!projectId) {
-    return null;
+    throw new BadRequestError(errorMessages.read, "Project id not given");
   }
 
   let project;
   try {
-    project = await projectSchema.findOne({ _id: projectId, userId: userId });
+    project = await projectRepository.readOneProject(userId, projectId);
   } catch(err) {
-    throw new AppError(`Cannot find project with _id=${projectId}: ${err.message}`);
+    throw new NotFoundError(`Cannot find project with id=${projectId}`);
   }
 
   return project; 
@@ -132,5 +137,6 @@ async function $delete(projectId, userId) {
 module.exports = {
   createProject,
   readManyProjects,
+  readOneProject,
   errorMessages
 };

@@ -3,6 +3,9 @@ const config = require("./config");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 
+// const dotenv = require('dotenv');
+// dotenv.config();
+
 require("./db");
 const routes = require("./routes");
 

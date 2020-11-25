@@ -1,4 +1,4 @@
-const { createProject, readManyProjects, errorMessages } = require("../services/project.service");
+const { createProject, readManyProjects, readOneProject, errorMessages } = require("../services/project.service");
 const { createMap } = require("../middleware/automapper");
 const { serviceWrapper, getResponse, postResponse, putResponse, deleteResponse } = require("../middleware/restFactory");
 const { validateRequestBody, handleMongoErrors } = require("../middleware/errorHandlers");
@@ -35,7 +35,7 @@ const projectInfoSchema = {
   },
   status: {
     type: String,
-    required: true,
+    required: false,
     values: ["Active", "Blocked", "On Hold", "Completed"],
     default: "Active",
     maxLength: 15
@@ -48,7 +48,8 @@ const projectInfoSchema = {
   parentFolderIds: {
     type: Array,
     ofType: String,
-    minLength: 1
+    minLength: 1,
+    required: true
   },
   todo: {
     type: Array,
@@ -67,7 +68,7 @@ const projectInfoSchema = {
   },
   isActive: { 
     type: Boolean,
-    required: true, 
+    required: false, 
     default: true
   },
 };
@@ -81,7 +82,13 @@ module.exports = {
     cleanup.mapArray,
     getResponse
   ],
-  getOneProject: [],
+
+  getOneProject: [
+    serviceWrapper.callAsync(readOneProject),
+    handleMongoErrors(errorMessages.read),
+    cleanup.mapScalar,
+    getResponse
+  ],
 
   postProject: [
     validateProjectInfo,

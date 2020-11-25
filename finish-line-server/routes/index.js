@@ -4,7 +4,7 @@ const path = require("path");
 const express = require("express");
 const router = express.Router();
 
-const authRouter = require("./auth.route");
+const accountsRouter = require("./accounts.route");
 const foldersRouter = require("./folders.route");
 //const projectsRouter = require("./projects.route");
 const usersRouter = require("./users.route");
@@ -23,7 +23,7 @@ restFactory.init({
 });
 
 // Add all public routes
-router.use(authRouter);
+router.use(accountsRouter);
 
 // All API routes
 router.use(

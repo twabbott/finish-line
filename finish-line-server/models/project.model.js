@@ -90,11 +90,11 @@ const projectRepository = {
   async linkToParent(projectId, parentFolderId, userId) {
     const parentFolder = await folderRepository.readOneFolder(parentFolderId, userId);
     if (!parentFolder) {
-      return;
+      throw new Error(`Error linking to parent folder id=${parentFolderId}.  No such folder exists.`);
     }
 
     if (parentFolder.projectIds.findIndex(id => id === projectId) >= 0) {
-      return;
+      return true;
     }
   
     try {
@@ -102,8 +102,10 @@ const projectRepository = {
       parentFolder.updatedBy = userId;
       await parentFolder.save();
     } catch (err) {
-      throw new Error(`Error linking to parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
+      throw new Error(`Error linking to parent folder id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
     }
+
+    return true;
   },
 
   async unlinkFromParent(project, parentId, userId) {
@@ -115,11 +117,11 @@ const projectRepository = {
   
     try {
       //console.log(`UNLINK: children before ${JSON.stringify(parentFolder.projectIds)}`);
-      parentFolder.projectIds = parentFolder.projectIds.filter(id => id.toString() !== folder._id.toString());
+      parentFolder.projectIds = parentFolder.projectIds.filter(id => id.toString() !== project._id.toString());
       await parentFolder.save();
       //console.log(`UNLINK: children after ${JSON.stringify(parentFolder.projectIds)}`);
     } catch (err) {
-      throw Error(`Error unlinking from parent folder _id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
+      throw Error(`Error unlinking from parent folder id=${parentFolder._id} name="${parentFolder.name}": ${err.message}`);
     }
   },
 

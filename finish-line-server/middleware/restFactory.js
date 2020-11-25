@@ -256,7 +256,7 @@ class NotFoundError extends Error {
  */
 function handleErrors(err, req, res, next) { // eslint-disable-line
   if (err instanceof RequestError) {
-    trace(`handleErrors - ${err.statusCode} (RequestError)`);
+    trace("restFactory", `handleErrors - ${err.statusCode} (RequestError)`);
     return res
       .status(err.statusCode || 400)
       .json({
