@@ -14,7 +14,7 @@
   "author": "Tom Abbott",
   "license": "ISC",
   "dependencies": {
-    "bcrypt": "^3.0.8",
+    "bcrypt": "^5.0.0",
     "body-parser": "^1.19.0",
     "config": "^3.3.1",
     "cors": "^2.8.5",
